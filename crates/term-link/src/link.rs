@@ -38,7 +38,7 @@ pub trait HostTerminals: Clone + Send + Sync + 'static {
         &self,
         terminal_id: &str,
         after_seq: u64,
-    ) -> Result<mpsc::UnboundedReceiver<TerminalEvent>, String>;
+    ) -> Result<mpsc::Receiver<TerminalEvent>, String>;
     /// Apply input numbered `seq` by `client`, once (a replay of a seq
     /// already applied is dropped). `Ok(false)` = a duplicate.
     fn write_sequenced(

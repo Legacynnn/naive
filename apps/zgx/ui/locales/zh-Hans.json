@@ -222,7 +222,6 @@
         "conflict": "冲突",
         "ignored": "已忽略"
       },
-      "bytes": "{n} 字节",
       "image_named": "图像 {name}",
       "show_in_tree": "在文件树中显示 {name}",
       "unsaved": "未保存的更改",
@@ -1135,6 +1134,22 @@
         "attachments": "没有与“{q}”匹配的附件"
       },
       "placeholder": "搜索文件、对话和附件"
+    },
+    "bytes": "{n} 字节",
+    "storage": {
+      "modified": "changed {ago}",
+      "no_branch": "no branch",
+      "not_sized": "Not measured",
+      "untitled": "Untitled chat",
+      "active": "In use",
+      "archived": "Chat archived",
+      "deleted": "Chat deleted",
+      "no_chat": "No chat",
+      "dirty": "Uncommitted changes",
+      "unpushed": "{n, plural, one {# unpushed commit} other {# unpushed commits}}",
+      "missing": "Folder missing",
+      "remove_for": "Remove {name}",
+      "remove_menu": "移除工作树…"
     }
   },
   "settings": {
@@ -2377,6 +2392,101 @@
         "label": "语音模型",
         "description": "Parakeet v3 · {total} MB",
         "remove": "移除"
+      }
+    },
+    "storage": {
+      "title": "Storage",
+      "description": "Zeron 在这台电脑上保存的内容。",
+      "terms": "storage disk space size usage bytes gigabytes worktrees clean cleanup free delete remove",
+      "usage": {
+        "label": "Disk use",
+        "terms": "total size disk space used data folder"
+      },
+      "worktrees_row": {
+        "label": "Worktrees",
+        "terms": "worktrees checkouts branches remove"
+      },
+      "cleanup": {
+        "label": "Clean up",
+        "terms": "clean cleanup stale leftover archived updates free space"
+      },
+      "refresh": "Refresh",
+      "used": "已用",
+      "computed": "Computed {ago}",
+      "measuring": "Measuring Zeron's folders. This can take a few seconds.",
+      "measuring_short": "Measuring…",
+      "couldnt_measure": "Couldn't measure Zeron's folders",
+      "projects": {
+        "title": "Projects",
+        "none": "No project takes up space yet.",
+        "count": "{n, plural, =0 {没有工作树} other {# 个工作树}}"
+      },
+      "app": {
+        "title": "App data",
+        "updates": "Downloaded updates",
+        "updates_hint": "Versions downloaded to install",
+        "templates": "Templates",
+        "templates_hint": "Installed templates",
+        "plugins": "Plugins",
+        "plugins_hint": "Installed plugins",
+        "logs": "Logs",
+        "logs_hint": "What Zeron and its engine wrote down as they ran",
+        "uploads": "Uploads",
+        "uploads_hint": "Pictures and files sent in chats",
+        "other": "Other",
+        "other_hint": "Settings, and chat history no project claims",
+        "row": "更新、插件、日志和上传的文件",
+        "page": "Zeron 自己的文件，位于 {path}。"
+      },
+      "worktrees": {
+        "title": "Worktrees",
+        "couldnt": "Couldn't list the worktrees"
+      },
+      "remove": {
+        "title": "Remove “{name}”?",
+        "body": "Its folder {path} is deleted, and its branch {branch} with it. This can't be undone.",
+        "body_no_branch": "Its folder {path} is deleted. This can't be undone.",
+        "dirty": "It has uncommitted changes. They're lost with it.",
+        "unpushed": "{n, plural, one {One commit on its branch isn't pushed anywhere.} other {# commits on its branch aren't pushed anywhere.}} They're lost with it.",
+        "anyway": "Remove it anyway, losing this work",
+        "confirm": "Remove worktree",
+        "done": "Worktree removed",
+        "dirty_error": "Worktree has uncommitted changes."
+      },
+      "clean": {
+        "freed": "{size} freed",
+        "archived": {
+          "days": "Archived more than",
+          "option": "{n, plural, one {# day} other {# days}}"
+        }
+      },
+      "parts": {
+        "worktrees": "Worktrees",
+        "journals": "Chat history",
+        "app": "App data"
+      },
+      "this_computer": "这台电脑",
+      "project": {
+        "none": "这个项目没有工作树。",
+        "journals_hint": "这个项目的对话，保存在这台电脑上"
+      },
+      "free": {
+        "label": "释放 {size}",
+        "nothing": "没有可释放的空间",
+        "description": "过时的工作树、残留的对话数据和更新文件",
+        "title": "释放空间",
+        "body": "选择要从这台电脑上移除的内容。此操作无法撤销。",
+        "confirm_any": "释放空间",
+        "cleared": "已清理",
+        "removed": "{n, plural, =0 {没有需要移除的内容} other {已移除 # 项}}",
+        "stale": "{n, plural, =0 {没有过时的工作树} other {# 个过时的工作树}}",
+        "stale_hint": "没有对话，或其对话已归档或删除。有未提交更改的会保留。",
+        "deleted": "已删除对话的残留数据",
+        "deleted_hint": "已删除的对话留下的历史文件。",
+        "archived": "归档超过",
+        "archived_hint": "连同其历史永久删除，在所有设备上。",
+        "updates": "已下载的更新文件",
+        "updates_hint": "已安装或不再需要的。等待安装的会保留。"
       }
     }
   },

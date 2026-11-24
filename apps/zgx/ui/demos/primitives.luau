@@ -81,6 +81,9 @@ return {
 			page("settings", "Settings", function()
 				return require("@demos/settings")
 			end),
+			page("storage", "Storage", function()
+				return require("@demos/storage")
+			end),
 			page("onboarding_blocks", "Onboarding", function()
 				return require("@demos/onboarding")
 			end),

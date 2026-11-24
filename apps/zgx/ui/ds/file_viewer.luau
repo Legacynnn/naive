@@ -182,21 +182,7 @@ local SAID: { [string]: string } = {
 	ignored = "ds.file_viewer.status.ignored",
 }
 
--- Sizes as people say them.
-local function bytes(n: number?): string
-	if not n then
-		return ""
-	end
-	if n < 1024 then
-		return locale.s("ds.file_viewer.bytes", { n = tostring(n) })
-	elseif n < 1024 * 1024 then
-		return string.format("%.0f KB", n / 1024)
-	elseif n < 1024 * 1024 * 1024 then
-		local mb = n / (1024 * 1024)
-		return if mb < 10 then string.format("%.1f MB", mb) else string.format("%.0f MB", mb)
-	end
-	return string.format("%.1f GB", n / (1024 * 1024 * 1024))
-end
+local bytes = locale.bytes
 local function base_name(path: string): string
 	return string.match(path, "[^/]+$") or path
 end

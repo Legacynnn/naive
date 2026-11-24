@@ -66,6 +66,9 @@ local function sub_page(where: Node, page: Node): Node
 	}
 end
 
+M.back = back
+M.sub_page = sub_page
+
 -- The marks of the agents Zeron drives itself, by their harness (the
 -- registry lists them too: their rows wear Zeron's mark, as their cards do).
 local BUILT_IN_MARKS: { [string]: string } = {

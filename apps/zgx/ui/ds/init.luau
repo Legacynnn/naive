@@ -52,6 +52,9 @@ local comment = require("@self/comment")
 local inline_block = require("@self/inline_block")
 local onboarding = require("@self/onboarding")
 local skeleton = require("@self/skeleton")
+local storage = require("@self/storage")
+export type StorageWorktree = storage.Worktree
+export type StoragePart = storage.Part
 
 return {
 	-- Loads the themes and declares the app's tokens: an entry calls it
@@ -160,6 +163,7 @@ return {
 	InlineAdd = inline_block.Add,
 	ReplyComposer = comment.ReplyComposer,
 	Settings = require("@self/settings"),
+	Storage = storage,
 	-- A new chat's wallpaper: a picture, or a plugin's, under an effect.
 	Wallpaper = require("@self/wallpaper").Wallpaper,
 	wallpaper = require("@self/wallpaper"),

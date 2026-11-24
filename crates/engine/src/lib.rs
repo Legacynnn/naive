@@ -82,6 +82,7 @@ pub mod sign_in_catalog;
 pub mod sessions;
 pub mod source_control;
 pub mod spaces;
+pub mod storage;
 pub mod terminals;
 pub mod titles;
 pub mod tool_output;
@@ -382,6 +383,7 @@ impl EngineCore {
         }
         doc_host.spawn_transcript_salvage(profile.store_root().join("journals"));
         let repos = Repos::new(data_dir, &device_id);
+        storage::Storage::for_data_dir(repos.data_dir()).start(repos.clone(), workspace.clone());
         sessions.set_scratch_root(repos.scratch_root());
         doc_host.set_repos(repos.clone());
         let change_requests = CheckoutChangeRequests::start(repos.clone(), &device_id);

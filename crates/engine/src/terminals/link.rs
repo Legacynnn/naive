@@ -11,7 +11,7 @@ impl HostTerminals for Terminals {
         &self,
         terminal_id: &str,
         after_seq: u64,
-    ) -> Result<tokio::sync::mpsc::UnboundedReceiver<zeron_proto::TerminalEvent>, String> {
+    ) -> Result<tokio::sync::mpsc::Receiver<zeron_proto::TerminalEvent>, String> {
         Terminals::subscribe(self, terminal_id, Some(after_seq)).map_err(|e| e.to_string())
     }
     fn write_sequenced(

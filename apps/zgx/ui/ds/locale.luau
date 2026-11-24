@@ -193,6 +193,24 @@ function M.s(key: string, args: { [string]: any }?): string
 	return english_of(key, args)
 end
 
+function M.bytes(n: number?): string
+	if not n then
+		return ""
+	end
+	local v = math.max(0, n)
+	if v < 1024 then
+		return M.s("ds.bytes", { n = tostring(math.floor(v)) })
+	elseif v < 1024 ^ 2 then
+		return string.format("%.0f KB", v / 1024)
+	elseif v < 1024 ^ 3 then
+		local mb = v / 1024 ^ 2
+		return if mb < 10 then string.format("%.1f MB", mb) else string.format("%.0f MB", mb)
+	elseif v < 1024 ^ 4 then
+		return string.format("%.1f GB", v / 1024 ^ 3)
+	end
+	return string.format("%.1f TB", v / 1024 ^ 4)
+end
+
 -- How long it has worked, to the second, as it's still counting: seeing the
 -- seconds go is how you know it's working ("42s", "3m 22s", "1h 5m 22s").
 function M.elapsed(seconds: number): string

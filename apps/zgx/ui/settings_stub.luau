@@ -127,6 +127,108 @@ local engine: { [string]: any } = {
 	GetCodeMode = { supported = { "codex", "muse" }, enabled = {} },
 	GetBackgroundSettings = { keepRunningAfterQuit = true },
 }
+local GB = 1024 * 1024 * 1024
+local MB = 1024 * 1024
+local storage_root = "~/.zeron"
+local storage_wt = "~/.zeron/worktrees"
+local storage_app: { [string]: number } = { updates = 412 * MB, templates = 3 * MB, plugins = 28 * MB, logs = 96 * MB, uploads = 54 * MB, other = 12 * MB }
+local storage_computed_at = (os.time() - 300) * 1000
+local storage_worktrees = {
+	{ path = `{storage_wt}/zeron/storage-cleanup`, repoPath = "~/www/zeron", project = "zeron", name = "storage-cleanup", branch = "storage-cleanup", bytes = math.floor(3.4 * GB), modifiedAt = (os.time() - 1200) * 1000, chatId = "c_storage", chatTitle = "Storage settings page", chatState = "active", dirty = true, unpushed = 2, missing = false },
+	{ path = `{storage_wt}/zeron/sidebar-rows`, repoPath = "~/www/zeron", project = "zeron", name = "sidebar-rows", branch = "sidebar-rows", bytes = math.floor(2.1 * GB), modifiedAt = (os.time() - 9 * 86400) * 1000, chatId = "c_sidebar", chatTitle = "Worktree rows in the sidebar", chatState = "archived", dirty = false, unpushed = 0, missing = false },
+	{ path = `{storage_wt}/zeron/fix-paste`, repoPath = "~/www/zeron", project = "zeron", name = "fix-paste", branch = "fix-paste", bytes = math.floor(1.8 * GB), modifiedAt = (os.time() - 21 * 86400) * 1000, chatId = "c_paste", chatTitle = "Paste images into the composer", chatState = "deleted", dirty = false, unpushed = 0, missing = false },
+	{ path = `{storage_wt}/analytical-engine/notes`, repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "notes", branch = "notes", bytes = 412 * MB, modifiedAt = (os.time() - 3 * 86400) * 1000, chatId = nil, chatTitle = nil, chatState = "none", dirty = false, unpushed = 1, missing = false },
+	{ path = `{storage_wt}/analytical-engine/old-parser`, repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "old-parser", branch = nil, bytes = nil, modifiedAt = nil, chatId = nil, chatTitle = nil, chatState = "none", dirty = false, unpushed = nil, missing = true },
+}
+local function storage_usage(): any
+	local by: { [string]: any } = {}
+	local order: { string } = {}
+	for _, w in storage_worktrees do
+		local p = by[w.project]
+		if not p then
+			p = { name = w.project, repoPath = w.repoPath, worktrees = 0, worktreeCount = 0, journals = 0, total = 0 }
+			by[w.project] = p
+			table.insert(order, w.project)
+		end
+		p.worktreeCount += 1
+		p.worktrees += w.bytes or 0
+	end
+	local journals: { [string]: number } = { zeron = 240 * MB, ["analytical-engine"] = 18 * MB, ["muse-notes"] = 6 * MB }
+	for name, size in journals do
+		if not by[name] then
+			by[name] = { name = name, repoPath = nil, worktrees = 0, worktreeCount = 0, journals = 0, total = 0 }
+			table.insert(order, name)
+		end
+		by[name].journals = size
+	end
+	local projects = {}
+	local total = 0
+	for _, name in order do
+		local p = by[name]
+		p.total = p.worktrees + p.journals
+		total += p.total
+		table.insert(projects, p)
+	end
+	local app = table.clone(storage_app)
+	for _, v in app do
+		total += v
+	end
+	return { computedAt = storage_computed_at, total = total, root = storage_root, app = app, projects = projects }
+end
+local function storage_call(m: string, params: any): any?
+	if m == "GetStorageUsage" then
+		if params.refresh then
+			storage_computed_at = os.time() * 1000
+		end
+		return settled(storage_usage())
+	elseif m == "ListStorageWorktrees" then
+		local out = {}
+		for _, w in storage_worktrees do
+			table.insert(out, table.clone(w))
+		end
+		return settled(out)
+	elseif m == "RemoveWorktree" then
+		local r = change(nil)
+		if r.error then
+			return r
+		end
+		for i, w in storage_worktrees do
+			if w.path == params.path then
+				if w.dirty and not params.force then
+					return settled(nil, "failed")
+				end
+				table.remove(storage_worktrees, i)
+				return settled({ freedBytes = w.bytes })
+			end
+		end
+		return settled(nil, "failed")
+	elseif m == "CleanStorage" then
+		local r = change(nil)
+		if r.error then
+			return r
+		end
+		local removed, freed = 0, 0
+		if params.action == "staleWorktrees" then
+			for i = #storage_worktrees, 1, -1 do
+				local w = storage_worktrees[i]
+				if not w.dirty and not w.missing and w.chatState ~= "active" then
+					removed += 1
+					freed += w.bytes or 0
+					table.remove(storage_worktrees, i)
+				end
+			end
+		elseif params.action == "deletedChatData" then
+			removed, freed = 7, 31 * MB
+		elseif params.action == "archivedChats" then
+			removed, freed = if (params.olderThanDays or 30) <= 14 then 5 else 2, 9 * MB
+		elseif params.action == "stagedUpdate" then
+			removed, freed = if storage_app.updates > 0 then 1 else 0, storage_app.updates
+			storage_app.updates = 0
+		end
+		return settled({ removed = removed, freedBytes = freed })
+	end
+	return nil
+end
 local banners = { desktop = true, background_only = true, agent_updates = true }
 
 local function find(list: { any }, id: string): number?
@@ -285,6 +387,10 @@ local answers: { [string]: (arg: any) -> any } = {
 	end,
 	["settings.engine"] = function(arg: any)
 		local m = arg.method
+		local stored = storage_call(m, arg.params or {})
+		if stored then
+			return stored
+		end
 		if string.sub(m, 1, 3) == "Set" then
 			local r = change(nil)
 			if r.error then

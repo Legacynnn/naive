@@ -378,3 +378,75 @@ async fn deleting_a_parent_deletes_its_local_children_and_ends_their_runs() {
     tokio::time::sleep(Duration::from_millis(200)).await;
     assert!(alive(stranger) && rig.core.sessions.has_run("stranger"), "and keeps its run");
 }
+
+fn journal_files(dir: &std::path::Path, chat: &str) -> Vec<std::path::PathBuf> {
+    let mut found = Vec::new();
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.parent().and_then(|p| p.file_name()).is_some_and(|n| n == "journals")
+                && path.file_stem().is_some_and(|stem| stem == chat)
+            {
+                found.push(path);
+            }
+        }
+    }
+    found
+}
+
+#[tokio::test]
+async fn deleting_a_chat_closes_its_terminals_and_discards_its_local_state() {
+    let rig = rig();
+    create_chat(&rig.core, "side", Some((CHAT, ChildKind::Side)));
+    create_chat(&rig.core, "stranger", None);
+    let parent = start(&rig, "hold on", SessionStatus::Working).await;
+    let side = start_in(&rig, "side", "side work", SessionStatus::Idle).await;
+    start_in(&rig, "stranger", "stranger work", SessionStatus::Idle).await;
+    let terminals = &rig.core.terminals;
+    let open = |chat: &str| {
+        let session = terminals.open_with_shell("/tmp", 80, 24, Some("/bin/sh")).unwrap();
+        terminals.associate_chat(&session.id, chat).unwrap();
+        session.id
+    };
+    let (ours, sides, theirs) = (open(CHAT), open("side"), open("stranger"));
+    let root = rig._dir.path().to_path_buf();
+    for chat in [CHAT, "side", "stranger"] {
+        assert!(!journal_files(&root, chat).is_empty(), "{chat} has a journal");
+    }
+
+    delete_chat(&rig).await;
+    assert!(terminals.status(&ours).is_err(), "the chat's terminal closes with it");
+    assert!(terminals.status(&sides).is_err(), "and its child's");
+    assert_ended_in(&rig, CHAT, parent).await;
+    assert_ended_in(&rig, "side", side).await;
+    wait_for(
+        || journal_files(&root, CHAT).is_empty() && journal_files(&root, "side").is_empty(),
+        "the deleted chats' journals to go",
+    )
+    .await;
+    wait_for(
+        || {
+            rig.core.sessions.session_status(CHAT).is_none()
+                && rig.core.sessions.session_status("side").is_none()
+                && !rig
+                    .core
+                    .sessions
+                    .watch_sessions()
+                    .borrow()
+                    .iter()
+                    .any(|s| s.chat_id == CHAT || s.chat_id == "side")
+        },
+        "the deleted chats' sessions to leave the list",
+    )
+    .await;
+    assert!(terminals.status(&theirs).is_ok(), "an unrelated chat keeps its terminal");
+    assert!(!journal_files(&root, "stranger").is_empty(), "and its journal");
+    assert!(rig.core.sessions.session_status("stranger").is_some());
+    terminals.close(&theirs).unwrap();
+}

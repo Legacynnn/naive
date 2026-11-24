@@ -352,6 +352,7 @@ struct Inner {
     warm: Mutex<HashMap<String, warm_start::WarmStart>>,
     /// Their leases (open, typed) when a test sets them.
     warm_leases: Mutex<Option<(std::time::Duration, std::time::Duration)>>,
+    terminals: OnceLock<crate::Terminals>,
 }
 
 /// How long a runtime parked between turns with nothing pending keeps its
@@ -471,6 +472,21 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
+fn take_cancelled_send(
+    cancelled: &mut HashMap<String, std::collections::HashSet<String>>,
+    chat_id: &str,
+    message_id: &str,
+) -> bool {
+    let Some(ids) = cancelled.get_mut(chat_id) else {
+        return false;
+    };
+    let taken = ids.remove(message_id);
+    if ids.is_empty() {
+        cancelled.remove(chat_id);
+    }
+    taken
+}
+
 #[derive(Clone)]
 pub struct SessionsEngine {
     inner: Arc<Inner>,
@@ -521,6 +537,7 @@ impl SessionsEngine {
                 plugins: OnceLock::new(),
                 warm: Mutex::new(HashMap::new()),
                 warm_leases: Mutex::new(None),
+                terminals: OnceLock::new(),
             }),
         }
     }
@@ -691,21 +708,45 @@ impl SessionsEngine {
                 let Some(inner) = weak.upgrade() else { return };
                 let sessions = SessionsEngine { inner };
                 for gone in known.difference(&now) {
-                    if !sessions.has_run(gone) {
-                        continue;
-                    }
-                    tracing::info!(chat = %gone, "chat deleted; ending its run");
                     let sessions = sessions.clone();
                     let chat_id = gone.clone();
-                    tokio::spawn(async move {
-                        if let Err(err) = sessions.terminate(&chat_id).await {
-                            tracing::warn!(chat = %chat_id, error = %err, "ending a deleted chat's run failed");
-                        }
-                    });
+                    tokio::spawn(async move { sessions.settle_deleted_chat(&chat_id).await });
                 }
                 known = now;
             }
         });
+    }
+
+    async fn settle_deleted_chat(&self, chat_id: &str) {
+        if self.has_run(chat_id) {
+            tracing::info!(chat = %chat_id, "chat deleted; ending its run");
+            if let Err(err) = self.terminate(chat_id).await {
+                tracing::warn!(chat = %chat_id, error = %err, "ending a deleted chat's run failed");
+            }
+        }
+        if !self
+            .inner
+            .workspace()
+            .is_some_and(|ws| ws.chat_deleted(chat_id))
+        {
+            return;
+        }
+        for _ in 0..1000 {
+            if !self.has_run(chat_id) {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        if let Some(terminals) = self.inner.terminals.get() {
+            terminals.close_for_chat(chat_id);
+        }
+        if let Err(err) = self.inner.journal.discard(chat_id) {
+            tracing::warn!(chat = %chat_id, error = %err, "discarding a deleted chat's journal failed");
+        }
+        if let Some(host) = self.inner.doc_host() {
+            host.purge_chat(chat_id);
+        }
+        self.inner.forget_chat(chat_id);
     }
 
     /// Wire the turn-start listener (called once at engine assembly).
@@ -1434,9 +1475,7 @@ impl SessionsEngine {
         // A Stop sent after this message cancelled it while it was on its
         // way: never start the stopped work again in a fresh runtime.
         if let Some(id) = &message_id
-            && lock(&self.inner.cancelled_sends)
-                .get_mut(chat_id)
-                .is_some_and(|ids| ids.remove(id))
+            && take_cancelled_send(&mut lock(&self.inner.cancelled_sends), chat_id, id)
         {
             tracing::info!(chat = %chat_id, "message cancelled by a later Stop: not dispatched");
             return Ok(String::new());
@@ -3311,6 +3350,26 @@ impl Inner {
 
     fn workspace(&self) -> Option<crate::workspace_host::WorkspaceHost> {
         self.doc_host().and_then(|host| host.workspace().cloned())
+    }
+
+    fn forget_chat(&self, chat_id: &str) {
+        lock(&self.hubs).remove(chat_id);
+        lock(&self.last_requests).remove(chat_id);
+        lock(&self.harness_sessions).remove(chat_id);
+        lock(&self.user_stops).remove(chat_id);
+        lock(&self.rejected_resumes).remove(chat_id);
+        lock(&self.cancelled_sends).remove(chat_id);
+        lock(&self.command_tasks).remove(chat_id);
+        lock(&self.runtime_tasks).remove(chat_id);
+        lock(&self.fresh_start_notices).remove(chat_id);
+        lock(&self.revivals).remove(chat_id);
+        lock(&self.viewers.open).retain(|id, state| id != chat_id || state.count > 0);
+        let mut statuses = lock(&self.statuses);
+        if statuses.remove(chat_id).is_some() {
+            let mut list: Vec<Session> = statuses.values().cloned().collect();
+            list.sort_by(|a, b| a.chat_id.cmp(&b.chat_id));
+            self.sessions_tx.send_replace(list);
+        }
     }
 
     /// Sidebar freshness: push a message-persist preview into the chat's workspace row.

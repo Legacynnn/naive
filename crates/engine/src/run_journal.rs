@@ -530,12 +530,21 @@ impl RunJournal {
         Ok(stale)
     }
 
-    /// Remove a chat's journal file entirely (tests / future compaction).
+    /// Remove a chat's journal and its sidecars (a deleted chat). Idempotent.
     pub fn discard(&self, chat_id: &str) -> Result<(), JournalError> {
-        self.lock().remove(chat_id);
-        let path = self.path_for(chat_id);
-        if path.exists() {
-            std::fs::remove_file(path)?;
+        let mut files = self.lock();
+        drop(files.remove(chat_id));
+        for path in [
+            self.path_for(chat_id),
+            self.attempts_path(chat_id),
+            self.shutdown_path(chat_id),
+            self.stop_path(chat_id),
+        ] {
+            match std::fs::remove_file(&path) {
+                Ok(()) => {}
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+                Err(err) => return Err(err.into()),
+            }
         }
         Ok(())
     }
@@ -1135,5 +1144,25 @@ mod tests {
             Some((1, AgentEvent::Done { .. }))
         ));
         assert!(journal.stale_sessions().unwrap().is_empty());
+    }
+
+    #[test]
+    fn discard_removes_the_journal_its_sidecars_and_its_open_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let journal = RunJournal::open(dir.path()).unwrap();
+        journal.append("gone", &text("a")).unwrap();
+        journal.append("gone", &text("b")).unwrap();
+        journal.note_resume_attempt("gone", 1, 0);
+        journal.note_shutdown_interrupt("gone", 1);
+        journal.note_user_stop("gone");
+        journal.append("kept", &done()).unwrap();
+        journal.discard("gone").unwrap();
+        for ext in ["jsonl", "resume", "shutdown", "stopped"] {
+            assert!(!dir.path().join(format!("gone.{ext}")).exists(), "{ext} left behind");
+        }
+        assert!(!journal.lock().contains_key("gone"), "its open file is dropped");
+        assert!(dir.path().join("kept.jsonl").exists());
+        journal.discard("gone").unwrap();
+        assert_eq!(journal.append("gone", &text("c")).unwrap(), 1, "a fresh journal");
     }
 }

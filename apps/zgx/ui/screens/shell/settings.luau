@@ -158,6 +158,7 @@ local TITLE_KEYS: { [string]: { string } } = {
 	providers = { "Providers", "settings.providers.title" },
 	devices = { "Devices", "settings.devices.title" },
 	projects = { "Projects", "settings.projects.title" },
+	storage = { "Storage", "settings.storage.title" },
 	members = { "Members", "settings.members.title" },
 	profile = { "Account", "settings.profile.title" },
 	cloud = { "Cloud", "settings.cloud.title" },

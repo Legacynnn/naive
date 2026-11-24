@@ -90,6 +90,10 @@ const ENGINE_METHODS: &[&str] = &[
     "SetCommitCredit",
     "GetWorktreeSettings",
     "SetWorktreeSettings",
+    "GetStorageUsage",
+    "ListStorageWorktrees",
+    "RemoveWorktree",
+    "CleanStorage",
     "GetTitleSettings",
     "SetTitleSettings",
     "GetNativeSubagents",
@@ -336,8 +340,11 @@ pub fn install(_cx: &mut WindowContext, host: &ScriptHost) {
                 .map(|answer| json_value(&answer))
                 .map_err(|error| {
                     // An engine too old for the method: said as what to do.
-                    if error.to_ascii_lowercase().contains("unknown method") {
+                    let lower = error.to_ascii_lowercase();
+                    if lower.contains("unknown method") {
                         "outdated".into()
+                    } else if lower.contains("uncommitted changes") {
+                        "uncommitted".into()
                     } else {
                         engine::outcome(&error).into()
                     }
