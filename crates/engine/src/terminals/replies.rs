@@ -131,7 +131,7 @@ mod tests {
         let ask = "stty -echo; printf '\\033[6n'; IFS= read -rsd R -t 2 pos; \
                    printf '%s[%s]\\n' GOT \"${pos#*[}\"; stty echo\n";
         let got =
-            |events: &mut tokio::sync::mpsc::UnboundedReceiver<zeron_proto::TerminalEvent>| {
+            |events: &mut tokio::sync::mpsc::Receiver<zeron_proto::TerminalEvent>| {
                 let mut text = String::new();
                 while let Ok(event) = events.try_recv() {
                     if let zeron_proto::TerminalEvent::Data { data, .. } = event {

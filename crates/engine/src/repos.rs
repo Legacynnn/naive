@@ -75,6 +75,60 @@ pub struct CheckoutIdentity {
 }
 
 /// Best-effort home directory (the `ListFolders` default and worktree root base).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GitWorktreeEntry {
+    pub path: PathBuf,
+    pub branch: Option<String>,
+    pub main: bool,
+    pub prunable: bool,
+}
+
+pub(crate) fn parse_worktree_porcelain(out: &str) -> Vec<GitWorktreeEntry> {
+    let mut entries: Vec<GitWorktreeEntry> = Vec::new();
+    for line in out.lines() {
+        if let Some(path) = line.strip_prefix("worktree ") {
+            entries.push(GitWorktreeEntry {
+                path: PathBuf::from(path),
+                branch: None,
+                main: entries.is_empty(),
+                prunable: false,
+            });
+        } else if let Some(entry) = entries.last_mut() {
+            if let Some(branch) = line.strip_prefix("branch ") {
+                entry.branch = Some(
+                    branch
+                        .strip_prefix("refs/heads/")
+                        .unwrap_or(branch)
+                        .to_string(),
+                );
+            } else if line == "prunable" || line.starts_with("prunable ") {
+                entry.prunable = true;
+            }
+        }
+    }
+    entries
+}
+
+/// Canonical form of a path that may no longer exist: its nearest existing
+/// ancestor resolved, the rest appended.
+pub(crate) fn canonical_lossy(path: &Path) -> PathBuf {
+    if let Ok(path) = std::fs::canonicalize(path) {
+        return path;
+    }
+    let mut rest = Vec::new();
+    let mut cursor = path;
+    while let Some(parent) = cursor.parent() {
+        if let Some(name) = cursor.file_name() {
+            rest.push(name.to_os_string());
+        }
+        if let Ok(base) = std::fs::canonicalize(parent) {
+            return rest.iter().rev().fold(base, |acc, name| acc.join(name));
+        }
+        cursor = parent;
+    }
+    path.to_path_buf()
+}
+
 pub(crate) fn home_dir() -> PathBuf {
     let variables = if cfg!(windows) {
         ["USERPROFILE", "HOME"]
@@ -378,7 +432,9 @@ impl Repos {
         {
             return Ok(None);
         }
-        let remote = self.git(&["remote", "get-url", "origin"], Some(path)).await?;
+        let remote = self
+            .git(&["remote", "get-url", "origin"], Some(path))
+            .await?;
         Ok(parse_github_remote(&remote).map(|(owner, name)| format!("{owner}/{name}")))
     }
 
@@ -1664,10 +1720,33 @@ impl Repos {
         repo_path: &Path,
         worktree_path: &Path,
     ) -> Result<(), EngineError> {
-        let branch = if worktree_path.exists() {
-            self.current_branch(worktree_path).await.unwrap_or_default()
-        } else {
-            String::new()
+        self.remove_worktree(repo_path, worktree_path, true).await
+    }
+
+    pub async fn remove_worktree(
+        &self,
+        repo_path: &Path,
+        worktree_path: &Path,
+        delete_branch: bool,
+    ) -> Result<(), EngineError> {
+        let target = canonical_lossy(worktree_path);
+        let registered = self
+            .list_worktrees(repo_path)
+            .await
+            .unwrap_or_default()
+            .into_iter()
+            .find(|entry| canonical_lossy(&entry.path) == target);
+        if registered.as_ref().is_some_and(|entry| entry.main) {
+            return Err(EngineError::Other(
+                "Refusing to remove the main checkout".into(),
+            ));
+        }
+        let branch = match registered.and_then(|entry| entry.branch) {
+            Some(branch) => branch,
+            None if worktree_path.exists() => {
+                self.current_branch(worktree_path).await.unwrap_or_default()
+            }
+            None => String::new(),
         };
         if worktree_path.exists() {
             let removed = self
@@ -1687,10 +1766,92 @@ impl Repos {
             }
         }
         let _ = self.git(&["worktree", "prune"], Some(repo_path)).await;
-        if branch.starts_with("zeron/") {
+        if delete_branch && branch.starts_with("zeron/") {
             let _ = self.git(&["branch", "-D", &branch], Some(repo_path)).await;
         }
         Ok(())
+    }
+
+    pub fn worktrees_root(&self) -> PathBuf {
+        self.inner.worktrees.root()
+    }
+
+    pub(crate) fn known_repo_paths(&self) -> Vec<String> {
+        self.load_paths()
+    }
+
+    pub async fn list_worktrees(
+        &self,
+        repo_path: &Path,
+    ) -> Result<Vec<GitWorktreeEntry>, EngineError> {
+        let out = self
+            .git(&["worktree", "list", "--porcelain"], Some(repo_path))
+            .await?;
+        Ok(parse_worktree_porcelain(&out))
+    }
+
+    pub async fn prune_worktrees(&self, repo_path: &Path) -> Result<(), EngineError> {
+        self.git(&["worktree", "prune"], Some(repo_path))
+            .await
+            .map(drop)
+    }
+
+    pub async fn worktree_dirty(&self, path: &Path) -> Result<bool, EngineError> {
+        let out = self
+            .git(
+                &["status", "--porcelain", "--ignore-submodules=dirty"],
+                Some(path),
+            )
+            .await?;
+        Ok(!out.is_empty())
+    }
+
+    /// Commits on HEAD not on its upstream, or on `base` when it has none.
+    pub async fn worktree_unpushed(&self, path: &Path, base: Option<&str>) -> Option<u32> {
+        let range = match self
+            .git_probe(
+                &[
+                    "rev-parse",
+                    "--abbrev-ref",
+                    "--symbolic-full-name",
+                    "@{upstream}",
+                ],
+                Some(path),
+            )
+            .await
+        {
+            Ok(Some(upstream)) if !upstream.is_empty() => format!("{upstream}..HEAD"),
+            _ => format!("{}..HEAD", base?),
+        };
+        self.git(&["rev-list", "--count", &range], Some(path))
+            .await
+            .ok()?
+            .parse()
+            .ok()
+    }
+
+    pub async fn default_base(&self, repo_path: &Path) -> Option<String> {
+        if let Ok(Some(head)) = self
+            .git_probe(
+                &[
+                    "symbolic-ref",
+                    "--quiet",
+                    "--short",
+                    "refs/remotes/origin/HEAD",
+                ],
+                Some(repo_path),
+            )
+            .await
+            && !head.is_empty()
+        {
+            return Some(head);
+        }
+        self.list_worktrees(repo_path)
+            .await
+            .ok()?
+            .into_iter()
+            .find(|entry| entry.main)?
+            .branch
     }
 
     // ── ListFolders ─────────────────────────────────────────────────────────

@@ -286,6 +286,10 @@ pub mod methods {
     pub const WATCH_WORKSPACE_FILES: &str = "WatchWorkspaceFiles";
     pub const CREATE_WORKTREE: &str = "CreateWorktree";
     pub const DELETE_WORKTREE: &str = "DeleteWorktree";
+    pub const GET_STORAGE_USAGE: &str = "GetStorageUsage";
+    pub const LIST_STORAGE_WORKTREES: &str = "ListStorageWorktrees";
+    pub const REMOVE_WORKTREE: &str = "RemoveWorktree";
+    pub const CLEAN_STORAGE: &str = "CleanStorage";
     // Project Actions are private state on the device that owns the project.
     pub const LIST_PROJECT_ACTIONS: &str = "ListProjectActions";
     pub const UPSERT_PROJECT_ACTION: &str = "UpsertProjectAction";

@@ -42,9 +42,44 @@ const MAX_INPUT_BYTES: usize = 64 * 1024;
 const MAX_REPLAY_BYTES: usize = 1024 * 1024;
 const EXITED_TTL: Duration = Duration::from_secs(30 * 60);
 const REAPER_INTERVAL: Duration = Duration::from_secs(60);
+const SUBSCRIBER_BACKLOG: usize = 256;
+const MAX_EVENT_BYTES: usize = 256 * 1024;
+#[cfg(not(windows))]
+const RAW_BACKLOG: usize = 16;
+
+#[cfg(not(windows))]
+type RawTx = mpsc::Sender<Vec<u8>>;
+#[cfg(not(windows))]
+type RawRx = mpsc::Receiver<Vec<u8>>;
+#[cfg(windows)]
+type RawTx = mpsc::UnboundedSender<Vec<u8>>;
+#[cfg(windows)]
+type RawRx = mpsc::UnboundedReceiver<Vec<u8>>;
+
+#[cfg(not(windows))]
+fn raw_channel() -> (RawTx, RawRx) {
+    mpsc::channel(RAW_BACKLOG)
+}
+
+// ConPTY close waits on this reader draining, so it must never block on the pump.
+#[cfg(windows)]
+fn raw_channel() -> (RawTx, RawRx) {
+    mpsc::unbounded_channel()
+}
+
+#[cfg(not(windows))]
+fn send_raw(tx: &RawTx, bytes: Vec<u8>) -> bool {
+    tx.blocking_send(bytes).is_ok()
+}
+
+#[cfg(windows)]
+fn send_raw(tx: &RawTx, bytes: Vec<u8>) -> bool {
+    tx.send(bytes).is_ok()
+}
 
 struct LiveTerminal {
     chat_id: Option<String>,
+    cwd: std::path::PathBuf,
     seen_at: Option<chrono::DateTime<chrono::Utc>>,
     programs: ProgramTracker,
     // Keep the private action script alive until the shell exits or the tab is closed.
@@ -63,7 +98,7 @@ struct LiveTerminal {
     cleanup: Option<Arc<windows::Cleanup>>,
     /// Live streams, each flagged when its viewer answers terminal queries
     /// itself (an app from before host replies).
-    subscribers: Vec<(mpsc::UnboundedSender<TerminalEvent>, bool)>,
+    subscribers: Vec<(mpsc::Sender<TerminalEvent>, bool)>,
     /// Answers terminal queries from beside the PTY ([`replies`]).
     replies: replies::HostReplies,
     replay: VecDeque<TerminalEvent>,
@@ -109,8 +144,14 @@ impl LiveTerminal {
                 };
             }
         }
-        self.subscribers
-            .retain(|(tx, _)| tx.send(event.clone()).is_ok());
+        self.subscribers.retain(|(tx, _)| match tx.try_send(event.clone()) {
+            Ok(()) => true,
+            Err(mpsc::error::TrySendError::Full(_)) => {
+                tracing::debug!("terminal viewer fell behind; dropping it to resync from replay");
+                false
+            }
+            Err(mpsc::error::TrySendError::Closed(_)) => false,
+        });
         if matches!(event, TerminalEvent::Exit { .. }) {
             self.initial_script.take();
             self.exited = true;
@@ -501,6 +542,7 @@ impl Terminals {
 
         let session = Arc::new(Mutex::new(LiveTerminal {
             chat_id: None,
+            cwd: std::path::PathBuf::from(cwd),
             seen_at: None,
             programs: ProgramTracker::default(),
             initial_script,
@@ -532,7 +574,7 @@ impl Terminals {
         self.inner.opened_tx.send_modify(|n| *n = n.wrapping_add(1));
 
         // Raw PTY bytes: blocking reader thread → batcher task.
-        let (raw_tx, raw_rx) = mpsc::unbounded_channel::<Vec<u8>>();
+        let (raw_tx, raw_rx) = raw_channel();
         let reader_thread = std::thread::Builder::new()
             .name(format!("pty-read-{id}"))
             .spawn(move || read_pty(reader, raw_tx))
@@ -604,7 +646,7 @@ impl Terminals {
         &self,
         terminal_id: &str,
         after_seq: Option<u64>,
-    ) -> Result<mpsc::UnboundedReceiver<TerminalEvent>, EngineError> {
+    ) -> Result<mpsc::Receiver<TerminalEvent>, EngineError> {
         self.subscribe_viewer(terminal_id, after_seq, false)
     }
 
@@ -616,18 +658,18 @@ impl Terminals {
         terminal_id: &str,
         after_seq: Option<u64>,
         answers_itself: bool,
-    ) -> Result<mpsc::UnboundedReceiver<TerminalEvent>, EngineError> {
+    ) -> Result<mpsc::Receiver<TerminalEvent>, EngineError> {
         let session = self.session(terminal_id)?;
         let mut session = lock(&session);
         session.last_active_at = std::time::Instant::now();
-        let (tx, rx) = mpsc::unbounded_channel();
+        let (tx, rx) = mpsc::channel(session.replay.len() + SUBSCRIBER_BACKLOG);
         let after = after_seq.unwrap_or(0);
         for event in &session.replay {
             let seq = match event {
                 TerminalEvent::Data { seq, .. } | TerminalEvent::Exit { seq, .. } => *seq,
             };
             if seq > after {
-                let _ = tx.send(event.clone());
+                let _ = tx.try_send(event.clone());
             }
         }
         if !session.exited {
@@ -751,6 +793,34 @@ impl Terminals {
         }
     }
 
+    pub fn close_under(&self, path: &std::path::Path) -> usize {
+        let root = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let cwds: Vec<(String, std::path::PathBuf)> = lock(&self.inner.sessions)
+            .iter()
+            .map(|(id, session)| (id.clone(), lock(session).cwd.clone()))
+            .collect();
+        let ids: Vec<String> = cwds
+            .into_iter()
+            .filter(|(_, cwd)| {
+                cwd.starts_with(path)
+                    || std::fs::canonicalize(cwd).is_ok_and(|cwd| cwd.starts_with(&root))
+            })
+            .map(|(id, _)| id)
+            .collect();
+        let doomed: Vec<_> = {
+            let mut sessions = lock(&self.inner.sessions);
+            ids.iter().filter_map(|id| sessions.remove(id)).collect()
+        };
+        if doomed.is_empty() {
+            return 0;
+        }
+        self.inner.publish_activity();
+        for session in &doomed {
+            dispose(session, true);
+        }
+        doomed.len()
+    }
+
     /// Any live PTY (the reaper prunes exited ones) — restarts kill shells, so
     /// the auto-updater waits for none.
     pub fn any_open(&self) -> bool {
@@ -764,6 +834,27 @@ impl Terminals {
         for session in sessions {
             dispose(&session, true);
         }
+    }
+
+    pub fn close_for_chat(&self, chat_id: &str) -> usize {
+        let doomed: Vec<_> = {
+            let mut sessions = lock(&self.inner.sessions);
+            let ids: Vec<String> = sessions
+                .iter()
+                .filter(|(_, session)| lock(session).chat_id.as_deref() == Some(chat_id))
+                .map(|(id, _)| id.clone())
+                .collect();
+            ids.iter().filter_map(|id| sessions.remove(id)).collect()
+        };
+        lock(&self.inner.chats).retain(|(_, chat)| chat != chat_id);
+        if doomed.is_empty() {
+            return 0;
+        }
+        self.inner.publish_activity();
+        for session in &doomed {
+            dispose(session, true);
+        }
+        doomed.len()
     }
 }
 
@@ -791,13 +882,13 @@ fn dispose(session: &Arc<Mutex<LiveTerminal>>, kill: bool) -> bool {
 
 /// Blocking PTY reader: forwards raw chunks until EOF. A closed PTY reads as an
 /// error on some platforms (EIO on Linux once the shell exits) — both end the loop.
-fn read_pty(mut reader: Box<dyn Read + Send>, tx: mpsc::UnboundedSender<Vec<u8>>) {
+fn read_pty(mut reader: Box<dyn Read + Send>, tx: RawTx) {
     let mut buf = vec![0u8; 64 * 1024];
     loop {
         match reader.read(&mut buf) {
             Ok(0) | Err(_) => break,
             Ok(n) => {
-                if tx.send(buf[..n].to_vec()).is_err() {
+                if !send_raw(&tx, buf[..n].to_vec()) {
                     // ConPTY must finish writing even when the output pump is
                     // gone; stopping this reader can deadlock ClosePseudoConsole.
                     #[cfg(not(windows))]
@@ -817,7 +908,7 @@ fn read_pty(mut reader: Box<dyn Read + Send>, tx: mpsc::UnboundedSender<Vec<u8>>
 async fn pump_output(
     session: Weak<Mutex<LiveTerminal>>,
     terminals: Weak<TerminalsInner>,
-    mut raw_rx: mpsc::UnboundedReceiver<Vec<u8>>,
+    mut raw_rx: RawRx,
     mut wait: tokio::task::JoinHandle<Result<portable_pty::ExitStatus, std::io::Error>>,
 ) {
     let batch = Duration::from_millis(TERMINAL_OUTPUT_BATCH_MS);
@@ -885,11 +976,13 @@ async fn pump_output(
                     let was_empty = buffer.is_empty();
                     buffer.extend_from_slice(&chunk);
                     // Whatever the reader already has queued rides along.
-                    while let Ok(more) = raw_rx.try_recv() {
+                    while buffer.len() < MAX_EVENT_BYTES
+                        && let Ok(more) = raw_rx.try_recv()
+                    {
                         buffer.extend_from_slice(&more);
                     }
                     let now = tokio::time::Instant::now();
-                    if now >= last_emit + batch {
+                    if now >= last_emit + batch || buffer.len() >= MAX_EVENT_BYTES {
                         last_emit = now;
                         if !emit(std::mem::take(&mut buffer)) {
                             return;
@@ -1691,5 +1784,70 @@ mod initial_command_tests {
                 .is_err()
         );
         assert!(!terminals.any_open());
+    }
+}
+
+#[cfg(all(test, unix))]
+mod lifecycle_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn close_for_chat_closes_only_that_chats_terminals() {
+        let root = tempfile::tempdir().unwrap();
+        let cwd = root.path().to_str().unwrap();
+        let terminals = Terminals::new();
+        let open = |chat: Option<&str>| {
+            let session = terminals.open_with_shell(cwd, 80, 24, Some("/bin/sh")).unwrap();
+            if let Some(chat) = chat {
+                terminals.associate_chat(&session.id, chat).unwrap();
+            }
+            session.id
+        };
+        let (a1, a2, b, loose) = (open(Some("a")), open(Some("a")), open(Some("b")), open(None));
+        assert_eq!(terminals.close_for_chat("a"), 2);
+        assert!(terminals.status(&a1).is_err() && terminals.status(&a2).is_err());
+        assert!(terminals.status(&b).is_ok() && terminals.status(&loose).is_ok());
+        assert!(!terminals.chats().values().any(|chat| chat == "a"));
+        assert_eq!(terminals.close_for_chat("a"), 0, "idempotent");
+        terminals.shutdown();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_viewer_that_stops_reading_is_dropped_and_resumes_from_replay() {
+        let root = tempfile::tempdir().unwrap();
+        let terminals = Terminals::new();
+        let session = terminals
+            .open_with_shell(root.path().to_str().unwrap(), 80, 24, Some("/bin/sh"))
+            .unwrap();
+        let mut stalled = terminals.subscribe(&session.id, None).unwrap();
+        terminals
+            .write(&session.id, "while :; do head -c 300000 /dev/zero | tr '\\0' x; done\n")
+            .unwrap();
+        let live = terminals.session(&session.id).unwrap();
+        tokio::time::timeout(Duration::from_secs(60), async {
+            while !lock(&live).subscribers.is_empty() {
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        })
+        .await
+        .expect("the stalled viewer is dropped");
+        let mut last = 0;
+        while let Some(event) = stalled.recv().await {
+            if let TerminalEvent::Data { seq, .. } = event {
+                assert_eq!(seq, last + 1, "what was queued arrives in order");
+                last = seq;
+            }
+        }
+        assert!(last > 0);
+        let mut resumed = terminals.subscribe(&session.id, Some(last)).unwrap();
+        let next = tokio::time::timeout(Duration::from_secs(10), resumed.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        let TerminalEvent::Data { seq, .. } = next else {
+            panic!("expected output");
+        };
+        assert!(seq > last, "a resubscribe picks up after what it saw");
+        terminals.close(&session.id).unwrap();
     }
 }

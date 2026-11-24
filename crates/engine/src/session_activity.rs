@@ -10,6 +10,7 @@ impl SessionsEngine {
         terminal_owner: crate::Terminals,
         workspace: crate::WorkspaceHost,
     ) {
+        let _ = self.inner.terminals.set(terminal_owner.clone());
         if self.inner.activity_tx.get().is_some() {
             return;
         }

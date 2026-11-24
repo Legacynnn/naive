@@ -298,6 +298,31 @@ struct DeleteWorktreeParams {
     worktree_path: String,
 }
 
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GetStorageUsageParams {
+    #[serde(default)]
+    refresh: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RemoveWorktreeParams {
+    path: String,
+    #[serde(default)]
+    delete_branch: Option<bool>,
+    #[serde(default)]
+    force: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CleanStorageParams {
+    action: crate::storage::CleanAction,
+    #[serde(default)]
+    older_than_days: Option<u32>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DiscardWorkingTreeParams {
@@ -1008,6 +1033,14 @@ impl EngineRpc {
             plugins: None,
             engine_info,
         }
+    }
+
+    fn storage(&self) -> crate::storage::Storage {
+        crate::storage::Storage::for_data_dir(self.repos.data_dir())
+    }
+
+    fn store_root(&self) -> Option<std::path::PathBuf> {
+        self.uploads.dir().parent().map(std::path::Path::to_path_buf)
     }
 
     /// Attach the plugins service (the Plugin* methods).
@@ -2279,7 +2312,11 @@ impl EngineRpc {
                     if let Err(err) = self.workspace.delete_chat(orphan) {
                         tracing::warn!(chat = %orphan, error = %err, "deleting a Cloud chat's child failed");
                     }
+                    self.terminals.close_for_chat(orphan);
                     self.doc_host.purge_chat(orphan);
+                }
+                for chat_id in &deleted.chat_ids {
+                    self.terminals.close_for_chat(chat_id);
                 }
                 cloud_chats.extend(orphans);
                 self.delete_cloud_machines(cloud_chats);
@@ -2398,12 +2435,14 @@ impl EngineRpc {
                 let children: Vec<String> = children.into_iter().map(|(id, _)| id).collect();
                 self.voice.retire_chat(&chat_id);
                 self.workspace.delete_chat(&chat_id).map_err(failed)?;
+                self.terminals.close_for_chat(&chat_id);
                 self.doc_host.purge_chat(&chat_id);
                 for child in &children {
                     self.voice.retire_chat(child);
                     if let Err(err) = self.workspace.delete_chat(child) {
                         tracing::warn!(chat = %child, error = %err, "deleting a deleted chat's child failed");
                     }
+                    self.terminals.close_for_chat(child);
                     self.doc_host.purge_chat(child);
                 }
                 if on_cloud {
@@ -5783,6 +5822,94 @@ impl RpcService for EngineRpc {
                     .await
                     .map_err(|e| RpcError::Failed(e.to_string()))?;
                 RpcReply::value(&serde_json::json!({ "ok": true }))
+            }
+            methods::GET_STORAGE_USAGE => {
+                let p: GetStorageUsageParams = if params.is_null() {
+                    Default::default()
+                } else {
+                    parse_params(params)?
+                };
+                let usage = self
+                    .storage()
+                    .usage(&self.repos, &self.workspace, self.store_root(), p.refresh)
+                    .await
+                    .map_err(|e| RpcError::Failed(e.to_string()))?;
+                RpcReply::value(&usage)
+            }
+            methods::LIST_STORAGE_WORKTREES => {
+                let worktrees = self
+                    .storage()
+                    .worktrees(&self.repos, &self.workspace)
+                    .await
+                    .map_err(|e| RpcError::Failed(e.to_string()))?;
+                RpcReply::value(&worktrees)
+            }
+            methods::REMOVE_WORKTREE => {
+                let p: RemoveWorktreeParams = parse_params(params)?;
+                let freed = self
+                    .storage()
+                    .remove_worktree(
+                        &self.repos,
+                        &self.workspace,
+                        &self.terminals,
+                        std::path::Path::new(&p.path),
+                        p.delete_branch.unwrap_or(true),
+                        p.force,
+                    )
+                    .await
+                    .map_err(|e| RpcError::Failed(e.to_string()))?;
+                RpcReply::value(&serde_json::json!({ "freedBytes": freed }))
+            }
+            methods::CLEAN_STORAGE => {
+                let p: CleanStorageParams = parse_params(params)?;
+                let storage = self.storage();
+                let journals = self.store_root().map(|root| root.join("journals"));
+                let outcome = match p.action {
+                    crate::storage::CleanAction::StaleWorktrees => storage
+                        .clean_stale_worktrees(&self.repos, &self.workspace, &self.terminals)
+                        .await
+                        .map_err(|e| RpcError::Failed(e.to_string()))?,
+                    crate::storage::CleanAction::DeletedChatData => match journals {
+                        Some(journals) => storage
+                            .clean_deleted_chat_data(&self.workspace, journals)
+                            .await
+                            .map_err(|e| RpcError::Failed(e.to_string()))?,
+                        None => Default::default(),
+                    },
+                    crate::storage::CleanAction::ArchivedChats => {
+                        let doomed = storage.archived_chats_older_than(
+                            &self.workspace,
+                            p.older_than_days.unwrap_or(30),
+                        );
+                        let size = |id: &str| {
+                            journals
+                                .as_deref()
+                                .map_or(0, |dir| crate::storage::journal_bytes(dir, id))
+                        };
+                        let mut outcome = crate::storage::CleanOutcome::default();
+                        for chat_id in doomed {
+                            let before = size(&chat_id);
+                            match self.mutate(MutateParams::DeleteChat {
+                                chat_id: chat_id.clone(),
+                            }) {
+                                Ok(()) => {
+                                    outcome.removed += 1;
+                                    outcome.freed_bytes += before.saturating_sub(size(&chat_id));
+                                }
+                                Err(err) => {
+                                    tracing::warn!(chat = %chat_id, error = %err, "archived chat cleanup failed")
+                                }
+                            }
+                        }
+                        storage.invalidate(None);
+                        outcome
+                    }
+                    crate::storage::CleanAction::StagedUpdate => storage
+                        .clean_staged_updates()
+                        .await
+                        .map_err(|e| RpcError::Failed(e.to_string()))?,
+                };
+                RpcReply::value(&outcome)
             }
             methods::LIST_PROJECT_ACTIONS => {
                 let p: ListProjectActionsParams = parse_params(params)?;
