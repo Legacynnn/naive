@@ -105,6 +105,7 @@ struct LiveTerminal {
     replay_bytes: usize,
     seq: u64,
     last_active_at: std::time::Instant,
+    last_output_at: std::time::Instant,
     exited: bool,
     /// Program-detection replies in the current window (rate-limited: see
     /// `pump_output`).
@@ -130,6 +131,9 @@ impl LiveTerminal {
     /// attached stream ends after delivering the event.
     fn emit(&mut self, event: TerminalEvent) {
         self.last_active_at = std::time::Instant::now();
+        if matches!(event, TerminalEvent::Data { .. }) {
+            self.last_output_at = self.last_active_at;
+        }
         let bytes = match &event {
             TerminalEvent::Data { data, .. } => data.len(),
             TerminalEvent::Exit { .. } => 16,
@@ -565,6 +569,7 @@ impl Terminals {
             replay_bytes: 0,
             seq: 0,
             last_active_at: std::time::Instant::now(),
+            last_output_at: std::time::Instant::now(),
             exited: false,
             support_replies: 0,
             support_window: std::time::Instant::now(),
@@ -763,7 +768,7 @@ impl Terminals {
         let session = self.session(terminal_id)?;
         let live = lock(&session);
         if live.exited {
-            return Ok(TerminalStatus { busy: false, exited: true });
+            return Ok(TerminalStatus { exited: true, ..TerminalStatus::default() });
         }
         #[cfg(unix)]
         let busy = match (
@@ -775,7 +780,14 @@ impl Terminals {
         };
         #[cfg(not(unix))]
         let busy = false;
-        Ok(TerminalStatus { busy, exited: false })
+        let report = live.programs.summary(None).map(|(report, _)| report);
+        Ok(TerminalStatus {
+            busy,
+            exited: false,
+            program: report.as_ref().map(|r| r.state),
+            input: report.as_ref().and_then(|r| r.kind),
+            quiet_ms: Some(live.last_output_at.elapsed().as_millis().min(u64::MAX as u128) as u64),
+        })
     }
 
     /// Kill the shell (if still running) and drop the session + replay buffer.

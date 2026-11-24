@@ -26,6 +26,8 @@ local boundary = require("@app/screens/shell/boundary")
 local updates = require("@app/screens/shell/updates")
 local splits = require("@app/screens/shell/split")
 local session_tabs = require("@app/screens/shell/session_tabs")
+local terminal_agents = require("@app/screens/shell/terminal_agents")
+local TerminalAgentPane = require("@app/screens/shell/terminal_agent_pane")
 local lanes = require("@app/screens/chat/lanes")
 local LaneTab = require("@app/screens/chat/lane_tab")
 local chat_shared = require("@app/screens/chat/shared")
@@ -107,11 +109,18 @@ return function(props: Props): Node
 		if route.chat:get().name == "plugin" then
 			return "none"
 		end
-		return if in_session() then "session" else "home"
+		if in_session() then
+			local id = route.chat:get().session
+			return if terminal_agents.is(id) then id else "session"
+		end
+		return "home"
 	end, function(kind: string): Node
 		-- (A plugin's page is a route of its own: no chat under it.)
 		if kind == "none" then
 			return ui.div {}
+		end
+		if terminal_agents.is(kind) then
+			return TerminalAgentPane.Pane { agent = kind }
 		end
 		if kind == "session" then
 			return boundary.screen(boundary.named("shell.boundary.screen.session_page"), "@app/screens/chat", function(chat): Node
@@ -316,8 +325,9 @@ return function(props: Props): Node
 		end
 	end)
 	ui.effect(function()
-		if grouped() then
-			chat_store.open(splits.focused:get())
+		local focused = splits.focused:get()
+		if grouped() and not terminal_agents.is(focused) then
+			chat_store.open(focused)
 		end
 	end)
 	-- The one composer, over whatever shows (it hides itself on settings).
@@ -672,7 +682,7 @@ return function(props: Props): Node
 	-- room, it stays open, and comes back as the window widens.)
 	-- (A plugin's page has a panel of its own too: its plugin's tabs.)
 	local shown = ui.computed(function(): boolean
-		return props.files:get() and (in_session() or on_plugin() or home()) and fit.current:get().right
+		return props.files:get() and not away() and (in_session() or on_plugin() or home()) and fit.current:get().right
 	end)
 	-- Where the sidebar settles in the window's fit (its width, or none).
 	local function sidebar_settled(): number

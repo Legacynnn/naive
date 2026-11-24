@@ -37,6 +37,7 @@
 
 local route = require("@app/screens/shell/route")
 local sessions = require("@account/sessions")
+local worktree = require("@app/screens/shell/worktree")
 
 local motion = require("@ds/motion")
 
@@ -507,6 +508,12 @@ ui.effect(function()
 	if not t then
 		local tab = leaf(id)
 		tab.key = fresh_key(id, list)
+		if worktree.on:peek() then
+			local more = table.clone(list)
+			table.insert(more, tab)
+			trees:set(more)
+			return
+		end
 		local more: { Node } = {}
 		local placed = false
 		for _, other in list do
@@ -526,6 +533,9 @@ end)
 -- One tab for a chat alone, however it came to be more (a split left with one, tabs
 -- kept from before): the focused chat's, else the last.
 ui.effect(function()
+	if worktree.on:get() then
+		return
+	end
 	local list = trees:get()
 	local focused = M.focused:peek()
 	local keep: Node? = nil
@@ -550,11 +560,100 @@ ui.effect(function()
 	trees:set(out)
 end)
 
+M.worktree = ui.state("split_worktree", nil :: string?)
+ui.effect(function()
+	local key = worktree.of(M.focused:get())
+	if key and M.worktree:peek() ~= key then
+		M.worktree:set(key)
+	end
+end)
+
+local function in_worktree(t: Node, key: string): boolean
+	for _, id in leaves(t) do
+		if worktree.of(id) == key then
+			return true
+		end
+	end
+	return false
+end
+
+local function latest(t: Node): number
+	local most = 0
+	for _, id in leaves(t) do
+		local w = worktree.get(worktree.of(id))
+		if w then
+			for _, c in w.chats do
+				if c.id == id and c.updated > most then
+					most = c.updated
+				end
+			end
+		end
+	end
+	return most
+end
+
+local function visible(): { Node }
+	local list = trees:get()
+	if not worktree.on:get() then
+		return list
+	end
+	local key = M.worktree:get()
+	local out: { Node } = {}
+	for _, t in list do
+		if not key or in_worktree(t, key) then
+			table.insert(out, t)
+		end
+	end
+	if worktree.sort:get() == "activity" then
+		local at: { [Node]: number } = {}
+		local stamp: { [Node]: number } = {}
+		for i, t in out do
+			at[t] = i
+			stamp[t] = latest(t)
+		end
+		table.sort(out, function(a, b)
+			if stamp[a] ~= stamp[b] then
+				return stamp[a] > stamp[b]
+			end
+			return at[a] < at[b]
+		end)
+	end
+	return out
+end
+
 -- The tabs open, in their order, by key.
 M.tabs = steady(function(): { string }
 	local out: { string } = {}
-	for _, t in trees:get() do
+	for _, t in visible() do
 		table.insert(out, key_of(t))
+	end
+	return out
+end)
+
+-- The closed chats of the worktree showing, newest first.
+M.closed = steady(function(): { string }
+	local w = worktree.get(M.worktree:get())
+	if not w then
+		return {}
+	end
+	local open: { [string]: boolean } = {}
+	for _, t in trees:get() do
+		for _, id in leaves(t) do
+			open[id] = true
+		end
+	end
+	local list = {}
+	for _, c in w.chats do
+		if not open[c.id] then
+			table.insert(list, c)
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.updated > b.updated
+	end)
+	local out: { string } = {}
+	for _, c in list do
+		table.insert(out, c.id)
 	end
 	return out
 end)
@@ -585,6 +684,26 @@ end
 
 -- A tab moved to where another stands.
 function M.move_tab(key: string, onto: string)
+	if worktree.on:peek() and worktree.sort:peek() == "activity" then
+		local shown_now = M.tabs:peek()
+		local rank: { [string]: number } = {}
+		for i, k in shown_now do
+			rank[k] = i
+		end
+		local reordered = table.clone(trees:peek())
+		local base = #shown_now
+		for i, t in reordered do
+			local k = key_of(t)
+			rank[k] = rank[k] or base + i
+		end
+		table.sort(reordered, function(a, b)
+			return rank[key_of(a)] < rank[key_of(b)]
+		end)
+		ui.batch(function()
+			trees:set(reordered)
+			worktree.sort:set("manual")
+		end)
+	end
 	local list = table.clone(trees:peek())
 	local from, to
 	for i, t in list do
@@ -896,9 +1015,13 @@ ui.effect(function()
 	end
 end)
 
+local function terminal(id: string?): boolean
+	return type(id) == "string" and string.sub(id, 1, 5) == "term:"
+end
+
 function M.can_take(id: string): boolean
 	local focused = M.focused:peek()
-	if not focused then
+	if not focused or terminal(id) or terminal(focused) then
 		return false
 	end
 	local members = M.members:peek()
@@ -952,7 +1075,15 @@ end
 -- room there.
 function M.can_join(id: string, key: string): boolean
 	local t = tab_with_key(trees:peek(), key)
-	return t ~= nil and not holds(t, id) and #leaves(t) < M.MAX
+	if t == nil or terminal(id) then
+		return false
+	end
+	for _, other in leaves(t) do
+		if terminal(other) then
+			return false
+		end
+	end
+	return not holds(t, id) and #leaves(t) < M.MAX
 end
 
 -- A chat dragged onto a tab: at the end of it, and out of the tab it was in, which

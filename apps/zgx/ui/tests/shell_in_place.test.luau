@@ -49,7 +49,7 @@ end
 
 local function open(): any
 	local app = mount("shell_fixture.luau")
-	app:resize(1200, 800)
+	app:resize(1200, 840)
 	app:frames(30)
 	return app
 end
@@ -334,7 +334,7 @@ test("a settings page chosen in the list opens at its top", function()
 	expect(app:state("shell_settings_scroll") > 0).to_be(true)
 	-- (The list runs past the short window too: a taller one shows its foot,
 	-- where Archived is, the page still scrolled under it.)
-	app:resize(1200, 800)
+	app:resize(1200, 840)
 	app:frames(20)
 	expect(app:state("shell_settings_scroll") > 0).to_be(true)
 	app:click('#settings-nav >> "Archived"')
@@ -1090,7 +1090,7 @@ end)
 -- settings' button stay at the list's foot, where they always are.
 test("a settings search keeps the foot's you and settings at the foot", function()
 	local app = open()
-	app:resize(1200, 800)
+	app:resize(1200, 840)
 	app:command("shell.settings")
 	app:frames(30)
 	local function y_of(label: string): number?

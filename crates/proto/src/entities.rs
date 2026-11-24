@@ -1895,6 +1895,12 @@ pub struct TerminalSession {
 pub struct TerminalStatus {
     pub busy: bool,
     pub exited: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub program: Option<crate::ProgramState>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input: Option<crate::ProgramInputKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quiet_ms: Option<u64>,
 }
 
 /// One `SubscribeTerminal` stream item. `seq` is a per-terminal monotonic counter

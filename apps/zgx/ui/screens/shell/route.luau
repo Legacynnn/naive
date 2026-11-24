@@ -54,6 +54,8 @@
 
 local sessions = require("@account/sessions")
 local look = require("@app/screens/shell/project_look")
+local worktree = require("@app/screens/shell/worktree")
+local terminal_agents = require("@app/screens/shell/terminal_agents")
 
 local M = {}
 
@@ -272,6 +274,9 @@ local function chat_of(id: string?): sessions.Chat?
 	if not id then
 		return nil
 	end
+	if terminal_agents.is(id) then
+		return terminal_agents.chat(id)
+	end
 	local now = sessions.now:get()
 	for _, c in now.chats do
 		if c.id == id then
@@ -476,6 +481,10 @@ ui.effect(function()
 	end
 	if r.name == "session" then
 		local id = r.params.id
+		if terminal_agents.get(id) then
+			M.launched:set(true)
+			return
+		end
 		for _, c in now.chats do
 			if c.id == id then
 				M.launched:set(true)
@@ -626,7 +635,12 @@ ui.effect(function()
 	end
 end)
 
+-- The new chat started in a worktree, shown as a tab of its own until it's sent or put away.
+export type Draft = { key: string, at: number, plan: { [string]: any } }
+M.draft = ui.state("shell_draft_tab", nil :: Draft?)
+
 function M.new_chat(project: string?, device: string?)
+	M.draft:set(nil)
 	if project == nil and device == nil then
 		project = narrowed_to()
 		if project == nil then
@@ -639,6 +653,10 @@ function M.new_chat(project: string?, device: string?)
 		end
 	end
 	last_chat:set(nil)
+	-- A new chat is a row of its own: a worktree of its own, not the one left.
+	if worktree.on:peek() and project and project ~= "none" and M.where_pick:peek() == nil then
+		M.where_pick:set({ checkout = "worktree", branch = nil })
+	end
 	local on: string? = nil
 	-- (None of the project's there: none chosen, so the composer picks.)
 	local unchosen = false
@@ -668,6 +686,75 @@ function M.new_chat(project: string?, device: string?)
 			go("home")
 		end
 	end)
+end
+
+M.where_pick = ui.state("shell_where_pick", nil :: { checkout: string, branch: string? }?)
+function M.take_where(): { checkout: string, branch: string? }?
+	local pick = M.where_pick:peek()
+	if pick then
+		M.where_pick:set(nil)
+	end
+	return pick
+end
+M.pinned_worktree = ui.state("shell_pinned_worktree", nil :: { project: string?, branch: string?, cwd: string? }?)
+function M.new_chat_at(at: { project: string?, device: string?, branch: string?, worktree: boolean, main: boolean?, cwd: string?, key: string? })
+	ui.batch(function()
+		if not at.worktree and not at.main and at.cwd then
+			M.pinned_worktree:set({ project = at.project, branch = at.branch, cwd = at.cwd })
+		end
+		M.where_pick:set({ checkout = if at.worktree then "worktree" else "local", branch = at.branch })
+		M.new_chat(at.project, at.device)
+		if not at.worktree and at.key then
+			M.draft:set({ key = at.key, at = os.time(), plan = table.clone(at) :: any })
+		end
+	end)
+end
+
+-- Back to the worktree's new chat, as it was left (its composer keeps its draft).
+function M.open_draft()
+	local d = M.draft:peek()
+	if d then
+		M.new_chat_at(d.plan :: any)
+	end
+end
+
+function M.new_chat_in(fresh: boolean?)
+	local c = chat_of(M.chat:peek().session or last_chat:peek())
+	local w = if c then worktree.get(worktree.of(c.id)) else nil
+	if not w or not w.project then
+		M.new_chat()
+		return
+	end
+	M.new_chat_at({ project = w.project, device = w.device, branch = if fresh then nil else w.branch, worktree = fresh == true, main = w.main, cwd = w.cwd, key = w.key })
+end
+
+function M.new_terminal_agent(agent: string, given: { prompt: string?, project: string?, device: string?, cwd: string?, branch: string? }?)
+	local c = chat_of(M.chat:peek().session or last_chat:peek())
+	local w = if c then worktree.get(worktree.of(c.id)) else nil
+	local at: { [string]: any }? = nil
+	if given and given.device and (given.project or given.cwd) then
+		at = { project = given.project, device = given.device, cwd = given.cwd, branch = given.branch }
+	elseif w and (w.project or w.cwd) then
+		local lead: string? = nil
+		for _, member in w.chats do
+			if not terminal_agents.is(member.id) then
+				lead = member.id
+				break
+			end
+		end
+		at = { project = w.project, device = w.device, cwd = w.cwd, branch = w.branch, anchor = lead }
+	else
+		local p = project_of(narrowed_to() or chosen:peek())
+		if p then
+			at = { project = p.id, device = p.device, cwd = p.path }
+		end
+	end
+	if not at then
+		return
+	end
+	at.agent = agent
+	at.prompt = if given then given.prompt else nil
+	M.open_session(terminal_agents.start(at :: any))
 end
 
 function M.choose_project(id: string?)

@@ -603,6 +603,11 @@ function M.bind(c: Choices)
 				return { project = p.id, device = p.device, branch = name, cwd = ref.worktree, worktree = false }
 			end
 		end
+		-- The worktree a sidebar row's "+" asked for, before the refs have said where it is.
+		local pinned = route.pinned_worktree:peek()
+		if pinned and pinned.project == p.id and pinned.branch == name and pinned.cwd then
+			return { project = p.id, device = p.device, branch = name, cwd = pinned.cwd, worktree = false }
+		end
 		return { project = p.id, device = p.device, branch = name, cwd = p.path, worktree = false }
 	end
 

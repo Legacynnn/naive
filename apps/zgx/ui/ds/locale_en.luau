@@ -388,6 +388,8 @@ return {
 	["ds.sidebar.activity"] = "Activity",
 	["ds.sidebar.working"] = "Working",
 	["ds.sidebar.asleep"] = "Asleep",
+	["ds.sidebar.new_here"] = "New chat here",
+	["ds.sidebar.new_worktree"] = "New chat in new worktree",
 	["ds.git.pull_request"] = "Pull request",
 	["ds.git.file"] = "File",
 	["ds.git.comment_on_line"] = "Comment on line {n}",

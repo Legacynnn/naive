@@ -20,6 +20,7 @@
 --                          the panel leaves it)
 
 local route = require("@app/screens/shell/route")
+local worktree = require("@app/screens/shell/worktree")
 
 local M = {}
 
@@ -45,7 +46,11 @@ local function owner(c: any): string?
 	if c.name == "home" then
 		return "home"
 	end
-	return if c.name == "session" then c.session else nil
+	if c.name ~= "session" then
+		return nil
+	end
+	local tree = if worktree.on:get() then worktree.of(c.session) else nil
+	return if tree then `worktree:{tree}` else c.session
 end
 local function session(): string?
 	return owner(route.chat:get())

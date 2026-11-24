@@ -68,6 +68,7 @@ mod settings;
 #[cfg(target_os = "macos")]
 mod system_sound;
 mod terminal;
+mod terminal_agents;
 mod tool_details;
 mod themes;
 mod transparency;
@@ -161,6 +162,9 @@ use zgx_script::{ScriptHost, Shared, Value};
 /// Where `ui.persist` keeps its files: the Zeron app's (the beta), apart from
 /// development builds', which are staging's.
 const APP_ID: &str = if cfg!(feature = "beta") { "zeron" } else { "zeron-zgx" };
+/// What its windows are called: a development build is "Naive", never
+/// mistaken for an installed Zeron (scripts/naive-app.sh names its bundle so too).
+const APP_NAME: &str = if cfg!(feature = "beta") { "Zeron" } else { "Naive" };
 
 /// Setup's window, in points: room for a step and its footer, no more.
 const ONBOARDING_SIZE: (f64, f64) = (680., 500.);
@@ -852,6 +856,7 @@ fn script_host_at(cx: &mut WindowContext, path: PathBuf, entry: &str) -> ScriptH
         appshots::install(cx, &host);
         // The panel's terminal tabs (src/terminal.rs).
         terminal::install(cx, &host);
+        terminal_agents::install(&host);
         // The panel's home: run actions, the branch's totals (src/session_home.rs).
         session_home::install(&host);
         engine_update::install(cx, &host);
@@ -1257,7 +1262,7 @@ fn run_menu_command(host: &ScriptHost, id: &str) {
 
 fn intro_window() -> WindowOptions {
     WindowOptions {
-        title: "Zeron".into(),
+        title: APP_NAME.into(),
         transparent: true,
         decorations: false,
         resizable: false,
@@ -1285,7 +1290,7 @@ fn zeron_glass() -> Glass {
 /// blur, which the theme's `background` tints (the shipping app's glass).
 fn zeron_window(width: f64, height: f64) -> WindowOptions {
     WindowOptions {
-        title: "Zeron".into(),
+        title: APP_NAME.into(),
         width,
         height,
         decorations: cfg!(target_os = "macos"),

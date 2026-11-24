@@ -131,6 +131,19 @@ return function(): Node
 	-- composer, its draft now the new chat's), so a key typed straight after
 	-- is the new chat's, never the one left.
 	runs["shell.new_chat"] = function()
+		-- (With worktrees, ⌘N is another chat in the worktree showing; ⌥⌘N a new one.)
+		local worktrees: any = boundary.load("@app/screens/shell/worktree")
+		if worktrees ~= nil and worktrees.on:peek() then
+			route.new_chat_in()
+		else
+			route.new_chat()
+		end
+		local shared: any = boundary.load("@app/screens/chat/shared")
+		if shared and shared.focus then
+			shared.focus:add(1)
+		end
+	end
+	runs["shell.new_worktree"] = function()
 		route.new_chat()
 		local shared: any = boundary.load("@app/screens/chat/shared")
 		if shared and shared.focus then
@@ -165,8 +178,19 @@ return function(): Node
 	-- Without a tab to close, close the focused split chat or the window.
 	runs["shell.close"] = function()
 		local panel: any = boundary.load("@app/screens/panel")
-		if panel and panel.close_active_tab and (panel.close_active_tab :: any)() then
+		-- (With worktrees, the panel's tab only while the panel has the keys: else the chat's.)
+		local worktrees: any = boundary.load("@app/screens/shell/worktree")
+		local by_chat = worktrees ~= nil and worktrees.on:peek()
+		local close_panel = if panel then (if by_chat then panel.close_focused_tab else panel.close_active_tab) else nil
+		if close_panel and (close_panel :: any)() then
 			return
+		end
+		if by_chat and route.current:peek().name == "home" and route.draft:peek() then
+			local tabs: any = boundary.load("@app/screens/shell/session_tabs")
+			if tabs and tabs.close_draft then
+				tabs.close_draft()
+				return
+			end
 		end
 		if route.current:peek().name == "session" then
 			local splits: any = boundary.load("@app/screens/shell/split")
@@ -182,7 +206,20 @@ return function(): Node
 				return
 			end
 		end
-		ui.invoke("close")
+		-- With worktrees, a new chat's page with tabs still open goes back to one of them.
+		if by_chat and route.current:peek().name == "home" then
+			local splits: any = boundary.load("@app/screens/shell/split")
+			local open = if splits then splits.tabs:peek() else {}
+			if #open > 0 then
+				route.open_session(splits.panes(open[#open])[1] or open[#open])
+				return
+			end
+		end
+		-- (After the key: AppKit still holds the menu item that ran this, which
+		-- the window closing would take with it.)
+		ui.after(0, function()
+			ui.invoke("close")
+		end)
 	end
 	-- The next and previous session, in the sidebar's order, round from the
 	-- end (from a new chat, its first or last). (Zeron's, shell/tabs.rs.)

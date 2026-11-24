@@ -1336,6 +1336,10 @@ M.Panel = ui.component(function(props: Props): Node
 			}
 		end
 		local sid = if string.sub(k, 1, 5) == "chat:" then string.sub(k, 6) else nil
+		if string.sub(k, 1, 9) == "worktree:" then
+			local s = read(session)
+			sid = if type(s) == "table" then s.id elseif type(s) == "string" then s else nil
+		end
 		return Home.Page {
 			key = k,
 			session = sid,

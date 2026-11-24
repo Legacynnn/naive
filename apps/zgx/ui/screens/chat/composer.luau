@@ -26,6 +26,9 @@ local prefs = require("@app/screens/settings/prefs")
 local store = require("@app/screens/chat/store")
 local lanes = require("@app/screens/chat/lanes")
 local route = require("@app/screens/shell/route")
+local terminal_agents = require("@app/screens/shell/terminal_agents")
+local locale = require("@ds/locale")
+local TERMINAL_SVG = (require("@ds/icon_svgs") :: any)["terminal"]
 local art = require("@app/screens/shell/art")
 local shared = require("@app/screens/chat/shared")
 local sessions = require("@account/sessions")
@@ -225,8 +228,9 @@ local function Composer(): Node
 							locals[k]:set(v)
 						end
 					end
-					checkout:set(d.checkout)
-					branch:set(d.branch)
+					local asked_where = route.take_where()
+					checkout:set(if asked_where then asked_where.checkout else d.checkout)
+					branch:set(if asked_where then asked_where.branch else d.branch)
 					-- (A device asked of this new chat, a device's "+" in the
 					-- sidebar, over the one last used; a project asked of it,
 					-- a project's "+", over the one last picked here.)
@@ -324,6 +328,19 @@ local function Composer(): Node
 		local asked = route.take_project()
 		if asked and project:peek() ~= asked.project then
 			project:set(asked.project)
+		end
+	end)
+	ui.effect(function()
+		local pick = route.where_pick:get()
+		if pick == nil or session_id:peek() ~= nil or was:peek() ~= nil then
+			return
+		end
+		local asked_where = route.take_where()
+		if asked_where then
+			ui.batch(function()
+				checkout:set(asked_where.checkout)
+				branch:set(asked_where.branch)
+			end)
 		end
 	end)
 	-- A device asked of a new chat already showing (a device's "+" in the
@@ -520,7 +537,7 @@ local function Composer(): Node
 		owner = shared.owner,
 		request = function(): any?
 			-- (Only a new chat's.)
-			if not new_chat() then
+			if not new_chat() or string.sub(model:get() or "", 1, 9) == "terminal/" then
 				return nil
 			end
 			local req = {
@@ -1114,6 +1131,12 @@ local function Composer(): Node
 			return
 		end
 		local plan = where.plan()
+		local terminal_agent = string.match(req.model or "", "^terminal/(.+)$")
+		if terminal_agent and not plan.cloud and plan.device then
+			own_notice:set(nil)
+			route.new_terminal_agent(terminal_agent, { prompt = text_out, project = plan.project, device = plan.device, cwd = plan.cwd, branch = plan.branch })
+			return
+		end
 		-- (`why`: what to say instead, a Cloud chat's reason in words.)
 		local failed = function(why: string?)
 			own_notice:set { tone = "danger", text = why, key = if why then nil else "chat.composer.didnt_start", dismissable = true }
@@ -1361,7 +1384,13 @@ local function Composer(): Node
 			options = options,
 			-- The catalog, followed in place as it comes and changes.
 			harnesses = function(): { ds.Harness }
-				return store.catalog:get().harnesses
+				local list = store.catalog:get().harnesses
+				if session_id:get() ~= nil or #terminal_agents.prompted:get() == 0 then
+					return list
+				end
+				local more = table.clone(list)
+				table.insert(more, { id = "terminal", label = locale.s("shell.tabs.terminal_agents_short"), mark = "claude", icon = TERMINAL_SVG } :: any)
+				return more
 			end,
 			models_loading = function(): boolean
 				return store.catalog:get().complete ~= true
@@ -1389,7 +1418,16 @@ local function Composer(): Node
 				return m and m.value
 			end,
 			models = function(): { ds.Model }
-				return store.catalog:get().models
+				local list = store.catalog:get().models
+				local offered = terminal_agents.prompted:get()
+				if session_id:get() ~= nil or #offered == 0 then
+					return list
+				end
+				local more = table.clone(list)
+				for _, e in offered do
+					table.insert(more, { value = `terminal/{e.id}`, label = e.name, harness = "terminal" })
+				end
+				return more
 			end,
 			accounts = accounts.accounts,
 			account_group = accounts.account_group,
@@ -1850,7 +1888,8 @@ local function Composer(): Node
 				-- (And not over a plugin's page: the chat's page is kept unseen
 				-- under it, and so is this.)
 				ui.show(function(): boolean
-					return not route.needs_project:get() and route.current:get().name ~= "plugin"
+					local c = route.chat:get()
+					return not route.needs_project:get() and route.current:get().name ~= "plugin" and not (c.name == "session" and string.sub(c.session or "", 1, 5) == "term:")
 				end, composer()),
 			},
 		},
