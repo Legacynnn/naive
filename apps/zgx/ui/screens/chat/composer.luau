@@ -225,8 +225,9 @@ local function Composer(): Node
 							locals[k]:set(v)
 						end
 					end
-					checkout:set(d.checkout)
-					branch:set(d.branch)
+					local asked_where = route.take_where()
+					checkout:set(if asked_where then asked_where.checkout else d.checkout)
+					branch:set(if asked_where then asked_where.branch else d.branch)
 					-- (A device asked of this new chat, a device's "+" in the
 					-- sidebar, over the one last used; a project asked of it,
 					-- a project's "+", over the one last picked here.)
@@ -324,6 +325,19 @@ local function Composer(): Node
 		local asked = route.take_project()
 		if asked and project:peek() ~= asked.project then
 			project:set(asked.project)
+		end
+	end)
+	ui.effect(function()
+		local pick = route.where_pick:get()
+		if pick == nil or session_id:peek() ~= nil or was:peek() ~= nil then
+			return
+		end
+		local asked_where = route.take_where()
+		if asked_where then
+			ui.batch(function()
+				checkout:set(asked_where.checkout)
+				branch:set(asked_where.branch)
+			end)
 		end
 	end)
 	-- A device asked of a new chat already showing (a device's "+" in the
@@ -1850,7 +1864,8 @@ local function Composer(): Node
 				-- (And not over a plugin's page: the chat's page is kept unseen
 				-- under it, and so is this.)
 				ui.show(function(): boolean
-					return not route.needs_project:get() and route.current:get().name ~= "plugin"
+					local c = route.chat:get()
+					return not route.needs_project:get() and route.current:get().name ~= "plugin" and not (c.name == "session" and string.sub(c.session or "", 1, 5) == "term:")
 				end, composer()),
 			},
 		},

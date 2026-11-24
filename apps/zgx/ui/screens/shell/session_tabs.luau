@@ -17,8 +17,13 @@ local look = require("@app/screens/shell/project_look")
 local route = require("@app/screens/shell/route")
 local sessions = require("@account/sessions")
 local splits = require("@app/screens/shell/split")
+local worktree = require("@app/screens/shell/worktree")
+local terminal_agents = require("@app/screens/shell/terminal_agents")
+local MenuAt = require("@ds/menu_at")
+local locale = require("@ds/locale")
 
 local M = {}
+local history_entries: () -> { any }
 
 local TAB_H, SLOT, LABEL_MAX, TILE = 28, 20, 160, 20
 local SLIDE = { duration = 150, ease = "out(3)" }
@@ -40,6 +45,9 @@ local function tab_ref(id: string): any
 end
 
 local function chat_of(id: string): any
+	if terminal_agents.is(id) then
+		return terminal_agents.chat(id)
+	end
 	for _, c in sessions.now:get().chats do
 		if c.id == id then
 			return c
@@ -123,6 +131,19 @@ local function carried(payload: any): string?
 	return splits.dragged(payload)
 end
 
+-- The worktree's new chat sent: its own tab takes the draft's place.
+ui.effect(function()
+	local s = route.session:get()
+	local d = route.draft:peek()
+	if not s or not d then
+		return
+	end
+	local c = chat_of(s.id)
+	if c and worktree.of(s.id) == d.key and (c.created or 0) >= d.at - 5 then
+		route.draft:set(nil)
+	end
+end)
+
 -- A chat focused goes first among the focused. (Its tab: `splits`.)
 ui.effect(function()
 	local s = route.session:get()
@@ -141,20 +162,50 @@ ui.effect(function()
 	end
 end)
 
+local function end_agents(keys: { string }): () -> ()
+	local ids: { string } = {}
+	for _, key in keys do
+		for _, id in splits.panes(key) do
+			if terminal_agents.is(id) then
+				table.insert(ids, id)
+			end
+		end
+	end
+	return function()
+		for _, id in ids do
+			terminal_agents.close(id)
+		end
+	end
+end
+
 local function close(key: string)
 	local before = shown:peek()
 	local at = table.find(before, key)
 	local alone = #splits.panes(key) == 1
 	local was_showing = splits.current_key() == key
+	local ended = end_agents({ key })
 	splits.close_tabs({ key })
+	ended()
 	if was_showing then
 		-- The one beside it, else a new chat. (A chat alone: always a new chat.)
 		local after = shown:peek()
-		local next_key = if at and not alone then after[math.min(at, #after)] else nil
+		local next_key = if at and (not alone or worktree.on:peek()) then after[math.min(at, #after)] else nil
 		if next_key then
 			route.open_session(face(next_key))
 		else
 			route.new_chat()
+		end
+	end
+end
+
+-- The worktree's new chat put away: back to the chat last open there.
+function M.close_draft()
+	local d = route.draft:peek()
+	route.draft:set(nil)
+	if d and route.chat:peek().name == "home" then
+		local back = worktree.resume(d.key)
+		if back then
+			route.open_session(back)
 		end
 	end
 end
@@ -176,7 +227,9 @@ local function close_many(list: { string }, keep: string)
 		return
 	end
 	local was_showing = table.find(list, splits.current_key() or "") ~= nil
+	local ended = end_agents(list)
 	splits.close_tabs(list)
+	ended()
 	if was_showing then
 		route.open_session(face(keep))
 	end
@@ -210,6 +263,19 @@ local function pane_tile(id: string, place: number): Node
 		return if project_of(chat_of(chat)) then chat else `{chat}\0loose`
 	end, function(which: string): Node
 		local chat = string.match(which, "^[^%z]*") or ""
+		if worktree.on:peek() then
+			return ui.row {
+				w = TILE,
+				h = TILE,
+				items = "center",
+				justify = "center",
+				SessionRow.mark(function(): any
+					return chat_of(chat) or { id = chat, title = "" }
+				end, function(): boolean
+					return true
+				end),
+			}
+		end
 		if which ~= chat then
 			return ds.Tile { size = TILE, inside = ds.Icon { name = "side-chat", size = 14 } }
 		end
@@ -526,6 +592,99 @@ local Tab = ui.component(function(props: { chat: string, strip: any }): Node
 	}
 end)
 
+local function new_entries(): { any }
+	local out: { any } = {
+		{
+			label = locale.s("shell.tabs.new_menu_chat"),
+			icon = "pen-new-square",
+			shortcut = "cmd+n",
+			on_select = function()
+				route.new_chat_in()
+			end,
+		},
+		{ separator = true },
+		{ heading = locale.s("shell.tabs.terminal_agents") },
+	}
+	local offered = terminal_agents.offered:peek()
+	if terminal_agents.installed:peek() == nil then
+		table.insert(out, { label = locale.s("shell.tabs.terminal_agents_looking"), disabled = true })
+	elseif #offered == 0 then
+		table.insert(out, { label = locale.s("shell.tabs.terminal_agents_none"), disabled = true })
+	end
+	for _, e in offered do
+		table.insert(out, {
+			label = e.name,
+			mark = function(): Node
+				return SessionRow.mark(function(): any
+					return { id = e.id, title = e.name, agent = e.mark, harness = if e.mark then "terminal" else `acp.{e.id}` }
+				end, function(): boolean
+					return true
+				end)
+			end,
+			on_select = function()
+				route.new_terminal_agent(e.id)
+			end,
+		})
+	end
+	table.insert(out, { separator = true })
+	table.insert(out, {
+		label = locale.s("shell.tabs.terminal_agents_manage"),
+		icon = "settings-minimalistic",
+		on_select = function()
+			route.settings("terminal_agents")
+		end,
+	})
+	return out
+end
+
+function history_entries(): { any }
+	local out: { any } = {
+		{ heading = locale.s("shell.tabs.sort.title") },
+		{
+			label = locale.s("shell.tabs.sort.activity"),
+			icon = "status-working",
+			checked = function(): boolean
+				return worktree.sort:peek() == "activity"
+			end,
+			on_select = function()
+				worktree.sort:set("activity")
+			end,
+		},
+		{
+			label = locale.s("shell.tabs.sort.manual"),
+			icon = "grip",
+			checked = function(): boolean
+				return worktree.sort:peek() ~= "activity"
+			end,
+			on_select = function()
+				worktree.sort:set("manual")
+			end,
+		},
+		{ separator = true },
+		{ heading = locale.s("shell.tabs.history") },
+	}
+	local closed = splits.closed:peek()
+	if #closed == 0 then
+		table.insert(out, { label = locale.s("shell.tabs.history_empty"), disabled = true })
+	end
+	for i, id in closed do
+		if i > 20 then
+			break
+		end
+		local c = chat_of(id)
+		if c then
+			table.insert(out, {
+				label = if c.title ~= "" then c.title else locale.s("shell.sidebar.session.new_session"),
+				icon = "chat-round-line",
+				on_select = function()
+					route.open_session(id)
+				end,
+			})
+		end
+	end
+	return out
+end
+
 -- `window_x`: how far the page's room stands from the window's left, followed
 -- as the sidebar moves. `width`: the window's. `start`: where the tabs start
 -- in the window. `right`: how far they keep from its right edge.
@@ -533,6 +692,11 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 	-- Each edge fades in full as soon as tabs run a little past it: a band only
 	-- as wide as the overflow (`fade_overflow`) is a hard edge while that's a
 	-- few points. Over the last few, as the end comes to rest, it goes.
+	if not worktree.capable:peek() then
+		ui.after(0, function()
+			worktree.capable:set(true)
+		end)
+	end
 	local offset = ui.state("shell_session_tabs_offset", 0)
 	local content = ui.ref()
 	local start_at = ui.computed(props.start)
@@ -661,6 +825,19 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 			pr = function(): any
 				return ui.raw(props.right(), "clear of the title bar's controls at the right")
 			end,
+			ui.row {
+				grow = 1,
+				min_w = 0,
+				h_full = true,
+				items = "center",
+				-- (As wide as its tabs, so the new chat's tab and + follow the last one.)
+				max_w = function(): any
+					if not worktree.on:get() then
+						return nil
+					end
+					strip.order:get()
+					return ui.raw((content.width or 0) + 1, "as wide as the tabs it holds")
+				end,
 			strip.Frame(ui.scroll_x {
 				id = "session-tabs-scroll",
 				offset = offset,
@@ -685,6 +862,115 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 						animate = motion.tab_slide(),
 					}),
 				},
+			}),
+			},
+			ui.show(function(): boolean
+				local d = route.draft:get()
+				return worktree.on:get() and d ~= nil and d.key == splits.worktree:get()
+			end, ui.row {
+				id = "session-tab-draft",
+				role = "tab",
+				label = ui.t("shell.tabs.draft"),
+				selected = function(): boolean
+					return route.chat:get().name == "home"
+				end,
+				h = TAB_H,
+				shrink = 0,
+				ml = "$zeron.space.hair",
+				pl = ui.raw(4, "as far in as the tile is from its top"),
+				pr = ui.raw(4, "the tab's inset"),
+				gap = "$zeron.space.tight",
+				items = "center",
+				rounded = "$radius.lg",
+				cursor = "pointer",
+				pointer_events = "auto",
+				bg = function(): string
+					return if route.chat:get().name == "home" then "$zeron.selected.flat.bg" else "#00000000"
+				end,
+				hover = { bg = "$hover" },
+				color = function(): string
+					return if route.chat:get().name == "home" then "$text.primary" else "$text.secondary"
+				end,
+				on_click = function()
+					if route.chat:peek().name ~= "home" then
+						route.open_draft()
+					end
+				end,
+				ui.row {
+					w = TILE,
+					h = TILE,
+					shrink = 0,
+					items = "center",
+					justify = "center",
+					ds.Icon { name = "pen-new-square", size = 14 },
+				},
+				ds.FadeText { ui.t("shell.tabs.draft"), max_w = LABEL_MAX, min_w = 0, text_size = "$font.size.sm", weight = "$font.weight.medium" },
+				ds.IconButton {
+					label = ui.t("shell.tabs.discard_draft"),
+					tooltip = false,
+					size = "sm",
+					tone = "quiet",
+					w = SLOT,
+					h = SLOT,
+					rounded = "$radius.sm",
+					on_click = function()
+						M.close_draft()
+					end,
+					ds.Icon { name = "close", size = 12 },
+				},
+			}),
+			ui.show(function(): boolean
+				return worktree.on:get()
+			end, ui.row {
+				id = "session-tabs-new",
+				role = "button",
+				label = ui.t("shell.tabs.new_menu"),
+				tooltip = locale.s("shell.tabs.new_menu"),
+				shrink = 0,
+				w = TAB_H,
+				h = TAB_H,
+				ml = "$zeron.space.hair",
+				items = "center",
+				justify = "center",
+				rounded = "$radius.lg",
+				cursor = "pointer",
+				color = "$text.secondary",
+				hover = { bg = "$hover", color = "$text.primary" },
+				active = { bg = "$pressed" },
+				pointer_events = "auto",
+				on_press = function(e: any)
+					MenuAt.show(e, new_entries())
+				end,
+				ds.Icon { name = "plus", size = 14 },
+			}),
+			ui.div {
+				grow = function(): number
+					return if worktree.on:get() then 1 else 0
+				end,
+			},
+			ui.show(function(): boolean
+				return worktree.on:get() and splits.worktree:get() ~= nil
+			end, ui.row {
+				id = "session-tabs-history",
+				role = "button",
+				label = ui.t("shell.tabs.history"),
+				tooltip = locale.s("shell.tabs.history"),
+				shrink = 0,
+				w = TAB_H,
+				h = TAB_H,
+				ml = "$zeron.space.hair",
+				items = "center",
+				justify = "center",
+				rounded = "$radius.lg",
+				cursor = "pointer",
+				color = "$text.secondary",
+				hover = { bg = "$hover", color = "$text.primary" },
+				active = { bg = "$pressed" },
+				pointer_events = "auto",
+				on_press = function(e: any)
+					MenuAt.show(e, history_entries())
+				end,
+				ds.Icon { name = "clock-circle", size = 14 },
 			}),
 		}),
 	}

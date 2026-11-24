@@ -75,10 +75,20 @@ pub fn install(cx: &mut WindowContext, host: &ScriptHost) {
     });
     host.async_action("terminal.status", |arg| async move {
         let reply = call_for("TerminalStatus", &arg, Map::new()).await?;
-        Ok(Value::record([
+        let mut fields = vec![
             ("busy", Value::Bool(reply["busy"].as_bool().unwrap_or(false))),
             ("exited", Value::Bool(reply["exited"].as_bool().unwrap_or(false))),
-        ]))
+        ];
+        if let Some(program) = reply["program"].as_str() {
+            fields.push(("program", Value::from(program)));
+        }
+        if let Some(input) = reply["input"].as_str() {
+            fields.push(("input", Value::from(input)));
+        }
+        if let Some(quiet) = reply["quietMs"].as_u64() {
+            fields.push(("quiet_ms", Value::from(quiet as f64)));
+        }
+        Ok(Value::record(fields))
     });
     host.async_action("terminal.close", |arg| async move {
         call_for("CloseTerminal", &arg, Map::new()).await?;

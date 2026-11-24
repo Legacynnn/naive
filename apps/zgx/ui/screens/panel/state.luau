@@ -15,6 +15,8 @@
 -- `key`: the session's ("chat:<id>"), a project's with none open, or a
 -- plugin's page's ("page:<plugin>/<id>": a page has a panel of its own).
 
+local worktree = require("@app/screens/shell/worktree")
+
 local M = {}
 
 export type Kind = "files" | "terminal" | "plugin" | "browser" | "side_chat" | "subagent"
@@ -66,10 +68,13 @@ function M.key(session: any, project: any, page: any?): string?
 	if type(page) == "table" and type(page.plugin) == "string" and type(page.id) == "string" then
 		return `page:{page.plugin}/{page.id}`
 	end
-	if type(session) == "string" then
-		return `chat:{session}`
-	elseif type(session) == "table" and session.id then
-		return `chat:{session.id}`
+	local id = if type(session) == "string" then session elseif type(session) == "table" then session.id else nil
+	if type(id) == "string" then
+		local tree = if worktree.on:get() then worktree.of(id) else nil
+		if tree then
+			return `worktree:{tree}`
+		end
+		return `chat:{id}`
 	elseif type(project) == "string" then
 		return `project:{project}`
 	elseif type(project) == "table" and project.id then

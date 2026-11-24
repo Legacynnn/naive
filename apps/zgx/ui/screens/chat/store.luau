@@ -148,6 +148,9 @@ end
 -- "Try again" does before asking again) reaches it.
 local watching = ui.shared("chat.watching", "")
 function M.open(id: string?)
+	if id and string.sub(id, 1, 5) == "term:" then
+		id = nil
+	end
 	local key = id or ""
 	if watching:peek() == key then
 		return

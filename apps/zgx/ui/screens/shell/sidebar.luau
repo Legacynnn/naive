@@ -32,6 +32,7 @@ local control = require("@ds/control")
 local locale = require("@ds/locale")
 local ds_session_row = require("@ds/session_row")
 local activity = require("@app/screens/shell/activity")
+local worktree = require("@app/screens/shell/worktree")
 
 export type Props = {
 	collapsed: State<boolean>,
@@ -201,21 +202,47 @@ end)
 -- the session kept chosen is the route's already, or settings is open
 -- over it, and nothing should move.)
 local made = false
+local activity_on = activity.on
+local function rolled(): boolean
+	return worktree.on:get()
+end
 ui.effect(function()
 	local id = shared.selected:get()
 	if not made then
 		made = true
 		return
 	end
-	if id and id ~= route.chat:peek().session then
-		route.open_session(id)
+	local open = route.chat:peek().session
+	if not id or id == open then
+		return
 	end
+	if worktree.on:peek() then
+		local key = worktree.of(id, true)
+		if key and key == worktree.of(open, true) then
+			return
+		end
+		route.open_session(if key then worktree.resume(key) or id else id)
+		return
+	end
+	route.open_session(id)
 end)
 ui.effect(function()
 	-- (The chat route's: settings over the window leaves it chosen.)
 	local s = route.chat:get().session
+	if s and rolled() then
+		local w = worktree.get(worktree.of(s))
+		if w then
+			s = w.lead
+		end
+	end
 	if shared.selected:peek() ~= s then
 		shared.selected:set(s)
+	end
+end)
+ui.effect(function()
+	local s = route.chat:get().session
+	if s then
+		worktree.remember(s)
 	end
 end)
 
@@ -495,7 +522,63 @@ local projects = ui.computed(function(): { ds.SidebarProject }
 			group.unused = true
 		end
 	end
-	for _, c in now.chats do
+	if rolled() then
+		local names_of: { [string]: string } = {}
+		for _, p in now.projects do
+			names_of[p.id] = p.name
+		end
+		local lead_of: { [string]: sessions.Chat } = {}
+		for _, c in now.chats do
+			lead_of[c.id] = c
+		end
+		for _, w in worktree.all:get() do
+			if just and not (just_group and w.project and by[w.project] == just_group) then
+				continue
+			end
+			local group = (w.project and by[w.project]) or loose
+			local status = worktree.pressing(w, asked)
+			local act = activity_on:get()
+			local asleep: number? = nil
+			local woke = 0
+			for _, c in w.chats do
+				woke = math.max(woke, c.woke or 0)
+				if c.sleep_until and (asleep == nil or c.sleep_until < asleep) then
+					asleep = c.sleep_until
+				elseif not c.sleep_until then
+					asleep = -1
+				end
+			end
+			if asleep == -1 then
+				asleep = nil
+			end
+			if act and woke > 0 and (status == nil or status == "done") then
+				status = "woke"
+			end
+			if only and not only.statuses[status or "idle"] then
+				continue
+			end
+			local whole = { sleep_until = asleep, updated = w.updated, woke = if woke > 0 then woke else nil } :: any
+			local on_shelf = activity.shelf(whole, status)
+			local lead = lead_of[w.lead]
+			local busy = worktree.working(w)
+			table.insert(group.sessions, kept({
+				id = w.lead,
+				title = worktree.title(w, if w.project then names_of[w.project] else nil),
+				status = status :: any,
+				time = if on_shelf == "asleep" and asleep then activity.wakes_in(asleep) else w.updated,
+				shelf = on_shelf,
+				rank = if act then activity.rank(whole, on_shelf) else nil,
+				created = w.created,
+				agent = if lead then lead.agent else nil,
+				device = names[w.device] or locale.s("shell.sidebar.unknown_device"),
+				branch = if w.main then nil else w.branch,
+				subagents = if #w.chats > 1 and busy > 1 then busy elseif lead then (lead.running_subagents or 0) + (lead.working_side_chats or 0) else 0,
+				worktree = w.key,
+				chats = #w.chats,
+			}) :: any)
+		end
+	end
+	for _, c in if rolled() then {} :: { sessions.Chat } else now.chats do
 		if just and not (just_group and c.project and by[c.project] == just_group) then
 			continue
 		end
@@ -506,7 +589,7 @@ local projects = ui.computed(function(): { ds.SidebarProject }
 		-- alarm, unless it's asking for you or under way. Which shelf it's
 		-- on, and its place; asleep, its corner says when it wakes. Off, none
 		-- of it.)
-		local act = activity.on:get()
+		local act = activity_on:get()
 		if act and c.woke and (status == nil or status == "done") then
 			status = "woke"
 		end
@@ -958,7 +1041,21 @@ ui.effect(function()
 end)
 -- The sessions the list shows, in its order (those folded away, and those
 -- past a group's "Show N more", left out): ⌘1–9 go to its first nine.
-M.order = ui.state("shell_sidebar_order", {} :: { string })
+local row_order = ui.state("shell_sidebar_order", {} :: { string })
+M.order = ui.computed(function(): { string }
+	local rows = row_order:get()
+	if not rolled() then
+		return rows
+	end
+	worktree.last:get()
+	local out: { string } = {}
+	for _, id in rows do
+		local key = worktree.of(id)
+		local w = worktree.get(key)
+		table.insert(out, if w and w.lead == id then worktree.resume(w.key) or id else id)
+	end
+	return out
+end)
 -- ⌘ held alone: those nine wear their keys (Zeron's jump hints): shown at
 -- once, as Zeron's are, kept through the ⌘1–9 they offer, and only while
 -- this window is the one typed in and no palette has the keys. Any other
@@ -1018,6 +1115,71 @@ function M.archive(id: string)
 		route.new_chat()
 	end
 	sessions.archive(id)
+end
+
+local function row_worktree(id: string): worktree.Worktree?
+	if not rolled() then
+		return nil
+	end
+	local w = worktree.get(worktree.of(id))
+	return if w and w.lead == id then w else nil
+end
+
+local function worktree_busy(w: worktree.Worktree): boolean
+	for _, c in w.chats do
+		if c.status == "working" or c.status == "waiting" then
+			return true
+		end
+	end
+	return false
+end
+
+-- A worktree row stands for each of its chats: Sleep and Wake reach them all.
+local function members(id: string): { string }
+	local w = row_worktree(id)
+	if not w then
+		return { id }
+	end
+	local out: { string } = {}
+	for _, c in w.chats do
+		table.insert(out, c.id)
+	end
+	return out
+end
+
+local function sleep_all(id: string, until_at: number)
+	for _, m in members(id) do
+		activity.sleep(m, until_at)
+	end
+end
+
+function M.archive_row(id: string)
+	local w = row_worktree(id)
+	if not w then
+		M.archive(id)
+		return
+	end
+	if worktree_busy(w) then
+		ds.toast.show { title = locale.s("shell.sidebar.menu.archive_working"), tone = "warning" }
+		return
+	end
+	local open = route.current:peek().session
+	if open and worktree.of(open) == w.key then
+		route.new_chat()
+	end
+	for _, c in w.chats do
+		sessions.archive(c.id)
+	end
+end
+
+function M.new_in_worktree(id: string?, fresh: boolean?)
+	local key = worktree.of(id or route.chat:peek().session)
+	local w = worktree.get(key)
+	if not w then
+		route.new_chat()
+		return
+	end
+	route.new_chat_at({ project = w.project, device = w.device, branch = if fresh then nil else w.branch, worktree = fresh == true, main = w.main, cwd = w.cwd, key = w.key })
 end
 
 -- A session's menu, as the gallery's (Zeron's sidebar chat menu): rename,
@@ -1130,13 +1292,22 @@ local function menu(id: string): { any }?
 	-- The Activity view's Sleep (its times, each saying when, and one of
 	-- your own), or, asleep, Wake.
 	local sleep: any = false
-	if activity.on:peek() and not side then
-		if c.sleep_until then
+	local all_asleep = true
+	for _, m in members(id) do
+		local mc = chat(m)
+		if not (mc and mc.sleep_until) then
+			all_asleep = false
+		end
+	end
+	if activity_on:peek() and not side then
+		if all_asleep then
 			sleep = {
 				label = locale.s("shell.activity.wake"),
 				icon = "sun",
 				on_select = function()
-					activity.wake(id)
+					for _, m in members(id) do
+						activity.wake(m)
+					end
 				end,
 			}
 		else
@@ -1145,7 +1316,7 @@ local function menu(id: string): { any }?
 				table.insert(times, {
 					label = locale.s("shell.activity.sleep.choice", { name = p.label, when = p.detail }),
 					on_select = function()
-						activity.sleep(id, p.until_at)
+						sleep_all(id, p.until_at)
 					end,
 				})
 			end
@@ -1184,7 +1355,29 @@ local function menu(id: string): { any }?
 			end
 		end
 	end
+	local tree = row_worktree(id)
 	local entries = {
+		if tree
+			then {
+				label = locale.s("shell.sidebar.worktree.new_chat"),
+				icon = "plus",
+				shortcut = "cmd+n",
+				on_select = function()
+					M.new_in_worktree(id)
+				end,
+			}
+			else false,
+		if tree and tree.project
+			then {
+				label = locale.s("shell.sidebar.worktree.new_worktree"),
+				icon = "worktree",
+				shortcut = "cmd+alt+n",
+				on_select = function()
+					M.new_in_worktree(id, true)
+				end,
+			}
+			else false,
+		if tree then { separator = true } else false,
 		{
 			label = locale.s("common.rename"),
 			icon = "pen",
@@ -1208,7 +1401,7 @@ local function menu(id: string): { any }?
 			submenu = copies,
 		},
 		-- (Activity lists no sections: nothing to move into.)
-		if side or activity.on:peek() then false else { label = locale.s("shell.sidebar.menu.move_to"), icon = "folder-with-files", submenu = into },
+		if side or activity_on:peek() then false else { label = locale.s("shell.sidebar.menu.move_to"), icon = "folder-with-files", submenu = into },
 		sleep,
 		stop_waiting,
 		{ separator = true },
@@ -1216,9 +1409,9 @@ local function menu(id: string): { any }?
 			-- (No key: ⌘⌫ is a text field's, deleting to the line's start.)
 			label = locale.s("common.archive"),
 			icon = "archive-minimalistic",
-			disabled = if c.status == "working" or c.status == "waiting" then locale.s("shell.sidebar.menu.archive_working") else nil,
+			disabled = if (if tree then worktree_busy(tree) else (c.status == "working" or c.status == "waiting")) then locale.s("shell.sidebar.menu.archive_working") else nil,
 			on_select = function()
-				M.archive(id)
+				M.archive_row(id)
 			end,
 		},
 		{
@@ -1520,7 +1713,7 @@ local function sleep_dialog(): Node
 				sleep_custom:set(nil)
 				sleep_custom_open:set(false)
 				if id and at and at > os.time() then
-					activity.sleep(id, at)
+					sleep_all(id, at)
 				end
 			end,
 		},
@@ -1545,7 +1738,12 @@ local function rename_dialog(): Node
 		renaming:set(nil)
 		rename_open:set(false)
 		if id and title ~= "" then
-			sessions.rename(id, string.sub(title, 1, 200))
+			local w = row_worktree(id)
+			if w then
+				worktree.rename(w.key, string.sub(title, 1, 200))
+			else
+				sessions.rename(id, string.sub(title, 1, 200))
+			end
 		end
 	end
 	return ds.Dialog {
@@ -1597,10 +1795,19 @@ M.Sidebar = ui.component(function(props: Props): Node
 		top = props.top,
 		card = not props.island,
 		-- (A device's "+", inside a project's group: on that device too.)
+		new_key = function(): string
+			return if worktree.on:get() then "cmd+alt+n" else "cmd+n"
+		end,
+		on_new_here = if props.island then nil else function(id: string)
+			M.new_in_worktree(id)
+		end,
+		on_new_worktree = if props.island then nil else function(id: string)
+			M.new_in_worktree(id, true)
+		end,
 		on_new = function(project: string?, device: string?)
 			route.new_chat(if device then project else checkout_here(project), if device then device_named(device, project) else nil)
 		end,
-		on_archive = M.archive,
+		on_archive = M.archive_row,
 		archived = shelf,
 		activity = activity.on,
 		on_activity_settings = function()
@@ -1633,7 +1840,7 @@ M.Sidebar = ui.component(function(props: Props): Node
 		offset = if props.island then nil else shared.offset,
 		folded = if props.island then nil else shared.folded,
 		expanded = if props.island then nil else shared.expanded,
-		order =if props.island then nil else M.order,
+		order = if props.island then nil else row_order,
 		jump_hints = if props.island
 			then nil
 			else function(): boolean
@@ -1646,6 +1853,11 @@ M.Sidebar = ui.component(function(props: Props): Node
 				M.card:set(c)
 			end,
 		on_rename = function(id: string, title: string)
+			local w = row_worktree(id)
+			if w then
+				worktree.rename(w.key, string.sub(title, 1, 200))
+				return
+			end
 			sessions.rename(id, string.sub(title, 1, 200))
 		end,
 	}
@@ -1689,13 +1901,14 @@ end
 function M.rename(id: string)
 	-- In its row, where the list shows it (as Zeron's); else (folded away,
 	-- filtered out) the dialog.
-	if table.find(M.order:peek(), id) then
+	if table.find(row_order:peek(), id) then
 		renaming_row:set(id)
 		return
 	end
 	local c = chat(id)
 	if c then
-		new_title:set(c.title)
+		local w = row_worktree(id)
+		new_title:set(if w then worktree.title(w) else c.title)
 		renaming:set(id)
 		rename_open:set(true)
 	end

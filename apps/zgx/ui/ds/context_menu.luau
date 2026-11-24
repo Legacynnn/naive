@@ -42,6 +42,7 @@ local locale = require("@self/locale")
 export type Entry = {
 	label: (string | Message)?,
 	icon: Icon.Name?,
+	mark: (() -> Node)?,
 	shortcut: string?,
 	on_select: (() -> ())?,
 	danger: boolean?,
@@ -512,7 +513,14 @@ local function build_panel(props: PanelProps): Node
 		local said = function(): string
 			return if armed:get() == i then e.confirm or "" else e.label or ""
 		end
-		local glyph = if e.icon then Menu.glyph(e.icon, glyph_ink) else nil
+		local glyph = if e.mark then ui.div {
+			w = "$zeron.menu.glyph.box",
+			h = "$zeron.menu.glyph.box",
+			shrink = 0,
+			items = "center",
+			justify = "center",
+			e.mark(),
+		} elseif e.icon then Menu.glyph(e.icon, glyph_ink) else nil
 		local name: Node = if e.confirm then RollText { said, text_size = "$font.size.md", color = ink, grow = 1, min_w = 0 } else FadeText {
 			e.label or "",
 			text_size = "$font.size.md",

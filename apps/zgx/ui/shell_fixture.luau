@@ -38,6 +38,13 @@ local store = require("@app/screens/chat/store")
 local lanes = require("@app/screens/chat/lanes")
 local split_lanes = ui.state("split_lanes", {} :: { [string]: string })
 local fixture_chats = ui.shared("fixture.chats", {} :: { [string]: any })
+-- Worktree rows and per-worktree tabs, off unless a test turns them on.
+local fixture_worktrees = ui.state("shell_fixture.worktrees", false)
+local worktrees_off = ui.shared("shell.worktrees_off", true)
+worktrees_off:set(not fixture_worktrees:peek())
+ui.effect(function()
+	worktrees_off:set(not fixture_worktrees:get())
+end)
 local open_chat = ui.state("fixture_open_chat", "")
 local function project(view: any, id: string, lane: boolean)
 	local c = fixture_chats:peek()[id]
@@ -108,15 +115,19 @@ end
 tapi.command = function(id: string): any
 	return answered(`bridge {id}`)
 end
-tapi.status = function(): any
-	return answered({ busy = false, exited = false })
-end
 tapi.close = function(): any
 	return answered(nil)
 end
-tapi.write = function(): any
+local term_writes = ui.state("fixture_term_writes", "")
+tapi.write = function(id: string, _device: string?, text: string): any
+	term_writes:set(term_writes:peek() .. `{id}:{text}`)
 	return answered(nil)
 end
+local term_busy = ui.state("fixture_term_busy", false)
+tapi.status = function(): any
+	return answered({ busy = term_busy:peek(), exited = false, program = if term_busy:peek() then "working" else nil })
+end
+require("@app/screens/shell/terminal_agents").installed:set({ claude = "/usr/local/bin/claude", codex = "/usr/local/bin/codex" })
 tapi.term = function(key: string, options: any?): any
 	local s = term_sessions[key]
 	if not s and options then
@@ -1165,6 +1176,22 @@ ui.command {
 			c.updated = NOW + messages
 			publish()
 		end
+	end,
+}
+ui.command {
+	id = "worktrees",
+	title = "Two chats in one worktree",
+	run = function()
+		for _, c in model.chats do
+			if c.id == "a1" or c.id == "a2" then
+				c.cwd = "/Users/me/.zeron/worktrees/atlas/quick-fox"
+				c.branch = "zeron/quick-fox"
+			elseif c.id == "b1" then
+				c.cwd = "/home/me/.zeron/worktrees/borealis/slow-owl"
+				c.branch = "zeron/slow-owl"
+			end
+		end
+		publish()
 	end,
 }
 ui.command {

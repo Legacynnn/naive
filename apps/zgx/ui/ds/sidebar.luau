@@ -212,6 +212,10 @@ export type Props = {
 	pages: State<{ any }>?,
 	on_page: ((page: any) -> ())?,
 	on_archive: ((id: string) -> ())?,
+	on_new_here: ((id: string) -> ())?,
+	-- The keys New chat shows (⌘N unless the app says otherwise).
+	new_key: (() -> string)?,
+	on_new_worktree: ((id: string) -> ())?,
 	-- The Activity view: on, one list of what needs you (each session by its
 	-- `rank`, those on a `shelf` left out), pinned above it, and at its foot
 	-- its shelves, folded until opened: Working, Asleep (as the sessions say)
@@ -1329,7 +1333,7 @@ local places: State<Places> = props.places or ui.use_state({ pinned = pinned_ids
 		)
 		-- (Its project's tile, unless the group it stands in now is its project:
 		-- a row dragged to another list keeps its node.)
-		if p then
+		if p and not (s :: any).worktree then
 			title = ui.row {
 				grow = 1,
 				min_w = 0,
@@ -1388,11 +1392,19 @@ local places: State<Places> = props.places or ui.use_state({ pinned = pinned_ids
 				else nil,
 			-- (Its slot holds its harness; hidden, the slot closes.)
 			leads = function(): boolean
-				return details.harness:get()
+				return (s :: any).worktree ~= nil or details.harness:get()
 			end,
 			wide = in_flyout,
 			hovered = hovered,
-			lead = if in_flyout then agent(s, strong, cur) else session_glyph(s, strong, cur),
+			lead = if in_flyout then agent(s, strong, cur)
+				elseif (s :: any).worktree and p then (function(): Node
+					if p.icon then
+						return Tile { inside = Icon { name = p.icon, size = 12 }, size = 18 }
+					end
+					local hue, src, emoji = look(p)
+					return Tile { label = p.name, hue = hue, src = src, emoji = emoji, size = 18, project = p.id }
+				end)()
+				else session_glyph(s, strong, cur),
 			words = ui.column {
 				w_full = true,
 				gap = "$zeron.space.hair",
@@ -1414,6 +1426,22 @@ local places: State<Places> = props.places or ui.use_state({ pinned = pinned_ids
 									props.on_unarchive(s.id)
 								end
 							end)
+							elseif (s :: any).worktree and props.on_new_here then ui.row {
+								items = "center",
+								corner("ds.sidebar.new_here", "plus", function()
+									(props.on_new_here :: any)(s.id)
+								end),
+								if props.on_new_worktree
+									then corner("ds.sidebar.new_worktree", "worktree", function()
+										(props.on_new_worktree :: any)(s.id)
+									end)
+									else nil,
+								corner("ds.sidebar.archive", "archive-minimalistic", function()
+									if props.on_archive then
+										props.on_archive(s.id)
+									end
+								end),
+							}
 							else corner("ds.sidebar.archive", "archive-minimalistic", function()
 								if props.on_archive then
 									props.on_archive(s.id)
@@ -2080,7 +2108,9 @@ local places: State<Places> = props.places or ui.use_state({ pinned = pinned_ids
 			lead = Icon { name = "plus", size = 16 },
 			words = line(label(function(): string
 				return locale.s("ds.sidebar.new_chat")
-			end, nil, "$font.weight.medium"), hint(ui.shortcut_text("cmd+n"))),
+			end, nil, "$font.weight.medium"), hint(function(): string
+				return ui.shortcut_text(if props.new_key then props.new_key() else "cmd+n")
+			end)),
 			on_click = function()
 				if props.on_new then
 					props.on_new(nil)

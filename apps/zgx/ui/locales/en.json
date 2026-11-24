@@ -503,7 +503,9 @@
       "empty_projects": "{n, plural, one {# empty project} other {# empty projects}}",
       "activity": "Activity",
       "working": "Working",
-      "asleep": "Asleep"
+      "asleep": "Asleep",
+      "new_here": "New chat here",
+      "new_worktree": "New chat in new worktree"
     },
     "git": {
       "pull_request": "Pull request",
@@ -2378,6 +2380,14 @@
         "description": "Parakeet v3 · {total} MB",
         "remove": "Remove"
       }
+    },
+    "terminal_agents": {
+      "title": "Terminal agents",
+      "terms": "cli terminal claude code codex pi amp cline devin deepseek cursor gemini opencode agent",
+      "description": "Agent CLIs installed on this Mac. Turned on, they're offered under + in the header, and run in a terminal beside your chats.",
+      "installed": "Installed",
+      "looking": "Looking for installed agents…",
+      "none": "No agent CLIs found on this Mac's PATH."
     }
   },
   "common": {
@@ -2530,6 +2540,10 @@
         "rename_title": "Rename session",
         "name": "Name",
         "name_placeholder": "Session name"
+      },
+      "worktree": {
+        "new_chat": "New chat here",
+        "new_worktree": "New chat in new worktree"
       }
     },
     "boundary": {
@@ -2590,7 +2604,8 @@
         "shell_close": "Close",
         "shell_reload": "Reload Zeron",
         "shell_reload_interface": "Reload interface",
-        "shell_dictate": "Hold to dictate"
+        "shell_dictate": "Hold to dictate",
+        "shell_new_worktree": "New chat in new worktree"
       },
       "group": {
         "sessions": "Sessions",
@@ -2759,6 +2774,24 @@
       "stop_waiting": "Stop waiting",
       "stop_waiting_failed": "Couldn't stop waiting",
       "wake_failed": "Couldn't wake this chat"
+    },
+    "tabs": {
+      "history": "Closed chats",
+      "history_empty": "No closed chats",
+      "sort": {
+        "title": "Sort tabs",
+        "activity": "By activity",
+        "manual": "Manual order"
+      },
+      "new_chat": "New chat in this worktree",
+      "draft": "New chat",
+      "discard_draft": "Discard new chat",
+      "terminal_agents": "Terminal agents",
+      "terminal_agents_looking": "Looking for installed agents…",
+      "terminal_agents_none": "No agent CLIs found",
+      "terminal_agents_manage": "Manage terminal agents…",
+      "new_menu_chat": "New chat",
+      "new_menu": "New chat or terminal agent"
     }
   },
   "onboarding": {

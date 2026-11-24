@@ -503,7 +503,9 @@
       "empty_projects": "{n, plural, other {# 个空项目}}",
       "activity": "动态",
       "working": "进行中",
-      "asleep": "已休眠"
+      "asleep": "已休眠",
+      "new_here": "在此新建聊天",
+      "new_worktree": "在新工作树中新建聊天"
     },
     "git": {
       "pull_request": "拉取请求",
@@ -2378,6 +2380,14 @@
         "description": "Parakeet v3 · {total} MB",
         "remove": "移除"
       }
+    },
+    "terminal_agents": {
+      "title": "终端智能体",
+      "terms": "cli terminal claude code codex pi amp cline devin deepseek cursor gemini opencode agent 终端 智能体",
+      "description": "这台 Mac 上安装的智能体 CLI。开启后，它们会出现在标题栏的 + 中，并在聊天旁的终端里运行。",
+      "installed": "已安装",
+      "looking": "正在查找已安装的智能体…",
+      "none": "在这台 Mac 的 PATH 中未找到智能体 CLI。"
     }
   },
   "common": {
@@ -2530,6 +2540,10 @@
         "rename_title": "重命名会话",
         "name": "名称",
         "name_placeholder": "会话名称"
+      },
+      "worktree": {
+        "new_chat": "在此新建聊天",
+        "new_worktree": "在新工作树中新建聊天"
       }
     },
     "boundary": {
@@ -2590,7 +2604,8 @@
         "shell_close": "关闭",
         "shell_reload": "重新启动 Zeron",
         "shell_reload_interface": "重新加载界面",
-        "shell_dictate": "按住听写"
+        "shell_dictate": "按住听写",
+        "shell_new_worktree": "在新工作树中新建聊天"
       },
       "group": {
         "sessions": "会话",
@@ -2759,6 +2774,24 @@
       "stop_waiting": "停止等待",
       "stop_waiting_failed": "无法停止等待",
       "wake_failed": "无法唤醒此会话"
+    },
+    "tabs": {
+      "history": "已关闭的聊天",
+      "history_empty": "没有已关闭的聊天",
+      "sort": {
+        "title": "标签排序",
+        "activity": "按活动",
+        "manual": "手动排序"
+      },
+      "new_chat": "在此工作树中新建聊天",
+      "draft": "新聊天",
+      "discard_draft": "放弃新聊天",
+      "terminal_agents": "终端智能体",
+      "terminal_agents_looking": "正在查找已安装的智能体…",
+      "terminal_agents_none": "未找到智能体 CLI",
+      "terminal_agents_manage": "管理终端智能体…",
+      "new_menu_chat": "新聊天",
+      "new_menu": "新聊天或终端智能体"
     }
   },
   "onboarding": {

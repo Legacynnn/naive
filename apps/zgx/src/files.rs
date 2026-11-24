@@ -368,19 +368,57 @@ const ARTWORK_PATHS: &[&str] = &[
     "src-tauri/icons/icon.png",
     "assets/icon.png",
     "src/assets/icon.png",
+    "app/apple-icon.png",
+    "src/app/apple-icon.png",
+    "public/android-chrome-512x512.png",
+    "public/android-chrome-192x192.png",
+    "public/favicon-32x32.png",
+    "static/favicon.png",
+    "static/logo.png",
+    "assets/logo.png",
+    "logo.png",
+    ".github/logo.png",
 ];
+/// Where a monorepo keeps its packages, its likeliest app named first.
+const MONOREPO_DIRS: &[&str] = &["apps", "packages", "sites", "services"];
+const MONOREPO_FAVOURED: &[&str] = &["web", "app", "www", "site", "website", "frontend", "landing", "marketing", "docs", "desktop"];
+/// The prefixes asked of another device's checkout, a file at a time.
+const MONOREPO_REMOTE: &[&str] = &["apps/web/", "apps/app/", "apps/www/", "apps/site/", "apps/docs/", "packages/web/", "web/", "frontend/"];
 /// The largest artwork taken (a repository's logo, not its hero image).
 const ARTWORK_MAX: u64 = 2 * 1024 * 1024;
 
-/// A local checkout's artwork: the first of `ARTWORK_PATHS` under the root
-/// of the work tree holding `root` (a project may be a subfolder; a linked
-/// worktree's `.git` is a file).
+fn artwork_in(dir: &Path) -> Option<PathBuf> {
+    ARTWORK_PATHS.iter().map(|p| dir.join(p)).find(|p| {
+        std::fs::metadata(p).is_ok_and(|m| m.is_file() && m.len() > 0 && m.len() <= ARTWORK_MAX)
+    })
+}
+
+fn monorepo_packages(top: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for dir in MONOREPO_DIRS {
+        let Ok(entries) = std::fs::read_dir(top.join(dir)) else { continue };
+        let mut found: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
+        let rank = |p: &PathBuf| {
+            let name = p.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+            (MONOREPO_FAVOURED.iter().position(|f| *f == name).unwrap_or(usize::MAX), name.to_owned())
+        };
+        found.sort_by_key(rank);
+        out.extend(found);
+    }
+    out
+}
+
+/// A local checkout's artwork: the project's own folder first, then each
+/// folder up to its work tree's root (a linked worktree's `.git` is a file),
+/// then, for a monorepo, its packages' (`apps/web` before `packages/utils`).
 fn local_artwork(root: &Path) -> Option<PathBuf> {
     let canonical = root.canonicalize().ok()?;
     let top = canonical.ancestors().find(|p| p.join(".git").exists()).unwrap_or(&canonical);
-    ARTWORK_PATHS.iter().map(|p| top.join(p)).find(|p| {
-        std::fs::metadata(p).is_ok_and(|m| m.is_file() && m.len() > 0 && m.len() <= ARTWORK_MAX)
-    })
+    canonical
+        .ancestors()
+        .take_while(|p| p.starts_with(top))
+        .find_map(artwork_in)
+        .or_else(|| monorepo_packages(top).iter().find_map(|p| artwork_in(p)))
 }
 
 /// The most of an image read from another device, and its chunks (the
@@ -827,9 +865,13 @@ impl Files {
             return Ok(local_artwork(&root).map_or(Value::Nil, found));
         }
         let params = self.params(Some(target)).await?;
-        for path in ARTWORK_PATHS {
+        let paths = ARTWORK_PATHS.iter().map(|p| (*p).to_owned()).chain(
+            MONOREPO_REMOTE.iter().flat_map(|dir| ARTWORK_PATHS[..6].iter().map(move |p| format!("{dir}{p}"))),
+        );
+        for path in paths {
+            let path = path.as_str();
             let mut read = params.clone();
-            read.insert("path".into(), Json::String((*path).into()));
+            read.insert("path".into(), Json::String(path.into()));
             // (Not there: the next. The device unreachable: none for now.)
             let file = match self.call("ReadWorkspaceFile", read).await {
                 Ok(file) => file,
@@ -841,7 +883,7 @@ impl Files {
             let checkout = json_text(&file, "checkoutId");
             let arg = Value::record([
                 ("target", target.clone()),
-                ("path", Value::from(*path)),
+                ("path", Value::from(path)),
                 ("checkout", checkout),
             ]);
             if let Ok(image) = self.image(arg).await
@@ -1386,6 +1428,23 @@ mod tests {
         assert!(found.ends_with("public/logo.png"), "{found:?}");
         std::fs::write(dir.join("public/logo.png"), vec![0u8; (super::ARTWORK_MAX + 1) as usize]).unwrap();
         assert!(super::local_artwork(&dir).unwrap().ends_with("favicon.png"), "a too big one is passed over");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_monorepos_artwork_is_its_apps() {
+        let dir = std::env::temp_dir().join(format!("zgx-artwork-mono-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join(".git")).unwrap();
+        std::fs::create_dir_all(dir.join("packages/utils/public")).unwrap();
+        std::fs::create_dir_all(dir.join("apps/web/public")).unwrap();
+        std::fs::create_dir_all(dir.join("apps/api/public")).unwrap();
+        std::fs::write(dir.join("packages/utils/public/logo.png"), b"png").unwrap();
+        std::fs::write(dir.join("apps/api/public/logo.png"), b"png").unwrap();
+        std::fs::write(dir.join("apps/web/public/favicon.png"), b"png").unwrap();
+        assert!(super::local_artwork(&dir).unwrap().ends_with("apps/web/public/favicon.png"));
+        std::fs::create_dir_all(dir.join("apps/api/src")).unwrap();
+        assert!(super::local_artwork(&dir.join("apps/api/src")).unwrap().ends_with("apps/api/public/logo.png"), "its own package first");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

@@ -146,6 +146,9 @@ M.now = ui.shared("sessions", {
 -- (every few seconds while chats run), and what reads only the projects,
 -- the devices or the places doesn't run again for it. Read one of these,
 -- not `now:get().projects`, where the part is all that's used.
+M.chats = ui.computed(function(): { Chat }
+	return M.now:get().chats
+end)
 M.projects = ui.computed(function(): { Project }
 	return M.now:get().projects
 end)

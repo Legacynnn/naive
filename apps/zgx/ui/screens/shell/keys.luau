@@ -34,6 +34,7 @@ local M = {}
 
 M.LIST = {
 	{ id = "shell.new_chat", title = "New chat", key = "cmd+n", group = "Sessions", menu = "File", reserved = true },
+	{ id = "shell.new_worktree", title = "New chat in new worktree", key = "cmd+alt+n", group = "Sessions", menu = "File", reserved = true },
 	{ id = "shell.new_project", title = "New project", key = "cmd+shift+n", group = "Sessions", menu = "File", reserved = true },
 	{ id = "shell.archive", title = "Archive session", key = "cmd+shift+a", group = "Sessions", menu = "File", reserved = true },
 	{ id = "shell.pin", title = "Pin or unpin this session", key = "cmd+shift+p", group = "Sessions", menu = "File", reserved = true },
