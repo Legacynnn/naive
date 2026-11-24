@@ -1,6 +1,7 @@
 local ds = require("@ds")
 local api = require("@app/screens/panel/terminal_api")
 local agents = require("@app/screens/shell/terminal_agents")
+local sessions = require("@account/sessions")
 
 local M = {}
 
@@ -22,8 +23,26 @@ local function launch(id: string, terminal: string, device: string)
 	if not a or not e or a.launched then
 		return
 	end
+	local typed = table.clone(a)
 	agents.mark_launched(id)
-	api.write(terminal, device, `{e.bin}\r`):after(function() end, function() end)
+	local function go(settings: string?)
+		api.write(terminal, device, agents.command_line(typed, settings) .. "\r"):after(function() end, function() end)
+	end
+	local here = sessions.here:peek()
+	if e.id ~= "claude" or (here and device ~= here) then
+		go(nil)
+		return
+	end
+	local ok, pending = pcall(ui.call, "terminal_agents.prepare", {})
+	if not ok then
+		go(nil)
+		return
+	end
+	pending:after(function(r: any)
+		go(if type(r) == "table" then r.claude_settings else nil)
+	end, function()
+		go(nil)
+	end)
 end
 
 local function open(id: string, failed: any)

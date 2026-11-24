@@ -728,11 +728,13 @@ function M.new_chat_in(fresh: boolean?)
 	M.new_chat_at({ project = w.project, device = w.device, branch = if fresh then nil else w.branch, worktree = fresh == true, main = w.main, cwd = w.cwd, key = w.key })
 end
 
-function M.new_terminal_agent(agent: string)
+function M.new_terminal_agent(agent: string, given: { prompt: string?, project: string?, device: string?, cwd: string?, branch: string? }?)
 	local c = chat_of(M.chat:peek().session or last_chat:peek())
 	local w = if c then worktree.get(worktree.of(c.id)) else nil
 	local at: { [string]: any }? = nil
-	if w and (w.project or w.cwd) then
+	if given and given.device and (given.project or given.cwd) then
+		at = { project = given.project, device = given.device, cwd = given.cwd, branch = given.branch }
+	elseif w and (w.project or w.cwd) then
 		local lead: string? = nil
 		for _, member in w.chats do
 			if not terminal_agents.is(member.id) then
@@ -751,6 +753,7 @@ function M.new_terminal_agent(agent: string)
 		return
 	end
 	at.agent = agent
+	at.prompt = if given then given.prompt else nil
 	M.open_session(terminal_agents.start(at :: any))
 end
 

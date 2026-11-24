@@ -3,7 +3,7 @@ local api = require("@app/screens/panel/terminal_api")
 
 local M = {}
 
-export type Entry = { id: string, name: string, bin: string, mark: string? }
+export type Entry = { id: string, name: string, bin: string, mark: string?, prompt: { string }? }
 export type Agent = {
 	id: string,
 	agent: string,
@@ -18,25 +18,26 @@ export type Agent = {
 	command: string?,
 	claim: string?,
 	launched: boolean?,
+	prompt: string?,
 }
 
 M.PREFIX = "term:"
 
 M.CATALOG = {
-	{ id = "claude", name = "Claude Code", bin = "claude", mark = "claude" },
-	{ id = "codex", name = "Codex", bin = "codex", mark = "openai" },
+	{ id = "claude", name = "Claude Code", bin = "claude", mark = "claude", prompt = { "{prompt}" } },
+	{ id = "codex", name = "Codex", bin = "codex", mark = "openai", prompt = { "{prompt}" } },
 	{ id = "pi", name = "Pi", bin = "pi", mark = "pi" },
 	{ id = "amp", name = "Amp", bin = "amp" },
 	{ id = "cline", name = "Cline", bin = "cline" },
 	{ id = "devin", name = "Devin", bin = "devin", mark = "devin" },
 	{ id = "deepseek", name = "DeepSeek", bin = "deepseek", mark = "provider-deepseek" },
-	{ id = "cursor", name = "Cursor Agent", bin = "cursor-agent", mark = "cursor" },
-	{ id = "gemini", name = "Gemini CLI", bin = "gemini", mark = "provider-gemini" },
-	{ id = "opencode", name = "OpenCode", bin = "opencode", mark = "opencode" },
+	{ id = "cursor", name = "Cursor Agent", bin = "cursor-agent", mark = "cursor", prompt = { "{prompt}" } },
+	{ id = "gemini", name = "Gemini CLI", bin = "gemini", mark = "provider-gemini", prompt = { "-i", "{prompt}" } },
+	{ id = "opencode", name = "OpenCode", bin = "opencode", mark = "opencode", prompt = { "--prompt", "{prompt}" } },
 	{ id = "grok", name = "Grok CLI", bin = "grok", mark = "grok" },
-	{ id = "copilot", name = "Copilot CLI", bin = "copilot" },
+	{ id = "copilot", name = "Copilot CLI", bin = "copilot", prompt = { "-i", "{prompt}" } },
 	{ id = "droid", name = "Droid", bin = "droid" },
-	{ id = "qwen", name = "Qwen Code", bin = "qwen" },
+	{ id = "qwen", name = "Qwen Code", bin = "qwen", prompt = { "-i", "{prompt}" } },
 	{ id = "kimi", name = "Kimi CLI", bin = "kimi" },
 	{ id = "goose", name = "Goose", bin = "goose" },
 	{ id = "crush", name = "Crush", bin = "crush" },
@@ -166,10 +167,57 @@ end
 function M.mark_launched(id: string)
 	update(id, function(a)
 		a.launched = true
+		a.prompt = nil
 	end)
 end
 
-function M.start(at: { agent: string, project: string?, device: string, cwd: string?, branch: string?, anchor: string? }): string
+local function quote(word: string): string
+	return "'" .. string.gsub(word, "'", "'\\''") .. "'"
+end
+
+function M.command_line(a: Agent, settings: string?): string
+	local e = M.entry(a.agent)
+	if not e then
+		return ""
+	end
+	local parts = { e.bin }
+	if e.id == "claude" and settings and settings ~= "" then
+		table.insert(parts, "--settings")
+		table.insert(parts, quote(settings))
+	end
+	if a.prompt and a.prompt ~= "" and e.prompt then
+		for _, arg in e.prompt do
+			table.insert(parts, quote(if arg == "{prompt}" then a.prompt else arg))
+		end
+	end
+	return table.concat(parts, " ")
+end
+
+M.prompted = ui.computed(function(): { Entry }
+	local out: { Entry } = {}
+	for _, e in M.offered:get() do
+		if e.prompt then
+			table.insert(out, e)
+		end
+	end
+	return out
+end)
+
+M.codex_hooks = ui.state("terminal_agents_codex_hooks", nil :: boolean?)
+
+function M.check_codex_hooks(want: boolean?)
+	local ok, pending = pcall(ui.call, "terminal_agents.codex_hooks", { on = want })
+	if not ok then
+		return
+	end
+	pending:after(function(on: any)
+		M.codex_hooks:set(on == true)
+	end, function()
+		M.codex_hooks:set(false)
+	end)
+end
+
+function M.start(at: { agent: string, project: string?, device: string, cwd: string?, branch: string?, anchor: string?, prompt: string? }): string
 	local now = os.time()
 	local id = `{M.PREFIX}{now}-{math.random(1, 1e6)}`
 	local list = table.clone(M.open:peek())
@@ -181,6 +229,7 @@ function M.start(at: { agent: string, project: string?, device: string, cwd: str
 		cwd = at.cwd,
 		branch = at.branch,
 		anchor = at.anchor,
+		prompt = at.prompt,
 		created = now,
 		updated = now,
 	})
@@ -325,6 +374,9 @@ local function judge(id: string, s: any, title: string?): string?
 	if s.program == "blocked" then
 		return if s.input == "permission" then "approval" else "input"
 	elseif s.program == "working" then
+		if type(s.quiet_ms) == "number" and s.quiet_ms > 20000 then
+			return nil
+		end
 		return "working"
 	elseif s.program == "error" then
 		return "failed"

@@ -2387,7 +2387,16 @@
       "description": "这台 Mac 上安装的智能体 CLI。开启后，它们会出现在标题栏的 + 中，并在聊天旁的终端里运行。",
       "installed": "已安装",
       "looking": "正在查找已安装的智能体…",
-      "none": "在这台 Mac 的 PATH 中未找到智能体 CLI。"
+      "none": "在这台 Mac 的 PATH 中未找到智能体 CLI。",
+      "status": "状态",
+      "claude_hooks": {
+        "label": "Claude Code",
+        "description": "启动时 Zeron 会传入一个设置文件，用于报告工作中、需要批准和已完成。不会修改你自己的 Claude 设置。"
+      },
+      "codex_hooks": {
+        "label": "Codex 状态钩子",
+        "description": "在 ~/.codex/hooks.json 中添加钩子，让 Codex 报告工作中、需要批准和已完成。它们在 Zeron 的终端之外不起作用。Codex 会请你信任一次。"
+      }
     }
   },
   "common": {
@@ -2791,7 +2800,8 @@
       "terminal_agents_none": "未找到智能体 CLI",
       "terminal_agents_manage": "管理终端智能体…",
       "new_menu_chat": "新聊天",
-      "new_menu": "新聊天或终端智能体"
+      "new_menu": "新聊天或终端智能体",
+      "terminal_agents_short": "终端"
     }
   },
   "onboarding": {

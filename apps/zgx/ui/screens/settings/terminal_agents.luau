@@ -31,8 +31,30 @@ local Item = ui.component(function(props: { entry: agents.Entry, path: string })
 	}
 end)
 
+local CodexHooks = ui.component(function(): Node
+	local on = ui.use_state(agents.codex_hooks:peek() == true)
+	ui.effect(function()
+		local known = agents.codex_hooks:get()
+		if known ~= nil and on:peek() ~= known then
+			on:set(known)
+		end
+	end)
+	return ds.Settings.Row {
+		label = ui.t("settings.terminal_agents.codex_hooks.label"),
+		description = ui.t("settings.terminal_agents.codex_hooks.description"),
+		control = ds.Switch {
+			value = on,
+			label = ui.t("settings.terminal_agents.codex_hooks.label"),
+			on_change = function(v: boolean)
+				agents.check_codex_hooks(v)
+			end,
+		},
+	}
+end)
+
 function M.view(): Node
 	agents.detect()
+	agents.check_codex_hooks(nil)
 	return ds.Settings.Page {
 		title = ui.t("settings.terminal_agents.title"),
 		description = ui.t("settings.terminal_agents.description"),
@@ -68,6 +90,17 @@ function M.view(): Node
 				end
 				return ds.Settings.Group(rows)
 			end, { w_full = true }),
+		},
+		ds.Settings.Section {
+			title = ui.t("settings.terminal_agents.status"),
+			ds.Settings.Group {
+				ds.Settings.Row {
+					label = ui.t("settings.terminal_agents.claude_hooks.label"),
+					description = ui.t("settings.terminal_agents.claude_hooks.description"),
+				},
+				ds.Settings.Rule(),
+				CodexHooks {},
+			},
 		},
 	}
 end

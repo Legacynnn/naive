@@ -2387,7 +2387,16 @@
       "description": "Agent CLIs installed on this Mac. Turned on, they're offered under + in the header, and run in a terminal beside your chats.",
       "installed": "Installed",
       "looking": "Looking for installed agents…",
-      "none": "No agent CLIs found on this Mac's PATH."
+      "none": "No agent CLIs found on this Mac's PATH.",
+      "status": "Status",
+      "claude_hooks": {
+        "label": "Claude Code",
+        "description": "Reports working, needs approval and done through a settings file Zeron passes as it starts it. Nothing is added to your own Claude settings."
+      },
+      "codex_hooks": {
+        "label": "Codex status hooks",
+        "description": "Adds hooks to ~/.codex/hooks.json so Codex reports working, needs approval and done. They do nothing outside Zeron's terminals. Codex asks you to trust them once."
+      }
     }
   },
   "common": {
@@ -2791,7 +2800,8 @@
       "terminal_agents_none": "No agent CLIs found",
       "terminal_agents_manage": "Manage terminal agents…",
       "new_menu_chat": "New chat",
-      "new_menu": "New chat or terminal agent"
+      "new_menu": "New chat or terminal agent",
+      "terminal_agents_short": "Terminal"
     }
   },
   "onboarding": {
