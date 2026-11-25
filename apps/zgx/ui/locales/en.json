@@ -662,6 +662,7 @@
       },
       "context": {
         "heading": "Context window",
+        "limits": "Plan usage",
         "percent": "{n}%",
         "of": "{used} / {window} tokens",
         "left": "{n} tokens remaining",
@@ -2700,7 +2701,8 @@
     },
     "keys": {
       "title": {
-        "shell_new_chat": "New chat",
+        "shell_new_chat": "New workspace",
+        "shell_new_tab": "New tab",
         "shell_new_project": "New project",
         "shell_archive": "Archive session",
         "shell_pin": "Pin or unpin this session",
@@ -2723,8 +2725,7 @@
         "shell_close": "Close",
         "shell_reload": "Reload Zeron",
         "shell_reload_interface": "Reload interface",
-        "shell_dictate": "Hold to dictate",
-        "shell_new_worktree": "New chat in new worktree"
+        "shell_dictate": "Hold to dictate"
       },
       "group": {
         "sessions": "Sessions",

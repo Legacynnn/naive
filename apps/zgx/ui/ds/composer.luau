@@ -859,8 +859,19 @@ end
 -- chips beside it are. Given what the context holds, it opens the card
 -- above (below, with the menus below) as the pointer rests on it or the
 -- keys reach it.
-local function ring(used: number | () -> number, usage: (() -> Usage?)?, side: () -> string): Node
+local function ring(used: number | () -> number, usage: (() -> Usage?)?, side: () -> string, limits: (() -> context_usage.Limits?)?): Node
+	local function context_known(): boolean
+		return usage ~= nil and context_usage.fraction(usage()) ~= nil
+	end
+	-- (No context to say yet: the plan's usage, in its own ink.)
+	local function on_limits(): boolean
+		local l = if limits then limits() else nil
+		return not context_known() and l ~= nil and l.used ~= nil
+	end
 	local function fraction(): number
+		if on_limits() then
+			return math.clamp((limits :: any)().used, 0, 1)
+		end
 		if usage then
 			return context_usage.fraction(usage()) or 0
 		end
@@ -876,10 +887,15 @@ local function ring(used: number | () -> number, usage: (() -> Usage?)?, side: (
 			hover = { bg = "$hover" },
 			focusable = usage ~= nil,
 			label = locale.t("ds.composer.context_used"),
-			tooltip = if usage then context_usage.Card { usage = usage } else nil,
+			tooltip = if usage then context_usage.Card { usage = usage, limits = limits } else nil,
 			tooltip_placement = if at then { side = at, align = "end", offset = 8 } else nil,
 			tooltip_delay = 150,
-			context_usage.Ring { fraction = fraction },
+			context_usage.Ring {
+				fraction = fraction,
+				ink = function(f: number): string
+					return if on_limits() then context_usage.usage_ink(f) else context_usage.ink(f)
+				end,
+			},
 		}
 	end
 	if not usage then
@@ -912,6 +928,16 @@ type Place = {
 	-- for one it doesn't show.
 	on_measures: ((name: number, branch: number, device: number) -> ())?,
 }
+-- The device's name, short: its kind of Mac ("MacBook Pro de Daniel" is "MacBook"), else its first word.
+local function short_host(name: string): string
+	for _, kind in { "MacBook", "Mac mini", "Mac Studio", "Mac Pro", "iMac" } do
+		if string.find(name, kind, 1, true) then
+			return kind
+		end
+	end
+	return string.match(name, "^%s*(%S+)") or name
+end
+local PLACE_TILE = 14
 local function place_line(p: Place): { Child }
 	local function has_project(): boolean
 		return p.project() ~= nil
@@ -926,8 +952,11 @@ local function place_line(p: Place): { Child }
 	-- The name's and the branch's own widths, measured unseen: each keeps
 	-- its least of itself, or all of a shorter one (never padded out).
 	local natural, branch_natural, device_natural = ui.ref(), ui.ref(), ui.ref()
-	local function device_name(): string
+	local function full_device_name(): string
 		return if p.device then p.device() or "" else ""
+	end
+	local function device_name(): string
+		return short_host(full_device_name())
 	end
 	local function has_device(): boolean
 		return device_name() ~= ""
@@ -941,7 +970,7 @@ local function place_line(p: Place): { Child }
 			local name_w, branch_w = natural.width, branch_natural.width
 			if name_w and branch_w then
 				on_measures(
-					if has_project() or not p.in_project() then name_w else 0,
+					if has_project() then PLACE_TILE elseif not p.in_project() then name_w else 0,
 					if p.in_project() then branch_w else 0,
 					if has_device() then (device_natural.width or 0) + PLACE_CHEVRON else 0
 				)
@@ -997,6 +1026,7 @@ local function place_line(p: Place): { Child }
 			end :: any,
 			gap = "$space.1",
 			items = "center",
+			tooltip = Tooltip { full_device_name },
 			FadeText {
 				device_name,
 				roll = true,
@@ -1014,7 +1044,34 @@ local function place_line(p: Place): { Child }
 			},
 		}),
 		ui.show(function(): boolean
-			return unfolded() and (has_project() or not p.in_project())
+			return unfolded() and has_project()
+		end, ui.div {
+			id = "composer-place-project-tile",
+			shrink = 0,
+			tooltip = Tooltip { name },
+			Tile {
+				label = name,
+				hue = function(): string?
+					local pr = p.project()
+					return if pr then pr.hue else nil
+				end,
+				src = function(): string?
+					local pr = p.project()
+					return if pr then pr.src else nil
+				end,
+				emoji = function(): string?
+					local pr = p.project()
+					return if pr then pr.emoji else nil
+				end,
+				project = function(): string?
+					local pr = p.project()
+					return if pr then pr.value else nil
+				end,
+				size = PLACE_TILE,
+			},
+		}),
+		ui.show(function(): boolean
+			return unfolded() and not has_project() and not p.in_project()
 		end, FadeText {
 			name,
 			roll = true,
@@ -1033,19 +1090,10 @@ local function place_line(p: Place): { Child }
 			shrink = 1000,
 			-- (Its chevron, its glyph and the branch's sliver: under that it
 			-- doesn't go, the name giving way instead.)
-			min_w = function(): number
-				return (if has_project() then 14 else 0) + branch_min()
-			end :: any,
+			min_w = branch_min :: any,
 			overflow = "hidden",
 			gap = "$space.1",
 			items = "center",
-			ui.show(has_project, ui.div {
-				shrink = 0,
-				color = "$text.disabled",
-				aria_hidden = true,
-				-- (A heavier stroke: at 10 pt the plain one read as a typed "›".)
-				Icon { name = "alt-arrow-right-bold", size = 10 },
-			}),
 			FadeText {
 				p.branch,
 				roll = true,
@@ -1562,8 +1610,14 @@ return ui.component(function(props: Props): Node
 		folded:set { level = now, access_at = at, where_icon = where_icon, model_at = chip_at }
 	end)
 
+	local account_in_use = ui.use_state(nil :: any)
+	local function limits(): context_usage.Limits?
+		local a = account_in_use:get()
+		return if a and a.used ~= nil then { used = a.used, detail = a.detail } else nil
+	end
 	local model = ui.presence(side, function(at: string): Node
 		return ModelPicker {
+			account_in_use = account_in_use,
 			model = props.model,
 			effort = props.effort,
 			fast = props.fast,
@@ -2643,8 +2697,8 @@ return ui.component(function(props: Props): Node
 				if props.usage
 					then ui.show(function(): boolean
 						local u = (props.usage :: () -> Usage?)()
-						return u ~= nil and u.window ~= nil and u.window > 0
-					end, ring(0, props.usage, side))
+						return (u ~= nil and u.window ~= nil and u.window > 0) or limits() ~= nil
+					end, ring(0, props.usage, side, limits))
 					elseif props.context then ring(props.context, nil, side)
 					else nil,
 			},

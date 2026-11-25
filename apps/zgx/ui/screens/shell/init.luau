@@ -131,20 +131,19 @@ return function(): Node
 	-- composer, its draft now the new chat's), so a key typed straight after
 	-- is the new chat's, never the one left.
 	runs["shell.new_chat"] = function()
-		-- (With worktrees, ⌘N is another chat in the worktree showing; ⌥⌘N a new one.)
-		local worktrees: any = boundary.load("@app/screens/shell/worktree")
-		if worktrees ~= nil and worktrees.on:peek() then
-			route.new_chat_in()
-		else
-			route.new_chat()
-		end
+		route.new_chat()
 		local shared: any = boundary.load("@app/screens/chat/shared")
 		if shared and shared.focus then
 			shared.focus:add(1)
 		end
 	end
-	runs["shell.new_worktree"] = function()
-		route.new_chat()
+	-- ⌘T: another chat in the workspace showing; with the panel's keyboard, a browser tab there.
+	runs["shell.new_tab"] = function()
+		local panel: any = boundary.load("@app/screens/panel")
+		if panel and panel.new_browser_tab and (panel.new_browser_tab :: any)() then
+			return
+		end
+		route.new_chat_in()
 		local shared: any = boundary.load("@app/screens/chat/shared")
 		if shared and shared.focus then
 			shared.focus:add(1)

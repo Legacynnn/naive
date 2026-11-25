@@ -376,11 +376,19 @@ mod macos {
         /// have no atomic type), forwarded to for every bundle but the main one.
         static ORIGINAL: AtomicUsize = AtomicUsize::new(0);
 
+        /// AppKit caches the main bundle's identifier without retaining it
+        /// (`-[NSMenu recordKeyboardShortcutEvent:…]`), so it's one string kept forever.
+        static MAIN_ID: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+
         extern "C" fn bundle_identifier_override(this: &Object, sel: Sel) -> *mut Object {
             unsafe {
                 let main: *mut Object = msg_send![class!(NSBundle), mainBundle];
                 if std::ptr::eq(this, main) {
-                    return ns_string(&app_bundle_id());
+                    return *MAIN_ID.get_or_init(|| {
+                        let id = ns_string(&app_bundle_id());
+                        let _: *mut Object = msg_send![id, retain];
+                        id as usize
+                    }) as *mut Object;
                 }
                 match ORIGINAL.load(Ordering::Relaxed) {
                     0 => std::ptr::null_mut(),

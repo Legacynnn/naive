@@ -27,6 +27,7 @@ end)
 M.sort = ui.persist("shell_tabs_sort", "manual")
 M.last = ui.persist("shell_worktree_last", {} :: { [string]: string })
 M.titles = ui.persist("shell_worktree_titles", {} :: { [string]: string })
+M.assigned = ui.persist("shell_workspace_of", {} :: { [string]: string })
 
 local function trimmed(path: string?): string?
 	if not path or path == "" then
@@ -57,7 +58,11 @@ local function is_linked(cwd: string?, project: sessions.Project?): boolean
 	return cwd ~= root and string.sub(cwd, 1, #root + 1) ~= root .. "/"
 end
 
-function M.key_of(c: sessions.Chat, by: { [string]: sessions.Project }?): string
+function M.key_of(c: sessions.Chat, by: { [string]: sessions.Project }?, assigned: { [string]: string }?): string
+	local own = (assigned or M.assigned:peek())[c.id]
+	if own then
+		return `ws:{own}`
+	end
 	if not c.project then
 		return `chat:{c.id}`
 	end
@@ -71,13 +76,14 @@ end
 
 M.all = ui.computed(function(): { [string]: Worktree }
 	local by = projects_by_id()
+	local assigned = M.assigned:get()
 	local out: { [string]: Worktree } = {}
 	local all = table.clone(sessions.chats:get())
 	for _, c in terminal_agents.chats:get() do
 		table.insert(all, c)
 	end
 	for _, c in all do
-		local key = M.key_of(c, by)
+		local key = M.key_of(c, by, assigned)
 		local w = out[key]
 		if not w then
 			local p = if c.project then by[c.project] else nil
@@ -134,6 +140,16 @@ function M.of(id: string?, peek: boolean?): string?
 		return nil
 	end
 	return (if peek then M.by_chat:peek() else M.by_chat:get())[id]
+end
+
+function M.id_of(key: string?): string?
+	return if key then string.match(key, "^ws:(.+)$") else nil
+end
+
+function M.assign(chat: string, workspace: string)
+	local next = table.clone(M.assigned:peek())
+	next[chat] = workspace
+	M.assigned:set(next)
 end
 
 function M.get(key: string?): Worktree?

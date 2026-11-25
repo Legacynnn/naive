@@ -83,6 +83,8 @@ export type Props = {
 	account_group: ((harness: string, provider: string?) -> AccountGroup?)?,
 	on_account: ((harness: string, id: string) -> ())?,
 	on_accounts_open: (() -> ())?,
+	-- The account in use, told as it changes, for its limits shown elsewhere (the chip then has no ring).
+	account_in_use: State<Account?>?,
 	model: State<string?>,
 	effort: State<string?>,
 	fast: State<boolean>?,
@@ -575,6 +577,15 @@ return ui.component(function(props: Props): Node
 	local function used(a: Account?): number
 		return if a and a.used then a.used else 0
 	end
+	if props.account_in_use then
+		local out = props.account_in_use
+		ui.effect(function()
+			local a = in_use()
+			if out:peek() ~= a then
+				out:set(a)
+			end
+		end)
+	end
 	local function percent(f: number): string
 		return locale.s("ds.composer.context.percent", { n = math.floor(f * 100 + 0.5) })
 	end
@@ -708,7 +719,7 @@ return ui.component(function(props: Props): Node
 	local function usage_ring(): Node
 		return ui.show(function(): boolean
 			local a = in_use()
-			return a ~= nil and a.used ~= nil and (props.fold == nil or props.fold() < 2)
+			return props.account_in_use == nil and a ~= nil and a.used ~= nil and (props.fold == nil or props.fold() < 2)
 		end, ui.div {
 			id = "model-picker-usage",
 			self = "center",

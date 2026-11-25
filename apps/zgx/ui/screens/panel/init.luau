@@ -392,6 +392,23 @@ function M.find_in_browser(): boolean
 	return true
 end
 
+-- ⌘T while the panel has the keyboard: a browser tab in it. Whether it acted
+-- (else the shell's ⌘T, a chat tab in the workspace).
+function M.new_browser_tab(): boolean
+	local k = if shown_key then shown_key() else nil
+	if not k then
+		return false
+	end
+	local s = state.of(k)
+	local tab = if s.active then state.find(k, s.active) else nil
+	local browsing = Browser ~= nil and tab ~= nil and tab.kind == "browser" and Browser.has_keyboard(tab)
+	if focus_in ~= k and not terminal_focused(k) and not browsing then
+		return false
+	end
+	state.open(k, "browser")
+	return true
+end
+
 -- The app's ⌘F, in a chat's lane with the keyboard: its own find bar, over its
 -- own transcript: true; else false, and the shell goes on to its own Find.
 function M.find_in_lane(): boolean

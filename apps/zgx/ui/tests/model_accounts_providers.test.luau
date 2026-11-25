@@ -65,9 +65,22 @@ local function open_panel(app: any)
 	app:frames(30)
 end
 
+-- Whether the plan's usage shows: in the context ring's card, as the composer has it.
+local function limits_shown(app: any): boolean
+	if not app:has("#composer-context") then
+		return false
+	end
+	app:hover("#composer-context")
+	app:wait("#composer-context-card", { timeout_ms = 1000 })
+	local shown = app:has("#composer-context-limits")
+	app:hover('role:button "Model"')
+	app:frames(30)
+	return shown
+end
+
 test("a ChatGPT model's row is its ChatGPT account, and lists ChatGPT's alone", function()
 	local app = with_model("pi/openai-codex/gpt-6")
-	expect(app:has("#model-picker-usage")).to_be(true)
+	expect(limits_shown(app)).to_be(true)
 	open_panel(app)
 	local row = app:tree("#model-picker-account")
 	expect(row).to_contain("ChatGPT account")
@@ -117,7 +130,7 @@ end)
 test("a provider with no account yet says None and offers to add one", function()
 	local app = with_model("pi/github-copilot/gpt-6")
 	-- (Nothing in use: no ring.)
-	expect(app:has("#model-picker-usage")).to_be(false)
+	expect(limits_shown(app)).to_be(false)
 	open_panel(app)
 	local row = app:tree("#model-picker-account")
 	expect(row).to_contain("GitHub Copilot account")
@@ -133,7 +146,7 @@ end)
 
 test("a provider with no account and nothing Zeron adds has no row", function()
 	local app = with_model("pi/groq/llama")
-	expect(app:has("#model-picker-usage")).to_be(false)
+	expect(limits_shown(app)).to_be(false)
 	open_panel(app)
 	expect(app:has("#model-picker-account")).to_be(false)
 end)
@@ -173,7 +186,7 @@ test("an agent without usage still names and switches its accounts, with no ring
 	app:set_state("chat_model", "antigravity/gemini-4-neon")
 	app:frames(10)
 	-- (No usage: no ring on the chip.)
-	expect(app:has("#model-picker-usage")).to_be(false)
+	expect(limits_shown(app)).to_be(false)
 	open_panel(app)
 	local row = app:tree("#model-picker-account")
 	expect(row).to_contain("Account")
@@ -222,7 +235,7 @@ test("Antigravity's usage is the model's group's: Gemini's for Gemini, the other
 	-- A Claude model: its group's limits, by their own names, and the ring.
 	app:set_state("chat_model", "antigravity/claude-opus-5-5")
 	app:frames(10)
-	expect(app:has("#model-picker-usage")).to_be(true)
+	expect(limits_shown(app)).to_be(true)
 	local row, list = shown()
 	expect(row).to_contain("40%")
 	expect(list).to_contain("Session 40% · Week 10%")
@@ -231,13 +244,13 @@ test("Antigravity's usage is the model's group's: Gemini's for Gemini, the other
 	-- there are say whose.
 	app:set_state("chat_model", "antigravity/gemini-4-neon")
 	app:frames(10)
-	expect(app:has("#model-picker-usage")).to_be(false)
+	expect(limits_shown(app)).to_be(false)
 	row, list = shown()
 	expect(string.find(row, "%", 1, true)).to_be(nil)
 	expect(list).to_contain("Google AI Ultra · Claude & GPT: Session 40% · Week 10%")
 	-- A Gemini limit: Gemini's alone.
 	accounts({ window("Gemini Session", 0.7), window("Gemini Week", 0.2), window("Claude & GPT Session", 0.4) })
-	expect(app:has("#model-picker-usage")).to_be(true)
+	expect(limits_shown(app)).to_be(true)
 	row, list = shown()
 	expect(row).to_contain("70%")
 	expect(list).to_contain("Session 70% · Week 20%")

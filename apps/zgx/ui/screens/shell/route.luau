@@ -653,10 +653,7 @@ function M.new_chat(project: string?, device: string?)
 		end
 	end
 	last_chat:set(nil)
-	-- A new chat is a row of its own: a worktree of its own, not the one left.
-	if worktree.on:peek() and project and project ~= "none" and M.where_pick:peek() == nil then
-		M.where_pick:set({ checkout = "worktree", branch = nil })
-	end
+	M.workspace_pick:set(`{os.time()}-{math.random(1, 2 ^ 30)}`)
 	local on: string? = nil
 	-- (None of the project's there: none chosen, so the composer picks.)
 	local unchosen = false
@@ -689,6 +686,15 @@ function M.new_chat(project: string?, device: string?)
 end
 
 M.where_pick = ui.state("shell_where_pick", nil :: { checkout: string, branch: string? }?)
+-- The workspace (sidebar row) the new chat's session joins once it's made.
+M.workspace_pick = ui.state("shell_workspace_pick", nil :: string?)
+function M.claim_workspace(chat: string)
+	local id = M.workspace_pick:peek()
+	if id then
+		M.workspace_pick:set(nil)
+		worktree.assign(chat, id)
+	end
+end
 function M.take_where(): { checkout: string, branch: string? }?
 	local pick = M.where_pick:peek()
 	if pick then
@@ -704,6 +710,9 @@ function M.new_chat_at(at: { project: string?, device: string?, branch: string?,
 		end
 		M.where_pick:set({ checkout = if at.worktree then "worktree" else "local", branch = at.branch })
 		M.new_chat(at.project, at.device)
+		if not at.worktree then
+			M.workspace_pick:set(worktree.id_of(at.key))
+		end
 		if not at.worktree and at.key then
 			M.draft:set({ key = at.key, at = os.time(), plan = table.clone(at) :: any })
 		end
@@ -754,7 +763,13 @@ function M.new_terminal_agent(agent: string, given: { prompt: string?, project: 
 	end
 	at.agent = agent
 	at.prompt = if given then given.prompt else nil
-	M.open_session(terminal_agents.start(at :: any))
+	local id = terminal_agents.start(at :: any)
+	if given then
+		M.claim_workspace(id)
+	elseif w and worktree.id_of(w.key) then
+		worktree.assign(id, worktree.id_of(w.key) :: string)
+	end
+	M.open_session(id)
 end
 
 function M.choose_project(id: string?)

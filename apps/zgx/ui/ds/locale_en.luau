@@ -520,6 +520,7 @@ return {
 	["ds.composer.branch.search"] = "Search branches…",
 	["ds.composer.branch.fixed"] = "Branch {name}",
 	["ds.composer.context.heading"] = "Context window",
+	["ds.composer.context.limits"] = "Plan usage",
 	["ds.composer.context.percent"] = "{n}%",
 	["ds.composer.context.of"] = "{used} / {window} tokens",
 	["ds.composer.context.left"] = "{n} tokens remaining",

@@ -241,7 +241,7 @@ end)
 test("the device comes first: on top of the panel, and first on the chip", function()
 	local app = mount("chat_fixture.luau")
 	home(app)
-	expect(app:text("#composer-place-device[1]")).to_contain("MacBook Pro")
+	expect(app:text("#composer-place-device[1]")).to_be("MacBook")
 	panel(app)
 	local function top(sel: string): number
 		local first = string.match(app:tree(sel), "[^\n]+") or ""

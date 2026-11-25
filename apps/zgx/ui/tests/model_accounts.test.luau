@@ -1,7 +1,7 @@
--- The model picker's accounts, as Zeron's composer has them: an Account row and
--- a usage ring on the chip, for the composer's device (this one or another),
--- reading the fuller window (Cursor's, the pool of the model chosen); no usage
--- reported, no ring; one that can't be switched to, not offered.
+-- The model picker's accounts, as Zeron's composer has them: an Account row, and
+-- the plan's usage in the context ring's card, for the composer's device (this one
+-- or another), reading the fuller window (Cursor's, the pool of the model chosen);
+-- no usage reported, none shown; one that can't be switched to, not offered.
 
 local function window(label: string, used: number): any
 	return { label = label, used = used }
@@ -28,9 +28,22 @@ local function here(list: { any }): { [string]: any }
 	return { [""] = { ["claude-code"] = list } }
 end
 
+-- Whether the plan's usage shows: in the context ring's card, as the composer has it.
+local function limits_shown(app: any): boolean
+	if not app:has("#composer-context") then
+		return false
+	end
+	app:hover("#composer-context")
+	app:wait("#composer-context-card", { timeout_ms = 1000 })
+	local shown = app:has("#composer-context-limits")
+	app:hover('role:button "Model"')
+	app:frames(30)
+	return shown
+end
+
 test("an agent with accounts has the row, the address and how much is used", function()
 	local app = with_accounts(here(accounts()))
-	expect(app:has("#model-picker-usage")).to_be(true)
+	expect(limits_shown(app)).to_be(true)
 	app:click('role:button "Model"')
 	app:frames(30)
 	local row = app:tree("#model-picker-account")
@@ -77,7 +90,7 @@ test("a chat on another computer reads that computer's accounts", function()
 	})
 	app:set_state("chat_device", "box")
 	app:frames(10)
-	expect(app:has("#model-picker-usage")).to_be(true)
+	expect(limits_shown(app)).to_be(true)
 	app:click('role:button "Model"')
 	app:frames(30)
 	local row = app:tree("#model-picker-account")
@@ -122,7 +135,7 @@ test("a computer whose accounts haven't come has neither, and is asked", functio
 	local app = with_accounts(here(accounts()))
 	app:set_state("chat_device", "somewhere-else")
 	app:frames(10)
-	expect(app:has("#model-picker-usage")).to_be(false)
+	expect(limits_shown(app)).to_be(false)
 	expect(app:state("calls")).to_contain("watch_device:somewhere-else")
 end)
 
@@ -137,7 +150,7 @@ test("no usage reported: the account shows, no percentage and no ring", function
 	local list = accounts()
 	list[1].windows = {}
 	local app = with_accounts(here(list))
-	expect(app:has("#model-picker-usage")).to_be(false)
+	expect(limits_shown(app)).to_be(false)
 	app:click('role:button "Model"')
 	app:frames(30)
 	local row = app:tree("#model-picker-account")
@@ -190,7 +203,7 @@ end)
 
 test("an agent with no accounts has neither", function()
 	local app = with_accounts(here({}))
-	expect(app:has("#model-picker-usage")).to_be(false)
+	expect(limits_shown(app)).to_be(false)
 	app:click('role:button "Model"')
 	app:frames(30)
 	expect(app:has("#model-picker-account")).to_be(false)
