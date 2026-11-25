@@ -33,6 +33,7 @@ mod windows_install;
 mod acp_registry;
 mod agents;
 mod browser_agent;
+mod browser_import;
 mod appshots;
 mod auth;
 mod carried_settings;
@@ -1042,6 +1043,7 @@ fn serve_with(
     // The project's dev servers, for the browser tab's start page.
     previews::install(&host);
     browser_agent::install(&host);
+    browser_import::install(&host);
     let looks_up = host.shared("looks_up", false);
     let view = host.view();
     let handle = cx.render(component(move |cx| {
