@@ -2717,6 +2717,8 @@
         "panel_reload_page": "重新载入页面",
         "shell_next_session": "下一个会话",
         "shell_previous_session": "上一个会话",
+        "shell_next_tab": "下一个标签页",
+        "shell_previous_tab": "上一个标签页",
         "session_n": "会话 {i}",
         "shell_palette": "搜索",
         "shell_check_updates": "检查更新…",

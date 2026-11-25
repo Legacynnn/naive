@@ -243,6 +243,18 @@ return function(): Node
 	runs["shell.previous_session"] = function()
 		step(-1)
 	end
+	local function step_tab(by: number)
+		local tabs: any = boundary.load("@app/screens/shell/session_tabs")
+		if tabs and tabs.step then
+			tabs.step(by)
+		end
+	end
+	runs["shell.next_tab"] = function()
+		step_tab(1)
+	end
+	runs["shell.previous_tab"] = function()
+		step_tab(-1)
+	end
 	-- A web link in a chat (ds/markdown's): the panel's browser tab beside
 	-- the session showing (or the plugin page showing: its own panel), with
 	-- Settings → Links "Open links in" Naive (the shipping app's

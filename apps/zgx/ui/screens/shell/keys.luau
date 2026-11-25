@@ -52,6 +52,8 @@ M.LIST = {
 	{ id = "panel.reload_page", title = "Reload Page", key = "cmd+shift+r", group = "Panels", menu = "View", elsewhere = true },
 	{ id = "shell.next_session", title = "Next session", key = "ctrl+tab", group = "Go", menu = "Go", reserved = true },
 	{ id = "shell.previous_session", title = "Previous session", key = "ctrl+shift+tab", group = "Go", menu = "Go", reserved = true },
+	{ id = "shell.next_tab", title = "Next tab", key = "cmd+shift+]", group = "Go", menu = "Go", reserved = true },
+	{ id = "shell.previous_tab", title = "Previous tab", key = "cmd+shift+[", group = "Go", menu = "Go", reserved = true },
 } :: { Key }
 -- ⌘1–9: the sidebar's first nine sessions.
 for i = 1, 9 do

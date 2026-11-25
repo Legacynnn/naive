@@ -224,6 +224,17 @@ function M.close_showing(): boolean
 	return true
 end
 
+function M.step(by: number): boolean
+	local list = shown:peek()
+	if #list == 0 then
+		return false
+	end
+	local at = if route.session:peek() then table.find(list, splits.current_key() or "") else nil
+	local i = if at then (at - 1 + by) % #list + 1 elseif by > 0 then 1 else #list
+	route.open_session(face(list[i]))
+	return true
+end
+
 -- Those tabs closed at once, `keep` gone to if the one showing was among them.
 -- (Each of `close` in turn would open every chat on the way.)
 local function close_many(list: { string }, keep: string)
