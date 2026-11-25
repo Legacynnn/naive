@@ -2333,7 +2333,23 @@
       },
       "page_title": "Browsing",
       "links_and_search": "Links and search",
-      "zoom": "Zoom"
+      "zoom": "Zoom",
+      "agents": {
+        "title": "Agents on sites",
+        "terms": "agents ai permission allow block sites websites browser control automation",
+        "default_label": "Agents on a new site",
+        "default_description": "Whether an agent asks before it uses a site you haven’t decided on.",
+        "default_ask": "Ask",
+        "default_allow": "Allow",
+        "sites": "{n, plural, one {# site decided} other {# sites decided}}",
+        "allowed": "Agents may use it",
+        "blocked": "Agents are blocked",
+        "allow": "Allow",
+        "block": "Block",
+        "allow_one": "Allow agents on {site}",
+        "block_one": "Block agents on {site}",
+        "forget_one": "Forget {site}"
+      }
     },
     "browser_history": {
       "title": "History",
@@ -3425,7 +3441,16 @@
         "dismiss": "Dismiss {name}",
         "saving": "Saving…"
       },
-      "dismiss_error": "Dismiss"
+      "dismiss_error": "Dismiss",
+      "agent_ask": {
+        "title": "An agent in {chat} wants to use {site}",
+        "title_this_chat": "An agent in this chat wants to use {site}",
+        "body": "It can read and act on its pages, signed in as you.",
+        "more": "{n, plural, one {# more question waits.} other {# more questions wait.}}",
+        "once": "Allow once",
+        "always": "Always allow",
+        "block": "Block"
+      }
     },
     "browser_api": {
       "empty": "Enter a website or localhost address.",

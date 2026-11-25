@@ -341,6 +341,100 @@ function M.clear_history(profile: string, since: number?)
 	keep(profile, next)
 end
 
+local agent_defaults = ui.persist("browser_agent_default", {} :: { [string]: string })
+local agent_sites = ui.persist("browser_agent_sites", {} :: { [string]: { [string]: string } })
+
+local agents = {}
+M.agents = agents
+
+function agents.site(host: string?): string?
+	if type(host) ~= "string" then
+		return nil
+	end
+	local h = string.lower((string.gsub(host, "%.$", "")))
+	h = string.gsub(h, "^www%.", "")
+	return if h ~= "" then h else nil
+end
+
+function agents.site_of(url: string?): string?
+	return if type(url) == "string" then agents.site(host_of(url)) else nil
+end
+
+function agents.default(profile: string): string
+	return if agent_defaults:get()[profile] == "allow" then "allow" else "ask"
+end
+
+function agents.set_default(profile: string, choice: string)
+	agent_defaults:set_key(profile, if choice == "allow" then "allow" else nil)
+end
+
+-- The most specific decided site covering the host: the host itself, else a parent domain (never a bare suffix).
+function agents.covering(profile: string, host: string): (string?, string?)
+	local site = agents.site(host)
+	if not site then
+		return nil, nil
+	end
+	local decided = agent_sites:get()[profile] or {}
+	if decided[site] then
+		return site, decided[site]
+	end
+	if string.match(site, "^[%d.]+$") or string.find(site, ":", 1, true) then
+		return nil, nil
+	end
+	local rest = site
+	while true do
+		local parent = string.match(rest, "^[^.]+%.(.+)$")
+		if not parent or not string.find(parent, ".", 1, true) then
+			return nil, nil
+		end
+		if decided[parent] then
+			return parent, decided[parent]
+		end
+		rest = parent
+	end
+end
+
+function agents.decision(profile: string, host: string): string?
+	local _, choice = agents.covering(profile, host)
+	return choice
+end
+
+function agents.policy(profile: string, host: string): string
+	return agents.decision(profile, host) or agents.default(profile)
+end
+
+function agents.set(profile: string, host: string, choice: string)
+	local site = agents.site(host)
+	if not site or (choice ~= "allow" and choice ~= "block") then
+		return
+	end
+	local now = table.clone(agent_sites:peek()[profile] or {})
+	now[site] = choice
+	agent_sites:set_key(profile, now)
+end
+
+function agents.forget(profile: string, host: string)
+	local site = agents.site(host)
+	local now = agent_sites:peek()[profile]
+	if not site or not now or now[site] == nil then
+		return
+	end
+	local left = table.clone(now)
+	left[site] = nil
+	agent_sites:set_key(profile, if next(left) == nil then nil else left)
+end
+
+function agents.list(profile: string): { { host: string, decision: string } }
+	local out = {}
+	for host, choice in agent_sites:get()[profile] or {} do
+		table.insert(out, { host = host, decision = choice })
+	end
+	table.sort(out, function(a, b)
+		return a.host < b.host
+	end)
+	return out
+end
+
 -- What an address is shown as in a list: no scheme, no lone trailing slash.
 function M.short(url: string): string
 	local s = string.gsub(url, "^https?://", "")

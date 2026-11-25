@@ -2333,7 +2333,23 @@
       },
       "page_title": "浏览",
       "links_and_search": "链接与搜索",
-      "zoom": "缩放"
+      "zoom": "缩放",
+      "agents": {
+        "title": "智能体与网站",
+        "terms": "智能体 AI 权限 允许 阻止 网站 浏览器 控制 自动化",
+        "default_label": "智能体访问新网站",
+        "default_description": "智能体使用你尚未决定的网站前是否先询问。",
+        "default_ask": "询问",
+        "default_allow": "允许",
+        "sites": "{n, plural, other {已决定 # 个网站}}",
+        "allowed": "智能体可以使用",
+        "blocked": "已阻止智能体",
+        "allow": "允许",
+        "block": "阻止",
+        "allow_one": "允许智能体使用 {site}",
+        "block_one": "阻止智能体使用 {site}",
+        "forget_one": "忘记 {site}"
+      }
     },
     "browser_history": {
       "title": "历史记录",
@@ -3425,7 +3441,16 @@
         "dismiss": "关闭 {name}",
         "saving": "正在保存…"
       },
-      "dismiss_error": "关闭"
+      "dismiss_error": "关闭",
+      "agent_ask": {
+        "title": "“{chat}”中的智能体想使用 {site}",
+        "title_this_chat": "此聊天中的智能体想使用 {site}",
+        "body": "它能以你的登录身份读取并操作该网站的页面。",
+        "more": "{n, plural, other {还有 # 个问题在等待。}}",
+        "once": "允许一次",
+        "always": "始终允许",
+        "block": "阻止"
+      }
     },
     "browser_api": {
       "empty": "输入网站或 localhost 地址。",

@@ -2,6 +2,7 @@ local state = require("@app/screens/panel/state")
 local api = require("@app/screens/panel/browser_api")
 local Browser = require("@app/screens/panel/browser")
 local data = require("@app/screens/panel/browser_data")
+local asks = require("@app/screens/panel/browser_asks")
 local view = require("@app/screens/shell/view")
 local route = require("@app/screens/shell/route")
 local worktree = require("@app/screens/shell/worktree")
@@ -9,11 +10,23 @@ local worktree = require("@app/screens/shell/worktree")
 local calls = ui.shared("browser_agent_calls", {} :: { any })
 local seen = ui.state("browser_agent_seen", {} :: { [string]: boolean })
 
+local sessions: any = nil
+do
+	local ok, found = pcall(function(): any
+		return (require :: any)("@account/sessions")
+	end)
+	if ok then
+		sessions = found
+	end
+end
+
 local LOAD_MS = 30000
 local START_MS = 5000
 local SETTLE_MS = 400
 local EVAL_MS = 15000
 local CALL_MS = 55000
+local ASK_MS = 120000
+local ANSWER_MS = 40000
 
 -- A name a page can't guess, so it can't stand in for the agent's script.
 local AGENT = string.format("__naiveAgent_%x%x", math.random(0, 0x7fffffff), math.floor(ui.now()) % 0x7fffffff)
@@ -158,12 +171,97 @@ local function run(web: any, fn: string, args: any, given_done: Done)
 	end)
 end
 
-local function open(ctx: Ctx, url: string?): any
+local function open(ctx: Ctx): any
 	if not data.profile() then
 		error("The browser isn't ready yet: try again in a moment")
 	end
-	local id = state.open(ctx.key, "browser", if url then { url = url } else nil)
+	local id = state.open(ctx.key, "browser", nil)
 	return state.find(ctx.key, id)
+end
+
+local function plain(err: any): string
+	return (string.gsub(tostring(err), "^[^\n]-:%d+: ", ""))
+end
+
+local function chat_title(chat: string): string?
+	local ok, title = pcall(function(): string?
+		for _, c in sessions.chats:peek() do
+			if c.id == chat then
+				return c.title
+			end
+		end
+		for _, list in sessions.now:peek().children or {} do
+			for _, c in list do
+				if c.id == chat then
+					return c.title
+				end
+			end
+		end
+		return nil
+	end)
+	return if ok and type(title) == "string" and title ~= "" then title else nil
+end
+
+local function verdict(ctx: Ctx, profile: string, site: string): string?
+	local decided = data.agents.decision(profile, site)
+	if decided == "block" then
+		return "block"
+	end
+	if decided == "allow" or asks.allowed_once(ctx.chat, site) then
+		return "allow"
+	end
+	return if data.agents.default(profile) == "allow" then "allow" else nil
+end
+
+local function blocked(site: string): string
+	return `The person blocked agents on {site} in Naive, so this chat can't use it. Don't try to reach it another way; if it's needed, ask them to allow it in Settings → Browser`
+end
+
+-- Runs `go` once the person lets this chat's agent use the site `url` is on; a page with no site needs no say.
+local function gate(ctx: Ctx, url: any, go: () -> (), done: Done)
+	local site = data.agents.site_of(url)
+	if not site then
+		go()
+		return
+	end
+	local profile = data.profile()
+	if not profile then
+		error("The browser isn't ready yet: try again in a moment")
+	end
+	local now = verdict(ctx, profile, site)
+	if now == "block" then
+		error(blocked(site))
+	elseif now == "allow" then
+		go()
+		return
+	end
+	local ask = asks.add(ctx.key, ctx.chat, site, profile, chat_title(ctx.chat))
+	local start = ui.now()
+	ui.every(100, function()
+		local v = verdict(ctx, profile, site)
+		if v then
+			asks.drop(ask.id)
+		end
+		if v == "allow" then
+			local ok, err = pcall(go)
+			if not ok then
+				done(false, plain(err))
+			end
+			return false
+		elseif v == "block" then
+			done(false, blocked(site))
+			return false
+		end
+		if not asks.live(ask.id) then
+			done(false, `The person didn't answer whether this chat may use {site}, so nothing was done there`)
+			return false
+		end
+		if ui.now() - start > ANSWER_MS then
+			done(false, `The person hasn't answered yet whether this chat may use {site}: the question stays in Naive's panel for a while. Try again once they have`)
+			return false
+		end
+		return true
+	end)
 end
 
 local function normalized(text: string): string
@@ -189,14 +287,17 @@ tools.browser_tabs = function(ctx, args, done)
 	local action = args.action or "list"
 	if action == "open" then
 		local url = if type(args.url) == "string" and args.url ~= "" then normalized(args.url) else nil
-		local tab = open(ctx, url)
+		local tab = open(ctx)
 		local web = page_of(ctx, tab)
 		if url then
-			local from = web.url
-			web:load(url)
-			settle(web, function()
-				done(true, describe(ctx.key, tab))
-			end, from)
+			gate(ctx, url, function()
+				local from = web.url
+				state.set_url(ctx.key, tab.id, url)
+				web:load(url)
+				settle(web, function()
+					done(true, describe(ctx.key, tab))
+				end, from)
+			end, done)
 		else
 			done(true, describe(ctx.key, tab))
 		end
@@ -230,30 +331,32 @@ tools.browser_navigate = function(ctx, args, done)
 		if moves then
 			error("This chat has no browser tab")
 		end
-		tab = open(ctx, nil)
+		tab = open(ctx)
 	end
 	local web = page_of(ctx, tab)
-	local from = web.url
-	if target == "back" then
-		web:back()
-	elseif target == "forward" then
-		web:forward()
-	elseif target == "reload" then
-		from = nil
-		web:reload()
-	elseif url then
-		state.set_url(ctx.key, tab.id, url)
-		web:load(url)
-	end
-	settle(web, function(ok, value)
-		if not ok then
-			done(false, value)
-			return
+	gate(ctx, url or web.url, function()
+		local from = web.url
+		if target == "back" then
+			web:back()
+		elseif target == "forward" then
+			web:forward()
+		elseif target == "reload" then
+			from = nil
+			web:reload()
+		elseif url then
+			state.set_url(ctx.key, tab.id, url)
+			web:load(url)
 		end
-		-- Hooks the page's console as early as the agent can.
-		run(web, "page", {}, function() end)
-		done(true, with_tab(value, tab))
-	end, from)
+		settle(web, function(ok, value)
+			if not ok then
+				done(false, value)
+				return
+			end
+			-- Hooks the page's console as early as the agent can.
+			run(web, "page", {}, function() end)
+			done(true, with_tab(value, tab))
+		end, from)
+	end, done)
 end
 
 local function on_page(fn: string, after_ms: number?)
@@ -263,26 +366,28 @@ local function on_page(fn: string, after_ms: number?)
 			error("This chat has no browser tab: browser_navigate opens one")
 		end
 		local web = page_of(ctx, tab)
-		local given = table.clone(args)
-		given.tab = nil
-		local from = web.url
-		run(web, fn, given, function(ok, raw)
-			if not ok then
-				done(false, raw)
-				return
-			end
-			local value = with_tab(raw, tab)
-			if not after_ms then
-				done(true, value)
-				return
-			end
-			settle(web, function(settled, now)
-				if settled and type(now) == "table" then
-					value.url, value.title = now.url, now.title
+		gate(ctx, web.url, function()
+			local given = table.clone(args)
+			given.tab = nil
+			local from = web.url
+			run(web, fn, given, function(ok, raw)
+				if not ok then
+					done(false, raw)
+					return
 				end
-				done(true, value)
-			end, from, after_ms, after_ms)
-		end)
+				local value = with_tab(raw, tab)
+				if not after_ms then
+					done(true, value)
+					return
+				end
+				settle(web, function(settled, now)
+					if settled and type(now) == "table" then
+						value.url, value.title = now.url, now.title
+					end
+					done(true, value)
+				end, from, after_ms, after_ms)
+			end)
+		end, done)
 	end
 end
 
@@ -302,19 +407,21 @@ tools.browser_screenshot = function(ctx, args, done)
 	if type((web :: any).snapshot) ~= "function" then
 		error("This Naive's zgx can't take a page's picture")
 	end
-	local start = ui.now()
-	local function try()
-		web:snapshot(function(jpeg: string?, err: string?)
-			if jpeg then
-				done(true, { jpeg = jpeg, url = web.url, title = web.title, tab = tab.id })
-			elseif ui.now() - start < EVAL_MS then
-				ui.after(250, try)
-			else
-				done(false, `No picture of the page: {err or "it isn't showing"}. Open this chat in Naive's window and try again`)
-			end
-		end)
-	end
-	ui.after(SETTLE_MS, try)
+	gate(ctx, web.url, function()
+		local start = ui.now()
+		local function try()
+			web:snapshot(function(jpeg: string?, err: string?)
+				if jpeg then
+					done(true, { jpeg = jpeg, url = web.url, title = web.title, tab = tab.id })
+				elseif ui.now() - start < EVAL_MS then
+					ui.after(250, try)
+				else
+					done(false, `No picture of the page: {err or "it isn't showing"}. Open this chat in Naive's window and try again`)
+				end
+			end)
+		end
+		ui.after(SETTLE_MS, try)
+	end, done)
 end
 
 tools.browser_wait = function(ctx, args, done)
@@ -323,38 +430,40 @@ tools.browser_wait = function(ctx, args, done)
 		error("This chat has no browser tab")
 	end
 	local web = page_of(ctx, tab)
-	local limit = math.clamp(tonumber(args.timeout) or 10000, 100, 30000)
-	local start = ui.now()
-	local asking = false
-	local finished = false
-	local last_error: string? = nil
-	ui.every(200, function()
-		if finished then
-			return false
-		end
-		if asking then
-			return true
-		end
-		if ui.now() - start > limit then
-			finished = true
-			done(false, if last_error then `Not there after {limit} ms: {last_error}` else `Not there after {limit} ms`)
-			return false
-		end
-		if web.loading == true then
-			return true
-		end
-		asking = true
-		run(web, "found", { text = args.text, selector = args.selector }, function(ok, value)
-			asking = false
-			if not ok then
-				last_error = tostring(value)
-			elseif value == true and not finished then
-				finished = true
-				done(true, { url = web.url, title = web.title, tab = tab.id })
+	gate(ctx, web.url, function()
+		local limit = math.clamp(tonumber(args.timeout) or 10000, 100, 30000)
+		local start = ui.now()
+		local asking = false
+		local finished = false
+		local last_error: string? = nil
+		ui.every(200, function()
+			if finished then
+				return false
 			end
+			if asking then
+				return true
+			end
+			if ui.now() - start > limit then
+				finished = true
+				done(false, if last_error then `Not there after {limit} ms: {last_error}` else `Not there after {limit} ms`)
+				return false
+			end
+			if web.loading == true then
+				return true
+			end
+			asking = true
+			run(web, "found", { text = args.text, selector = args.selector }, function(ok, value)
+				asking = false
+				if not ok then
+					last_error = tostring(value)
+				elseif value == true and not finished then
+					finished = true
+					done(true, { url = web.url, title = web.title, tab = tab.id })
+				end
+			end)
+			return true
 		end)
-		return true
-	end)
+	end, done)
 end
 
 tools.terminal_show = function(ctx, args, done)
@@ -404,7 +513,7 @@ local function handle(call: any)
 	local ctx: Ctx = { chat = call.chat, key = key }
 	local ok, err = pcall(fn, ctx, if type(call.args) == "table" then call.args else {}, done)
 	if not ok then
-		done(false, (string.gsub(tostring(err), "^[^\n]-:%d+: ", "")))
+		done(false, plain(err))
 	end
 end
 
@@ -426,6 +535,11 @@ ui.every(150, function()
 			seen:set_key(id, nil)
 		end
 	end
+	return true
+end)
+
+ui.every(1000, function()
+	asks.expire(ASK_MS)
 	return true
 end)
 
