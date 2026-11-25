@@ -1117,6 +1117,7 @@ local function Composer(): Node
 			T.sent_here(req.message_id :: string)
 			own_notice:set(nil)
 			store.creating(req)
+			route.claim_workspace(chat_id)
 			store.open(chat_id)
 			-- (Down with its prompt: the dock's one slide.)
 			slide_to = chat_id
@@ -1185,6 +1186,7 @@ local function Composer(): Node
 				end
 				req.session = id
 				req.fresh = true
+				route.claim_workspace(id)
 				-- Sent from here: its turn holds the runway as it opens.
 				req.message_id = store.new_id()
 				T.sent_here(req.message_id :: string)

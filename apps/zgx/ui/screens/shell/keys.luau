@@ -33,8 +33,8 @@ export type Key = {
 local M = {}
 
 M.LIST = {
-	{ id = "shell.new_chat", title = "New chat", key = "cmd+n", group = "Sessions", menu = "File", reserved = true },
-	{ id = "shell.new_worktree", title = "New chat in new worktree", key = "cmd+alt+n", group = "Sessions", menu = "File", reserved = true },
+	{ id = "shell.new_chat", title = "New workspace", key = "cmd+n", group = "Sessions", menu = "File", reserved = true },
+	{ id = "shell.new_tab", title = "New tab", key = "cmd+t", group = "Sessions", menu = "File", reserved = true },
 	{ id = "shell.new_project", title = "New project", key = "cmd+shift+n", group = "Sessions", menu = "File", reserved = true },
 	{ id = "shell.archive", title = "Archive session", key = "cmd+shift+a", group = "Sessions", menu = "File", reserved = true },
 	{ id = "shell.pin", title = "Pin or unpin this session", key = "cmd+shift+p", group = "Sessions", menu = "File", reserved = true },
@@ -47,7 +47,7 @@ M.LIST = {
 	-- Settings shows it and no other takes its key; it acts while a browser
 	-- tab shows.)
 	{ id = "panel.annotate", title = "Annotate Element", key = "cmd+shift+i", group = "Panels", menu = "View", elsewhere = true },
-	{ id = "panel.new_browser_tab", title = "New Browser Tab", key = "cmd+t", group = "Panels", menu = "File", elsewhere = true },
+	{ id = "panel.new_browser_tab", title = "New Browser Tab", key = "", group = "Panels", menu = "File", elsewhere = true },
 	{ id = "panel.focus_address", title = "Open Location", key = "cmd+l", group = "Panels", menu = "View", elsewhere = true },
 	{ id = "panel.reload_page", title = "Reload Page", key = "cmd+shift+r", group = "Panels", menu = "View", elsewhere = true },
 	{ id = "shell.next_session", title = "Next session", key = "ctrl+tab", group = "Go", menu = "Go", reserved = true },

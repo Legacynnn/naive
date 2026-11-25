@@ -408,7 +408,7 @@ test("Shortcuts lists the shell's shortcuts under their groups, each with its ke
 	if shows(app, PAGE, "No shortcuts yet") then
 		return
 	end
-	for _, title in { "New chat", "Search", "Settings" } do
+	for _, title in { "New workspace", "New tab", "Search", "Settings" } do
 		expect(shows(app, PAGE, title)).to_be(true)
 	end
 	expect(shows(app, PAGE, "Sessions")).to_be(true)

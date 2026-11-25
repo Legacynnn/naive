@@ -2700,7 +2700,8 @@
     },
     "keys": {
       "title": {
-        "shell_new_chat": "新建对话",
+        "shell_new_chat": "新建工作区",
+        "shell_new_tab": "新建标签页",
         "shell_new_project": "新建项目",
         "shell_archive": "归档会话",
         "shell_pin": "置顶或取消置顶此会话",
@@ -2723,8 +2724,7 @@
         "shell_close": "关闭",
         "shell_reload": "重新启动 Zeron",
         "shell_reload_interface": "重新加载界面",
-        "shell_dictate": "按住听写",
-        "shell_new_worktree": "在新工作树中新建聊天"
+        "shell_dictate": "按住听写"
       },
       "group": {
         "sessions": "会话",

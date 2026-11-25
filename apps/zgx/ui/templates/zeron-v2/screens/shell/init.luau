@@ -133,6 +133,18 @@ return function(): Node
 			shared.focus:add(1)
 		end
 	end
+	-- ⌘T: with the panel's keyboard, a browser tab there; else a new chat.
+	runs["shell.new_tab"] = function()
+		local panel: any = boundary.load("@app/screens/panel")
+		if panel and panel.new_browser_tab and (panel.new_browser_tab :: any)() then
+			return
+		end
+		route.new_chat_in()
+		local shared: any = boundary.load("@app/screens/chat/shared")
+		if shared and shared.focus then
+			shared.focus:add(1)
+		end
+	end
 	runs["shell.palette"] = function()
 		view.palette:set(not view.palette:peek())
 	end
