@@ -662,6 +662,7 @@
       },
       "context": {
         "heading": "Context window",
+        "limits": "Plan usage",
         "percent": "{n}%",
         "of": "{used} / {window} tokens",
         "left": "{n} tokens remaining",

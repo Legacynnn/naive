@@ -662,6 +662,7 @@
       },
       "context": {
         "heading": "上下文窗口",
+        "limits": "套餐用量",
         "percent": "{n}%",
         "of": "{used} / {window} tokens",
         "left": "剩余 {n} tokens",

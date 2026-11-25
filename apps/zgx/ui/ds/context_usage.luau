@@ -16,6 +16,8 @@ local HoverCard = require("@self/hover_card")
 local progress = require("@self/progress")
 
 export type Usage = { tokens: number?, window: number? }
+-- The account in use's limits (ds/model_picker's Account): how much is used, 0 to 1, and its words.
+export type Limits = { used: number?, detail: string }
 
 local M = {}
 
@@ -87,8 +89,12 @@ end
 -- body on the heading's text edge). The percentage sits at the heading's
 -- end in the ring's ink; the figures are tabular, so they don't jitter as
 -- they count.
-function M.Card(props: { usage: () -> Usage? }): Node
+function M.Card(props: { usage: () -> Usage?, limits: (() -> Limits?)? }): Node
 	local usage = props.usage
+	local function limits_used(): number?
+		local l = if props.limits then props.limits() else nil
+		return if l and l.used then math.clamp(l.used, 0, 1) else nil
+	end
 	local function fraction(): number?
 		return M.fraction(usage())
 	end
@@ -167,6 +173,65 @@ function M.Card(props: { usage: () -> Usage? }): Node
 				}),
 			},
 		},
+		ui.show(function(): boolean
+			return limits_used() ~= nil
+		end, ui.column {
+			id = "composer-context-limits",
+			border_sides = { 1, 0, 0, 0 },
+			border_color = "$border.subtle",
+			ui.row {
+				h = "$zeron.menu.heading",
+				px = "$space.2",
+				gap = "$space.2",
+				items = "center",
+				ui.text {
+					locale.t("ds.composer.context.limits"),
+					grow = 1,
+					text_size = "$font.size.xs",
+					weight = "$font.weight.medium",
+					color = "$text.tertiary",
+				},
+				ui.text {
+					function(): string
+						return locale.s("ds.composer.context.percent", { n = math.floor((limits_used() or 0) * 100 + 0.5) })
+					end,
+					tabular = true,
+					text_size = "$font.size.xs",
+					weight = "$font.weight.medium",
+					color = function(): string
+						return M.usage_ink(limits_used() or 0)
+					end,
+				},
+			},
+			ui.column {
+				px = "$space.2",
+				pt = "$space.1",
+				pb = "$space.2",
+				gap = "$space.2",
+				progress.ProgressBar {
+					value = function(): number
+						return limits_used() or 0
+					end,
+					size = "thin",
+					w_full = true,
+					label = locale.t("ds.composer.context.limits"),
+					tone = function(): progress.Tone
+						local f = limits_used() or 0
+						return if f >= 0.95 then "danger" elseif f >= 0.8 then "warning" else "neutral"
+					end,
+				},
+				ui.text {
+					function(): string
+						local l = if props.limits then props.limits() else nil
+						return if l then l.detail else ""
+					end,
+					id = "composer-context-limits-detail",
+					text_size = "$font.size.sm",
+					line_height = "$font.line.sm",
+					color = "$text.tertiary",
+				},
+			},
+		}),
 	}
 end
 

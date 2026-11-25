@@ -1,5 +1,5 @@
 -- The composer's footer over a new chat's wallpaper (ui/composer_place_
--- fixture.luau): the place chip ([tile] project › branch), the faint
+-- fixture.luau): the place chip (device › project tile, branch), the faint
 -- backing its chips take only over art, which part of the chip gives way
 -- first as room runs short, and the card the context ring opens.
 
@@ -53,13 +53,14 @@ test("composer place: over a wallpaper the footer sits on a tray, bare without",
 	expect(app:error()).to_be(nil)
 end)
 
-test("composer place: where it runs leads, a worktree's glyph or a folder, then project › branch", function()
+test("composer place: where it runs leads, a worktree's glyph or a folder, then the project's tile and the branch", function()
 	local app = mounted()
 	rested(app)
-	-- A worktree: its glyph, the project's name › the branch. No tile.
+	-- A worktree: its glyph, the project's tile (its name in the tooltip), the branch.
 	expect(app:has("#composer-place-lead >> .place-lead-worktree")).to_be(true)
 	expect(app:text("#composer-place-lead")).to_be("")
-	expect(app:text("#composer-place-project[1]")).to_be("zeron")
+	expect(showing(app, "#composer-place-project-tile")).to_be(true)
+	expect(app:has("#composer-place-project")).to_be(false)
 	expect(showing(app, "#composer-place-branch")).to_be(true)
 	expect(app:text("#composer-place-branch[1]")).to_be("zeron/create-readme-update-for-onboarding")
 	-- The project's own checkout: a folder.
@@ -76,34 +77,27 @@ test("composer place: where it runs leads, a worktree's glyph or a folder, then 
 	expect(app:error()).to_be(nil)
 end)
 
-test("composer place: short of room the branch gives way first, then the project keeps its least", function()
+test("composer place: short of room the branch gives way, the project's tile stays", function()
 	local app = mounted()
 	app:set_state("test_place_project", "atlas")
 	app:set_state("test_place_w", 840)
 	rested(app)
-	-- Roomy: the project's name at its most, the branch at its most.
-	local project_wide = width(app, "#composer-place-project")
+	-- Roomy: the tile, the branch at its most.
 	local branch_wide = width(app, "#composer-place-branch")
-	expect(project_wide).to_be(140)
+	expect(width(app, "#composer-place-project-tile")).to_be(14)
 	expect(branch_wide).to_be(180)
-	-- Narrower: the branch gives way, the project's name doesn't (the
-	-- access mode folds to its icon to keep some of the branch).
+	-- Narrower: the branch gives way, the tile doesn't.
 	app:set_state("test_place_w", 440)
 	rested(app)
-	expect(width(app, "#composer-place-project")).to_be(project_wide)
+	expect(width(app, "#composer-place-project-tile")).to_be(14)
 	local b = width(app, "#composer-place-branch")
-	expect(b < branch_wide and b > 36).to_be(true)
-	-- Narrower still: the branch down to its sliver, and only then the
-	-- project's name, to no less than 44 of it.
-	app:set_state("test_place_w", 360)
-	rested(app)
-	expect(width(app, "#composer-place-branch")).to_be(36)
-	local p = width(app, "#composer-place-project")
-	expect(p < project_wide and p >= 44).to_be(true)
-	-- Past that: the glyph alone.
+	expect(b < branch_wide and b >= 36).to_be(true)
+	-- Past that (a step at a time, as a window narrows): the glyph alone.
 	app:set_state("test_place_w", 270)
 	rested(app)
-	expect(showing(app, "#composer-place-project")).to_be(false)
+	app:set_state("test_place_w", 220)
+	rested(app)
+	expect(showing(app, "#composer-place-project-tile")).to_be(false)
 	expect(app:has("#composer-place-lead >> .place-lead-worktree")).to_be(true)
 	expect(app:error()).to_be(nil)
 end)

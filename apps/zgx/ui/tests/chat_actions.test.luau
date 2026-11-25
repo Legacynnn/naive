@@ -845,9 +845,9 @@ test("a chat's footer shows its own branch, fixed, not the new chat's picker", f
 	app:frames(30)
 	expect(app:state("calls")).to_contain("refs:/tmp/atlas-wt/pr:here")
 	expect(app:wait('~"zeron/readme-pr"', { timeout_ms = 2000 })).to_be(true)
-	-- A worktree's glyph, its project's name before it.
+	-- A worktree's glyph, its project's tile before it.
 	expect(app:has("#composer-place-lead >> .place-lead-worktree")).to_be(true)
-	expect(app:text("#composer-place-project[1]")).to_be("Atlas")
+	expect(app:has("#composer-place-project-tile")).to_be(true)
 	-- No picker: nothing called Branch to open.
 	expect(app:has('role:button "Branch"')).to_be(false)
 	-- A new chat still has it.
