@@ -219,6 +219,104 @@ local function agents_section(): Node
 	}
 end
 
+local import_sources = ui.state("settings_browser_import_sources", nil :: { any }?)
+local import_status = ui.state("settings_browser_import_status", {} :: { [string]: { phase: string, text: string? } })
+
+local function import_text(r: any): string
+	if type(r) ~= "table" then
+		return ui.t("settings.browser.import.error.failed"):get()
+	end
+	if type(r.error) == "string" then
+		local key = `settings.browser.import.error.{r.error}`
+		local said = ui.t(key):get()
+		return if said ~= key then said else ui.t("settings.browser.import.error.failed"):get()
+	end
+	local n = if type(r.sites) == "table" then #r.sites else 0
+	return ui.t("settings.browser.import.done", { stored = tonumber(r.stored) or 0, sites = n }):get()
+end
+
+local function run_import(source: any)
+	local profile = data.profile()
+	if not profile or (import_status:peek()[source.id] or {}).phase == "running" then
+		return
+	end
+	import_status:set_key(source.id, { phase = "running" })
+	local function failed()
+		import_status:set_key(source.id, { phase = "failed", text = ui.t("settings.browser.import.error.failed"):get() })
+	end
+	local ok = pcall(function()
+		ui.call("browser_import.run", { source = source.id, profile = profile }):after(function(r: any)
+			local bad = type(r) ~= "table" or type(r.error) == "string"
+			import_status:set_key(source.id, { phase = if bad then "failed" else "done", text = import_text(r) })
+		end, failed)
+	end)
+	if not ok then
+		failed()
+	end
+end
+
+local function import_row(item: any, _i: number, _now: State<any>): Node
+	local function status(): { phase: string, text: string? }
+		return import_status:get()[item.id] or { phase = "idle" }
+	end
+	return ds.Settings.Row {
+		truncate = true,
+		label = item.label or item.browser,
+		description = function(): string
+			local st = status()
+			if st.phase == "running" then
+				return ui.t("settings.browser.import.running"):get()
+			end
+			return st.text or ""
+		end,
+		control = ds.Button {
+			tone = "ghost",
+			size = "sm",
+			label = ui.t("settings.browser.import.import_one", { source = item.label or item.browser }),
+			disabled = function(): boolean
+				return status().phase == "running"
+			end,
+			on_click = function()
+				run_import(item)
+			end,
+			ui.text { ui.t("settings.browser.import.button") },
+		},
+	}
+end
+
+local function import_section(): Node
+	if import_sources:peek() == nil then
+		local ok = pcall(function()
+			ui.call("browser_import.sources", nil):after(function(list: any)
+				import_sources:set(if type(list) == "table" then list else {})
+			end, function()
+				import_sources:set({})
+			end)
+		end)
+		if not ok then
+			import_sources:set({})
+		end
+	end
+	local listed = ui.computed(function(): { any }
+		return import_sources:get() or {}
+	end)
+	return ds.Settings.Section {
+		title = ui.t("settings.browser.import.title"),
+		description = ui.t("settings.browser.import.description"),
+		ui.show(function(): boolean
+			local list = import_sources:get()
+			return list ~= nil and #list == 0
+		end, ds.Settings.Group {
+			ds.Settings.Row { label = ui.t("settings.browser.import.none") },
+		}),
+		ds.Settings.Each(listed, import_row, {
+			key = function(item: any): string
+				return item.id
+			end,
+		}),
+	}
+end
+
 function M.view(): Node
 	return ds.Settings.Page {
 		title = ui.t("settings.browser.page_title"),
@@ -325,6 +423,7 @@ function M.view(): Node
 			}),
 		},
 		agents_section(),
+		import_section(),
 		ds.Settings.Section {
 			title = ui.t("settings.browser.developer"),
 			ds.Settings.Group {

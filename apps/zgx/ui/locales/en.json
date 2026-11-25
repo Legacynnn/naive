@@ -2349,6 +2349,24 @@
         "allow_one": "Allow agents on {site}",
         "block_one": "Block agents on {site}",
         "forget_one": "Forget {site}"
+      },
+      "import": {
+        "title": "Import sign-ins",
+        "description": "Bring sign-ins from another browser on this Mac into Naive's browser, so sites open signed in. Agents in full-access chats can then act on those sites as you, within the site permissions above.",
+        "none": "No other browsers found on this Mac.",
+        "button": "Import",
+        "import_one": "Import sign-ins from {source}",
+        "running": "Importing…",
+        "done": "{stored, plural, one {# cookie} other {# cookies}} from {sites, plural, one {# site} other {# sites}}",
+        "terms": "import cookies sign in chrome arc brave edge firefox safari",
+        "error": {
+          "not_found": "Nothing to import from this profile.",
+          "keychain": "macOS didn't allow reading this browser's key. Try again and choose Allow.",
+          "full_disk_access": "Reading Safari needs Full Disk Access for Naive: System Settings → Privacy & Security → Full Disk Access.",
+          "unreadable": "This browser's sign-ins couldn't be read.",
+          "store": "Naive's browser couldn't keep them.",
+          "failed": "The import didn't finish."
+        }
       }
     },
     "browser_history": {

@@ -2349,6 +2349,24 @@
         "allow_one": "允许智能体使用 {site}",
         "block_one": "阻止智能体使用 {site}",
         "forget_one": "忘记 {site}"
+      },
+      "import": {
+        "title": "导入登录状态",
+        "description": "将本机其他浏览器的登录状态导入 Naive 的浏览器，让网站保持登录。拥有完全访问权限的聊天中的智能体随后可以以你的身份在这些网站上操作，但受上方网站权限约束。",
+        "none": "未在本机找到其他浏览器。",
+        "button": "导入",
+        "import_one": "从 {source} 导入登录状态",
+        "running": "正在导入…",
+        "done": "来自 {sites} 个网站的 {stored} 个 Cookie",
+        "terms": "导入 cookie 登录 chrome arc brave edge firefox safari",
+        "error": {
+          "not_found": "此配置文件中没有可导入的内容。",
+          "keychain": "macOS 未允许读取此浏览器的密钥。请重试并选择“允许”。",
+          "full_disk_access": "读取 Safari 需要为 Naive 开启完全磁盘访问权限：系统设置 → 隐私与安全性 → 完全磁盘访问权限。",
+          "unreadable": "无法读取此浏览器的登录状态。",
+          "store": "Naive 的浏览器无法保存它们。",
+          "failed": "导入未完成。"
+        }
       }
     },
     "browser_history": {
