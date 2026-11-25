@@ -107,6 +107,13 @@ impl EngineRpc {
             let Some(chat) = chat else {
                 return Err(refused("Browser tools work from a Naive chat"));
             };
+            let chats = self.workspace.read_chats().unwrap_or_default();
+            let calling = self.calling(&chat, &chats);
+            if !calling.ceiling.is_none_or(|(_, access)| access == AccessMode::FullAccess) {
+                return Err(refused(
+                    "The browser acts as the person, signed in where they are: only a chat with full access drives it. Ask the person to give this chat full access",
+                ));
+            }
             params["chatId"] = json!(chat);
             return Ok(params);
         }

@@ -36,7 +36,7 @@ pub(super) fn catalog() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: TABS,
-            description: "The browser tabs in this chat's panel in Naive's window, which the person sees. action: \"list\" (default), \"open\" (a new tab, at `url` if given), \"select\" or \"close\" (`tab`). Browser tools need Naive open on this device.",
+            description: "The browser tabs in this chat's panel in Naive's window, which the person sees. action: \"list\" (default), \"open\" (a new tab, at `url` if given), \"select\" or \"close\" (`tab`). Browser tools need Naive open on this device and a chat with full access.",
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["list", "open", "select", "close"] },
