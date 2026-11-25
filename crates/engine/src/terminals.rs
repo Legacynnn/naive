@@ -1,5 +1,5 @@
 //! Terminals — PTY sessions owned by this device (feature-inventory §3.4; port of
-//! zeron's `terminals.ts` over `portable-pty`).
+//! naive's `terminals.ts` over `portable-pty`).
 //!
 //! - `open` spawns the user's login shell in the chat's cwd; `subscribe` replays a
 //!   bounded 1MB window (resumable via `afterSeq`) then tails live output — sent
@@ -10,7 +10,7 @@
 //!   Only EXITED sessions expire (30min TTL on their inert replay buffers), and
 //!   [`MAX_TERMINALS`] bounds leakage from renderers that lost their tab state.
 //! - Ownership: M5 is single-user local — every IPC/relay caller is the device
-//!   owner, so the per-user owner re-checks from zeron's Router land with real
+//!   owner, so the per-user owner re-checks from naive's Router land with real
 //!   multi-account auth in M6.
 
 use std::collections::{HashMap, VecDeque};
@@ -27,8 +27,8 @@ use portable_pty::{CommandBuilder, native_pty_system};
 mod windows;
 use tokio::sync::{mpsc, watch};
 
-use zeron_doc::TERMINAL_OUTPUT_BATCH_MS;
-use zeron_proto::{TerminalActivity, TerminalEvent, TerminalSession, TerminalStatus};
+use naive_doc::TERMINAL_OUTPUT_BATCH_MS;
+use naive_proto::{TerminalActivity, TerminalEvent, TerminalSession, TerminalStatus};
 
 pub mod link;
 mod program_status;
@@ -353,7 +353,7 @@ impl Terminals {
 
     /// Seen results no longer compete with new results in other program
     /// records or terminals. Keep the records themselves for app inheritance.
-    pub(crate) fn refresh_seen(&self, chats: &[zeron_proto::Chat]) {
+    pub(crate) fn refresh_seen(&self, chats: &[naive_proto::Chat]) {
         let mut changed = false;
         for session in lock(&self.inner.sessions).values() {
             let mut session = lock(session);
@@ -392,7 +392,7 @@ impl Terminals {
 
     /// Terminal id → chat for every terminal opened for a chat, open or
     /// since closed (the newest [`REMEMBERED_TERMINAL_CHATS`]). Everything a
-    /// terminal starts carries its id (see [`zeron_proto::ORIGIN_ENV`]).
+    /// terminal starts carries its id (see [`naive_proto::ORIGIN_ENV`]).
     pub fn chats(&self) -> HashMap<String, String> {
         lock(&self.inner.chats).iter().cloned().collect()
     }
@@ -481,8 +481,8 @@ impl Terminals {
         let id = new_id();
         let mut environment = environment.clone();
         environment.insert(
-            zeron_proto::ORIGIN_ENV.to_owned(),
-            zeron_proto::terminal_origin(&id),
+            naive_proto::ORIGIN_ENV.to_owned(),
+            naive_proto::terminal_origin(&id),
         );
         let environment = &environment;
 
@@ -491,11 +491,11 @@ impl Terminals {
         #[cfg(not(windows))]
         let (initial_script, bootstrap) = if let Some(command) = command {
             let (suffix, source) = match shell_name.as_str() {
-                "fish" => (".fish", "source \"$ZERON_ACTION_SCRIPT\"\r"),
-                _ => (".sh", ". \"$ZERON_ACTION_SCRIPT\"\r"),
+                "fish" => (".fish", "source \"$NAIVE_ACTION_SCRIPT\"\r"),
+                _ => (".sh", ". \"$NAIVE_ACTION_SCRIPT\"\r"),
             };
             let mut script = tempfile::Builder::new()
-                .prefix("zeron-action-")
+                .prefix("naive-action-")
                 .suffix(suffix)
                 .tempfile()?;
             script.write_all(command.as_bytes())?;
@@ -522,12 +522,12 @@ impl Terminals {
             cmd.cwd(cwd);
             cmd.env("TERM", "xterm-256color");
             cmd.env("COLORTERM", "truecolor");
-            cmd.env("TERM_PROGRAM", "Zeron");
+            cmd.env("TERM_PROGRAM", "Naive");
             for (name, value) in environment {
                 cmd.env(name, value);
             }
             if let Some(script) = initial_script.as_ref() {
-                cmd.env("ZERON_ACTION_SCRIPT", script.path());
+                cmd.env("NAIVE_ACTION_SCRIPT", script.path());
             }
             let child = pair
                 .slave
@@ -1075,8 +1075,8 @@ async fn reaper_task(inner: Weak<TerminalsInner>) {
     let Some(mut opened) = inner.upgrade().map(|inner| inner.opened_tx.subscribe()) else {
         return;
     };
-    // On the beat grid (`zeron_sync::wake`): it wakes with the sockets' pings.
-    let mut tick = zeron_sync::wake::beat_interval(REAPER_INTERVAL);
+    // On the beat grid (`naive_sync::wake`): it wakes with the sockets' pings.
+    let mut tick = naive_sync::wake::beat_interval(REAPER_INTERVAL);
     loop {
         // With no terminal, open or exited, there is nothing to sweep and
         // nothing to report: sleep until one opens.
@@ -1112,7 +1112,7 @@ mod windows_tests {
 
     use base64::Engine as _;
     use base64::engine::general_purpose::STANDARD as BASE64;
-    use zeron_proto::TerminalEvent;
+    use naive_proto::TerminalEvent;
 
     use super::Terminals;
 
@@ -1789,7 +1789,7 @@ mod initial_command_tests {
                     root.path().to_str().unwrap(),
                     80,
                     24,
-                    Some("/nonexistent/zeron-test-shell"),
+                    Some("/nonexistent/naive-test-shell"),
                     &HashMap::new(),
                     Some("echo test"),
                 )

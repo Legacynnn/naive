@@ -21,7 +21,7 @@ permissions:
 # run (schedule) runs everything in full.
 env:
   NEXTEST_PROFILE: ${{ github.event_name == 'schedule' && 'default' || 'ci' }}
-  ZERON_STRESS_ROUNDS: ${{ github.event_name == 'schedule' && '100' || '14' }}
+  NAIVE_STRESS_ROUNDS: ${{ github.event_name == 'schedule' && '100' || '14' }}
 
 jobs:
   # The Linux Rust tests: one build, one nextest run (see

@@ -583,7 +583,7 @@ fn said(error: String) -> String {
     if engine::outcome(&error) == "offline" {
         "offline".into()
     } else if error.to_ascii_lowercase().contains("unknown method") {
-        "Update Zeron to use this here.".into()
+        "Update Naive to use this here.".into()
     } else {
         error
     }
@@ -1075,7 +1075,7 @@ impl Files {
             Ok(outcome) => Ok(Self::mutation(&outcome)),
             Err(error) if error.to_ascii_lowercase().contains("unknown method") => {
                 if !self.is_local(target).await {
-                    return Err("That device's Zeron is too old to make files. Update it, then try again.".into());
+                    return Err("That device's Naive is too old to make files. Update it, then try again.".into());
                 }
                 let root = opt_text(target.field("root")).ok_or("This session has no folder to make files in")?;
                 make(Path::new(&root), &relative, dir)?;
@@ -1126,7 +1126,7 @@ impl Files {
             let params = match me.params(Some(&target)).await {
                 Ok(params) => params,
                 Err(error) => {
-                    eprintln!("zeron-zgx: files: can't follow {key}: {error}");
+                    eprintln!("naive-zgx: files: can't follow {key}: {error}");
                     return;
                 }
             };
@@ -1325,7 +1325,7 @@ fn make(root: &Path, relative: &str, dir: bool) -> Result<(), String> {
     };
     made.map_err(|error| match error.kind() {
         std::io::ErrorKind::AlreadyExists => "Something already has that name".to_string(),
-        std::io::ErrorKind::PermissionDenied => "Zeron isn't allowed to write there".to_string(),
+        std::io::ErrorKind::PermissionDenied => "Naive isn't allowed to write there".to_string(),
         _ => error.to_string(),
     })
 }
@@ -1341,7 +1341,7 @@ mod tests {
         use super::host_absolute;
         for path in [
             "/Users/me/uploads/a.png",
-            r"C:\Users\HP MEDIA\AppData\Local\Zeron\uploads\a.png",
+            r"C:\Users\HP MEDIA\AppData\Local\Naive\uploads\a.png",
             "d:/work/a.png",
             r"\\server\share\a.png",
         ] {

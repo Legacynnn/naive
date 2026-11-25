@@ -1,4 +1,4 @@
-//! Reload Zeron (the palette's, `app.relaunch`): the app quits and starts
+//! Reload Naive (the palette's, `app.relaunch`): the app quits and starts
 //! again, a fresh process on the same command line, in the same folder and
 //! environment as this launch had (a production run's variables,
 //! `main --inspect`). The engine isn't restarted: it runs detached, and the
@@ -6,10 +6,10 @@
 //! again as it does on any launch.
 //!
 //! The windows close first (each saves its `ui.persist` state, devtools let
-//! go of their socket, the Zeron app gives up its application ID), then the
+//! go of their socket, the Naive app gives up its application ID), then the
 //! new process starts, detached in a session of its own so it outlives this
 //! one, and this one exits. The new one is told this one's pid
-//! (`ZERON_ZGX_RELAUNCHED_FROM`) and waits for it to be gone before it
+//! (`NAIVE_ZGX_RELAUNCHED_FROM`) and waits for it to be gone before it
 //! starts, so it is never a second instance beside a dying first.
 
 use std::ffi::{OsStr, OsString};
@@ -20,7 +20,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 /// The pid of the launch this one replaces, which it waits out.
-pub const PREDECESSOR: &str = "ZERON_ZGX_RELAUNCHED_FROM";
+pub const PREDECESSOR: &str = "NAIVE_ZGX_RELAUNCHED_FROM";
 
 /// What a launch's own launcher handed it once, which a process started by
 /// this one must not reuse: XDG activation and X11 startup-notification
@@ -86,7 +86,7 @@ pub fn after_quit() {
         return;
     }
     let Some(launch) = LAUNCH.get() else {
-        eprintln!("zeron-zgx: relaunch: this launch wasn't remembered");
+        eprintln!("naive-zgx: relaunch: this launch wasn't remembered");
         return;
     };
     let exe = program(std::env::current_exe().ok(), launch);
@@ -94,11 +94,11 @@ pub fn after_quit() {
     detach(&mut command);
     match command.spawn() {
         Ok(child) => eprintln!(
-            "zeron-zgx: relaunched as {} ({})",
+            "naive-zgx: relaunched as {} ({})",
             child.id(),
             exe.display()
         ),
-        Err(error) => eprintln!("zeron-zgx: relaunch of {} failed: {error}", exe.display()),
+        Err(error) => eprintln!("naive-zgx: relaunch of {} failed: {error}", exe.display()),
     }
 }
 
@@ -188,7 +188,7 @@ fn wait_for_exit(pid: u32, at_most: Duration) {
     let start = Instant::now();
     while alive(pid) {
         if start.elapsed() >= at_most {
-            eprintln!("zeron-zgx: relaunch: {pid} is still running; starting anyway");
+            eprintln!("naive-zgx: relaunch: {pid} is still running; starting anyway");
             return;
         }
         std::thread::sleep(Duration::from_millis(25));
@@ -235,14 +235,14 @@ mod tests {
 
     fn launch() -> Launch {
         let pairs = [
-            ("ZERON_ZGX_ENV", "production"),
-            ("ZERON_ZGX_ENGINE_PORT", "27881"),
+            ("NAIVE_ZGX_ENV", "production"),
+            ("NAIVE_ZGX_ENGINE_PORT", "27881"),
             ("XDG_ACTIVATION_TOKEN", "spent"),
             ("DESKTOP_STARTUP_ID", "spent"),
             (PREDECESSOR, "7"),
         ];
         Launch {
-            args: ["./target/release/zeron-zgx", "main", "--inspect"]
+            args: ["./target/release/naive-zgx", "main", "--inspect"]
                 .map(OsString::from)
                 .to_vec(),
             env: pairs
@@ -267,7 +267,7 @@ mod tests {
 
     #[test]
     fn the_same_command_line_folder_and_environment() {
-        let exe = PathBuf::from("/work/apps/zgx/target/release/zeron-zgx");
+        let exe = PathBuf::from("/work/apps/zgx/target/release/naive-zgx");
         let command = command(&launch(), &exe, 4242);
         assert_eq!(command.get_program(), exe.as_os_str());
         let args: Vec<&OsStr> = command.get_args().collect();
@@ -275,8 +275,8 @@ mod tests {
         assert_eq!(command.get_current_dir(), Some(Path::new("/work/apps/zgx")));
         let envs = envs(&command);
         let get = |key: &str| envs.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone());
-        assert_eq!(get("ZERON_ZGX_ENV"), Some(Some("production".into())));
-        assert_eq!(get("ZERON_ZGX_ENGINE_PORT"), Some(Some("27881".into())));
+        assert_eq!(get("NAIVE_ZGX_ENV"), Some(Some("production".into())));
+        assert_eq!(get("NAIVE_ZGX_ENGINE_PORT"), Some(Some("27881".into())));
         // Told this process, not the one this launch replaced.
         assert_eq!(get(PREDECESSOR), Some(Some("4242".into())));
         assert_eq!(envs.iter().filter(|(k, _)| k == PREDECESSOR).count(), 1);
@@ -289,7 +289,7 @@ mod tests {
     fn a_bare_launch_has_no_arguments() {
         let mut bare = launch();
         bare.args.truncate(1);
-        let command = command(&bare, Path::new("/bin/zeron-zgx"), 1);
+        let command = command(&bare, Path::new("/bin/naive-zgx"), 1);
         assert_eq!(command.get_args().count(), 0);
     }
 
@@ -303,14 +303,14 @@ mod tests {
 
     #[test]
     fn without_one_the_command_lines_first_word_from_its_folder() {
-        let gone = PathBuf::from("/nowhere/zeron-zgx (deleted)");
+        let gone = PathBuf::from("/nowhere/naive-zgx (deleted)");
         assert_eq!(
             program(Some(gone), &launch()),
-            PathBuf::from("/work/apps/zgx/./target/release/zeron-zgx")
+            PathBuf::from("/work/apps/zgx/./target/release/naive-zgx")
         );
         assert_eq!(
             program(None, &launch()),
-            PathBuf::from("/work/apps/zgx/./target/release/zeron-zgx")
+            PathBuf::from("/work/apps/zgx/./target/release/naive-zgx")
         );
     }
 

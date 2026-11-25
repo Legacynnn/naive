@@ -1,4 +1,4 @@
--- The model picker's accounts, as Zeron's composer has them: an Account row, and
+-- The model picker's accounts, as Naive's composer has them: an Account row, and
 -- the plan's usage in the context ring's card, for the composer's device (this one
 -- or another), reading the fuller window (Cursor's, the pool of the model chosen);
 -- no usage reported, none shown; one that can't be switched to, not offered.
@@ -222,7 +222,7 @@ local function box_of(app: any, find: string): { y: number, h: number }?
 	return nil
 end
 
-test("an agent Zeron can't add an account to ends its list at its last account", function()
+test("an agent Naive can't add an account to ends its list at its last account", function()
 	-- (Claude Code: no "Add … account" action, so no rule and no gap under
 	-- the last row.)
 	local app = with_accounts(here(accounts()))

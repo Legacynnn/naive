@@ -12,11 +12,11 @@ local function ago(seconds: number): number
 end
 
 local WORKTREES: { Worktree } = {
-	{ path = "~/.zeron/worktrees/zeron/storage-cleanup", repoPath = "~/www/zeron", project = "zeron", name = "storage-cleanup", branch = "storage-cleanup", bytes = math.floor(3.4 * GB), modifiedAt = ago(1200), chatId = "c1", chatTitle = "Storage settings page", chatState = "active", dirty = true, unpushed = 2, missing = false },
-	{ path = "~/.zeron/worktrees/zeron/sidebar-rows", repoPath = "~/www/zeron", project = "zeron", name = "sidebar-rows", branch = "sidebar-rows", bytes = math.floor(2.1 * GB), modifiedAt = ago(9 * 86400), chatId = "c2", chatTitle = "Worktree rows in the sidebar", chatState = "archived", dirty = false, unpushed = 0, missing = false },
-	{ path = "~/.zeron/worktrees/zeron/fix-paste", repoPath = "~/www/zeron", project = "zeron", name = "fix-paste", branch = "fix-paste", bytes = math.floor(1.8 * GB), modifiedAt = ago(21 * 86400), chatId = "c3", chatTitle = "", chatState = "deleted", dirty = false, unpushed = 0, missing = false },
-	{ path = "~/.zeron/worktrees/analytical-engine/notes", repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "notes", branch = "notes", bytes = 412 * MB, modifiedAt = ago(3 * 86400), chatState = "none", dirty = false, unpushed = 1, missing = false },
-	{ path = "~/.zeron/worktrees/analytical-engine/old-parser", repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "old-parser", chatState = "none", dirty = false, missing = true },
+	{ path = "~/.naive/worktrees/naive/storage-cleanup", repoPath = "~/www/naive", project = "naive", name = "storage-cleanup", branch = "storage-cleanup", bytes = math.floor(3.4 * GB), modifiedAt = ago(1200), chatId = "c1", chatTitle = "Storage settings page", chatState = "active", dirty = true, unpushed = 2, missing = false },
+	{ path = "~/.naive/worktrees/naive/sidebar-rows", repoPath = "~/www/naive", project = "naive", name = "sidebar-rows", branch = "sidebar-rows", bytes = math.floor(2.1 * GB), modifiedAt = ago(9 * 86400), chatId = "c2", chatTitle = "Worktree rows in the sidebar", chatState = "archived", dirty = false, unpushed = 0, missing = false },
+	{ path = "~/.naive/worktrees/naive/fix-paste", repoPath = "~/www/naive", project = "naive", name = "fix-paste", branch = "fix-paste", bytes = math.floor(1.8 * GB), modifiedAt = ago(21 * 86400), chatId = "c3", chatTitle = "", chatState = "deleted", dirty = false, unpushed = 0, missing = false },
+	{ path = "~/.naive/worktrees/analytical-engine/notes", repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "notes", branch = "notes", bytes = 412 * MB, modifiedAt = ago(3 * 86400), chatState = "none", dirty = false, unpushed = 1, missing = false },
+	{ path = "~/.naive/worktrees/analytical-engine/old-parser", repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "old-parser", chatState = "none", dirty = false, missing = true },
 }
 
 local list = ui.state("sto_list", table.clone(WORKTREES) :: { Worktree }?)
@@ -50,7 +50,7 @@ end
 return {
 	id = "storage",
 	title = "Storage",
-	about = "What Zeron keeps on disk: a total and its split as one stacked bar with its legend and the one way to free space under it, rows that drill into a project or app data, worktrees with the one flag that matters most, and the choices freeing space offers.",
+	about = "What Naive keeps on disk: a total and its split as one stacked bar with its legend and the one way to free space under it, rows that drill into a project or app data, worktrees with the one flag that matters most, and the choices freeing space offers.",
 	demo = function(): Node
 		local total = math.floor(7.3 * GB) + 264 * MB + 605 * MB
 		return ui.column {
@@ -90,17 +90,17 @@ return {
 						return nil
 					end,
 					parts = parts(0, 0, 0),
-					loading = "Measuring Zeron's folders. This can take a few seconds.",
+					loading = "Measuring Naive's folders. This can take a few seconds.",
 				}
 			),
 			kit.block(
 				"ROWS",
 				ds.Settings.Group {
 					ds.Settings.Row {
-						label = "zeron",
+						label = "naive",
 						description = "3 worktrees",
 						value = "7.5 GB",
-						lead = ds.Tile { label = "zeron", hue = "violet", size = storage.TILE },
+						lead = ds.Tile { label = "naive", hue = "violet", size = storage.TILE },
 						truncate = true,
 						on_click = function() end,
 					},
@@ -114,7 +114,7 @@ return {
 					},
 					ds.Settings.Row {
 						label = "Logs",
-						description = "What Zeron and its engine wrote down as they ran",
+						description = "What Naive and its engine wrote down as they ran",
 						truncate = true,
 						control = storage.Amount(function(): string
 							return "96 MB"
@@ -145,7 +145,7 @@ return {
 				storage.Worktrees { list = empty, empty = "No worktrees on this computer.", failed = "Couldn't list the worktrees" },
 				storage.Worktrees {
 					list = loading,
-					error = "Zeron's engine isn't running.",
+					error = "Naive's engine isn't running.",
 					on_retry = function() end,
 					empty = "No worktrees on this computer.",
 					failed = "Couldn't list the worktrees",

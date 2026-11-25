@@ -1,4 +1,4 @@
-// The agents Zeron runs. `mark` names a file in src/assets/agents, drawn as
+// The agents Naive runs. `mark` names a file in src/assets/agents, drawn as
 // a mask so it takes the colour of the text around it.
 export const AGENTS = [
   { mark: "claude", name: "Claude Code" },

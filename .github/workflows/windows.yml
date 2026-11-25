@@ -25,7 +25,7 @@ defaults:
 # Pull requests and main leave out slow and soak tests (scripts/ci/nextest.toml `ci` profile).
 env:
   NEXTEST_PROFILE: ${{ github.event_name == 'schedule' && 'default' || 'ci' }}
-  ZERON_STRESS_ROUNDS: ${{ github.event_name == 'schedule' && '100' || '14' }}
+  NAIVE_STRESS_ROUNDS: ${{ github.event_name == 'schedule' && '100' || '14' }}
 
 jobs:
   # Every Windows crate suite in ONE build: separate `cargo test` invocations
@@ -43,8 +43,8 @@ jobs:
       - name: Build tests
         run: >-
           cargo nextest run --config-file scripts/ci/nextest.toml --no-run --release --locked
-          -p zeron-harness -p zeron -p zeron-update -p zeron-proto -p zeron-engine -p zeron-voice-media
-          --features zeron-harness/native-fixture
+          -p naive-harness -p naive -p naive-update -p naive-proto -p naive-engine -p naive-voice-media
+          --features naive-harness/native-fixture
           --lib --bins
           --test codex_availability --test windows_native --test opencode --test cursor_shim --test pi_rpc
           --test background_engine --test noop_browser
@@ -52,20 +52,20 @@ jobs:
       # Same selection as the old commands:
       #   native harness security/integration + portable driver suites (OpenCode HTTP/SSE,
       #     the Cursor shim, Pi RPC; the shell- and python-fixture suites are unix-only)
-      #   the `zeron` binary and updater, worktree paths, engine unit/catalog/login/auth
+      #   the `naive` binary and updater, worktree paths, engine unit/catalog/login/auth
       #   voice-media (runtime resolution; used to be its own build in voice-tests.yml)
       - name: Harness, command line, updater and engine tests
         env:
           RUST_BACKTRACE: '1'
         run: >-
           cargo nextest run --config-file scripts/ci/nextest.toml --release --locked --no-fail-fast
-          -p zeron-harness -p zeron -p zeron-update -p zeron-proto -p zeron-engine -p zeron-voice-media
-          --features zeron-harness/native-fixture
+          -p naive-harness -p naive -p naive-update -p naive-proto -p naive-engine -p naive-voice-media
+          --features naive-harness/native-fixture
           --lib --bins
           --test codex_availability --test windows_native --test opencode --test cursor_shim --test pi_rpc
           --test background_engine --test noop_browser
           --test worktree_on_run --test codex_catalog --test codex_login_resolution --test auth
-          -E "package(zeron-harness) | package(zeron) | package(zeron-update) | (package(zeron-voice-media) & kind(lib)) | (package(zeron-proto) & test(device_paths)) | (package(zeron-engine) & (kind(lib) | binary_id(zeron-engine::codex_catalog) | binary_id(zeron-engine::codex_login_resolution) | binary_id(zeron-engine::auth) | (binary_id(zeron-engine::worktree_on_run) & test(worktree_location_))))"
+          -E "package(naive-harness) | package(naive) | package(naive-update) | (package(naive-voice-media) & kind(lib)) | (package(naive-proto) & test(device_paths)) | (package(naive-engine) & (kind(lib) | binary_id(naive-engine::codex_catalog) | binary_id(naive-engine::codex_login_resolution) | binary_id(naive-engine::auth) | (binary_id(naive-engine::worktree_on_run) & test(worktree_location_))))"
       - name: Record the pass (CI skips this job while its inputs stay the same)
         if: inputs.pass-key != ''
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -81,12 +81,12 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: ./.github/actions/windows-ci-setup
-      - name: Build the zeron binary
+      - name: Build the naive binary
         # (Luau without its asserts, as scripts/package-windows.ps1 builds it
         # next: the same flags, so it doesn't build it again.)
         env:
           LUAU_CXXFLAGS: -DNDEBUG
-        run: cargo build --release --locked -p zeron
+        run: cargo build --release --locked -p naive
       - name: Verify portable and installer packaging
         run: ./scripts/package-windows.ps1 -ReleasesUrl "https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download"
       - name: Installer install/uninstall
@@ -96,13 +96,13 @@ jobs:
           # Exercise real path resolution without touching the runner's account.
           # Port zero cannot connect to another running engine.
           $env:HOME = $null
-          $env:ZERON_DATA_DIR = $null
-          $env:ZERON_EDGE_TOKEN = $null
-          $env:ZERON_IPC_PORT = '0'
-          $env:LOCALAPPDATA = Join-Path $env:RUNNER_TEMP "zeron smoke O'Brien 日本語"
-          $expected = Join-Path $env:LOCALAPPDATA 'Zeron'
+          $env:NAIVE_DATA_DIR = $null
+          $env:NAIVE_EDGE_TOKEN = $null
+          $env:NAIVE_IPC_PORT = '0'
+          $env:LOCALAPPDATA = Join-Path $env:RUNNER_TEMP "naive smoke O'Brien 日本語"
+          $expected = Join-Path $env:LOCALAPPDATA 'Naive'
           $probe = [Diagnostics.ProcessStartInfo]::new()
-          $probe.FileName = (Resolve-Path -LiteralPath './target/release/zeron.exe').Path
+          $probe.FileName = (Resolve-Path -LiteralPath './target/release/naive.exe').Path
           $probe.Arguments = 'status'
           $probe.UseShellExecute = $false
           $probe.CreateNoWindow = $true
@@ -121,7 +121,7 @@ jobs:
           } finally { $process.Dispose() }
           $output
           if (-not ($output -contains "Data dir: $expected")) {
-            throw 'Windows startup did not select LOCALAPPDATA/Zeron'
+            throw 'Windows startup did not select LOCALAPPDATA/Naive'
           }
           if (-not ($output -match '^Mode:\s+local only$')) {
             throw 'An isolated Windows startup must select local-only mode'

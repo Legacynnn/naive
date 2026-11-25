@@ -319,7 +319,7 @@ fn the_staging_list_on_the_edge_is_valid() {
     assert!(!claude.models.is_empty());
     // And applied to the real built-in catalog it keeps every built-in row
     // for a current CLI and marks one default.
-    let builtin = zeron_harness::claude::catalog::static_models();
+    let builtin = naive_harness::claude::catalog::static_models();
     let models = apply(builtin.clone(), claude, Some("2.1.322"), Source::BuiltIn);
     for model in &builtin {
         assert!(models.iter().any(|m| m.id == model.id), "{}", model.id);
@@ -328,26 +328,26 @@ fn the_staging_list_on_the_edge_is_valid() {
 }
 
 #[test]
-fn only_https_on_zeron_sh_may_serve_the_list() {
+fn only_https_on_naive_sh_may_serve_the_list() {
     for (edge, url) in [
         (
-            "https://edge.zeron.sh",
-            Some("https://edge.zeron.sh/models/v1.json"),
+            "https://edge.naive.sh",
+            Some("https://edge.naive.sh/models/v1.json"),
         ),
         (
-            "https://edge.zeron.sh/",
-            Some("https://edge.zeron.sh/models/v1.json"),
+            "https://edge.naive.sh/",
+            Some("https://edge.naive.sh/models/v1.json"),
         ),
         (
-            "https://staging.zeron.sh",
-            Some("https://staging.zeron.sh/models/v1.json"),
+            "https://staging.naive.sh",
+            Some("https://staging.naive.sh/models/v1.json"),
         ),
-        ("https://zeron.sh", Some("https://zeron.sh/models/v1.json")),
-        ("http://edge.zeron.sh", None),
-        ("https://edge.zeron.sh:8443", None),
-        ("https://zeron.sh.evil.example", None),
-        ("https://evilzeron.sh", None),
-        ("https://user@edge.zeron.sh", None),
+        ("https://naive.sh", Some("https://naive.sh/models/v1.json")),
+        ("http://edge.naive.sh", None),
+        ("https://edge.naive.sh:8443", None),
+        ("https://naive.sh.evil.example", None),
+        ("https://evilnaive.sh", None),
+        ("https://user@edge.naive.sh", None),
         (
             "https://zeron-edge-staging.sylasincorporated.workers.dev",
             None,
@@ -489,7 +489,7 @@ async fn a_404_retires_the_list() {
 #[test]
 fn a_corrupt_disk_copy_is_ignored() {
     let dir = tempfile::tempdir().unwrap();
-    let url = "https://edge.zeron.sh/models/v1.json".to_owned();
+    let url = "https://edge.naive.sh/models/v1.json".to_owned();
     let path = dir.path().join("model-catalogs").join("hosted-v1.json");
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     for body in [

@@ -1,5 +1,5 @@
 [package]
-name = "zeron-client"
+name = "naive-client"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,13 +12,13 @@ publish.workspace = true
 # frontend (iOS, Android, tests, CLIs).
 
 [dependencies]
-zeron-voice-session.workspace = true
-zeron-proto.workspace = true
-zeron-doc.workspace = true
-zeron-sync.workspace = true
-zeron-rpc.workspace = true
-zeron-preview.workspace = true
-zeron-term-link.workspace = true
+naive-voice-session.workspace = true
+naive-proto.workspace = true
+naive-doc.workspace = true
+naive-sync.workspace = true
+naive-rpc.workspace = true
+naive-preview.workspace = true
+naive-term-link.workspace = true
 anyhow.workspace = true
 loro.workspace = true
 tokio.workspace = true
@@ -37,8 +37,8 @@ async-trait.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-zeron-visual.workspace = true
-zeron-sync = { workspace = true, features = ["mock-server"] }
+naive-visual.workspace = true
+naive-sync = { workspace = true, features = ["mock-server"] }
 tokio-tungstenite.workspace = true
 async-trait.workspace = true
 tokio = { workspace = true, features = ["test-util"] }

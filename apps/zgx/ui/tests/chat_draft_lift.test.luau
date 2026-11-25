@@ -1,5 +1,5 @@
 -- A plugin allowed "draft" takes the composer's draft whole and puts it back
--- (`zeron.take_draft`, `put_draft`, `swap_draft`: screens/plugins keeps it
+-- (`naive.take_draft`, `put_draft`, `swap_draft`: screens/plugins keeps it
 -- between, through screens/chat/shared's `lift` and `lay`). Taken, the
 -- composer is clear; put back in another chat, its words and its chips are
 -- as they were and go with the message; put back over words already there,
@@ -30,7 +30,7 @@ test("a draft taken in one chat is put back in another whole, chips and all", fu
 	expect(app:has('#chat-composer >> ~"Wrong chat prompt"')).to_be(true)
 	app:key("Enter")
 	app:frames(30)
-	expect(app:state("calls")).to_contain("send:s3:Wrong chat prompt\n\nChats attached:\n- [Long chat](zeron-chat:s1)")
+	expect(app:state("calls")).to_contain("send:s3:Wrong chat prompt\n\nChats attached:\n- [Long chat](naive-chat:s1)")
 	expect(app:error()).to_be(nil)
 end)
 

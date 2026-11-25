@@ -48,7 +48,7 @@ impl Geometry {
         for &gap in &self.gaps {
             if gap < 1.5 {
                 out.push(format!(
-                    "{what}: adjacent rows touch (gap {gap:.1}, need at least 2 from $zeron.list.gap)"
+                    "{what}: adjacent rows touch (gap {gap:.1}, need at least 2 from $naive.list.gap)"
                 ));
             }
         }
@@ -284,7 +284,7 @@ fn every_menu_is_concentric_and_evenly_inset() {
     app.frames(20);
     // Searchable dropdowns whose top is the centered 36px search field or
     // whose bottom is a virtualized `ui.list` (3px py + 1px row wrapper py)
-    // still obey concentric row corners and `$zeron.list.gap` between rows.
+    // still obey concentric row corners and `$naive.list.gap` between rows.
     for (what, open_sub, item) in [
         ("the composer's Work in picker", None, "role:menuitem \"Device\""),
         ("the composer's Device submenu", Some("role:menuitem \"Device\""), "\"Search devices…\""),
@@ -303,7 +303,7 @@ fn every_menu_is_concentric_and_evenly_inset() {
         }
         for &gap in &g.gaps {
             if gap < 1.5 {
-                faults.push(format!("{what}: adjacent rows touch (gap {gap:.1}, need at least 2 from $zeron.list.gap)"));
+                faults.push(format!("{what}: adjacent rows touch (gap {gap:.1}, need at least 2 from $naive.list.gap)"));
             }
         }
         app.key(zgx::input::Key::Escape);

@@ -1,4 +1,4 @@
--- How Zeron's surfaces stand: frosted (the window's glass; menus over the
+-- How Naive's surfaces stand: frosted (the window's glass; menus over the
 -- platform's frosted material) or opaque (solid colours throughout). One
 -- setting for the whole app, kept across launches.
 --
@@ -37,7 +37,7 @@ end
 
 -- What a theme wears where nothing shows through: the islands' solid fill,
 -- and, for a theme whose glass tones would all but vanish on its solid
--- window (`zeron.solid`), muted text that holds. Nil over glass. (The page
+-- window (`naive.solid`), muted text that holds. Nil over glass. (The page
 -- and sidebar keep the theme's own fill and edge.)
 function M.solid_theme(): { [string]: any }?
 	if M.see_through() then
@@ -47,12 +47,12 @@ function M.solid_theme(): { [string]: any }?
 	-- unblurred: by its tokens, so an island the engine animates (the title
 	-- bar's, sliding in and out of full screen) runs no script per frame.
 	local out: { [string]: any } = {
-		["zeron.island.tint"] = "$zeron.menu.solid",
-		["zeron.island.blur"] = 0,
+		["naive.island.tint"] = "$naive.menu.solid",
+		["naive.island.blur"] = 0,
 	}
-	if ui.theme.get("zeron.solid.secondary") ~= nil then
-		out["text.secondary"] = "$zeron.solid.secondary"
-		out["text.tertiary"] = "$zeron.solid.tertiary"
+	if ui.theme.get("naive.solid.secondary") ~= nil then
+		out["text.secondary"] = "$naive.solid.secondary"
+		out["text.tertiary"] = "$naive.solid.tertiary"
 	end
 	return out
 end
@@ -84,7 +84,7 @@ function M.menus_see_through(): boolean
 end
 
 -- A fill that follows `see_through()`: `tint` frosted, `solid` opaque (`bg =
--- material.pick("$zeron.settings.tint", "$zeron.settings.card")`).
+-- material.pick("$naive.settings.tint", "$naive.settings.card")`).
 function M.pick(tint: string, solid: string): () -> string
 	return function(): string
 		return if M.see_through() then tint else solid

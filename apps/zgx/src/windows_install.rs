@@ -1,23 +1,23 @@
-//! A Windows install the old Zeron's updater left as this `zeron.exe` alone.
+//! A Windows install the old Naive's updater left as this `naive.exe` alone.
 //!
-//! Zeron before this app was one self-contained `zeron.exe`, and its updater
+//! Naive before this app was one self-contained `naive.exe`, and its updater
 //! (still running on every PC that hasn't updated) installs a release by
-//! swapping that one file (`zeron-<version>-windows-<arch>.exe`). This app
+//! swapping that one file (`naive-<version>-windows-<arch>.exe`). This app
 //! also needs its version's folder beside it (`beta\<version>\`: scripts,
-//! plugins, the engine). So before anything else, a `zeron.exe` that finds
+//! plugins, the engine). So before anything else, a `naive.exe` that finds
 //! its folder missing brings it in from the release feed, as an update would
 //! (crates/update `windows::complete_install`), whether it was started as the
 //! app, relaunched by the update (`--wait-for-exit`), or started as
-//! `zeron.exe engine` by the old engine restarting into the new version, or
+//! `naive.exe engine` by the old engine restarting into the new version, or
 //! as an update's trial, run from where the update staged it in place of the
-//! installation (`ZERON_INSTALLED_AT`, as an engine on another device asked).
+//! installation (`NAIVE_INSTALLED_AT`, as an engine on another device asked).
 //!
 //! On failure nothing has changed. A window launch says so and offers to try
 //! again; any other command prints why and exits, and the next start retries.
 
 use std::path::Path;
 
-use zeron_update::windows::{self, Completion};
+use naive_update::windows::{self, Completion};
 
 use crate::about::APP_VERSION;
 
@@ -40,7 +40,7 @@ impl std::fmt::Display for Failed {
 impl std::error::Error for Failed {}
 
 /// Complete this installation if it needs it; returns once this process may
-/// go on. Exits instead when the newer `zeron.exe` the feed had by then ran
+/// go on. Exits instead when the newer `naive.exe` the feed had by then ran
 /// in its place; fails when the person gives up (or isn't asked: a command).
 pub fn complete_if_needed(argv: &[String]) -> Result<(), Failed> {
     windows::set_packaged();
@@ -57,7 +57,7 @@ pub fn complete_if_needed(argv: &[String]) -> Result<(), Failed> {
     // A window launch: nothing, a link, or the update's relaunch.
     let window = argv
         .get(1)
-        .is_none_or(|arg| arg.starts_with("--") || arg.starts_with("zeron:"));
+        .is_none_or(|arg| arg.starts_with("--") || arg.starts_with("naive:"));
     loop {
         match complete(&directory) {
             Ok(Completion::Complete | Completion::Installed) => return Ok(()),
@@ -66,7 +66,7 @@ pub fn complete_if_needed(argv: &[String]) -> Result<(), Failed> {
             }
             Err(error) => {
                 if !window || !ask_to_retry(&error) {
-                    return Err(Failed(format!("Zeron couldn't finish installing this update: {error}")));
+                    return Err(Failed(format!("Naive couldn't finish installing this update: {error}")));
                 }
             }
         }
@@ -80,18 +80,18 @@ fn complete(directory: &Path) -> Result<Completion, String> {
         .build()
         .map_err(|error| error.to_string())?;
     runtime
-        .block_on(windows::complete_install(zeron_cli::DEFAULT_EDGE_URL, directory, APP_VERSION))
+        .block_on(windows::complete_install(naive_cli::DEFAULT_EDGE_URL, directory, APP_VERSION))
         .map_err(|error| format!("{error:#}"))
 }
 
-/// The feed had a newer release, now installed as `zeron.exe`: it runs this
+/// The feed had a newer release, now installed as `naive.exe`: it runs this
 /// launch instead, and its exit is this one's. Returns only when it
 /// couldn't start.
 fn run_installed(directory: &Path, args: &[String], version: &str) -> Failed {
-    let installed = directory.join("zeron.exe");
+    let installed = directory.join("naive.exe");
     match std::process::Command::new(&installed).args(args).status() {
         Ok(status) => std::process::exit(status.code().unwrap_or(1)),
-        Err(error) => Failed(format!("Zeron {version} is installed, but couldn't start: {error}")),
+        Err(error) => Failed(format!("Naive {version} is installed, but couldn't start: {error}")),
     }
 }
 
@@ -102,10 +102,10 @@ fn ask_to_retry(error: &str) -> bool {
         IDRETRY, MB_ICONERROR, MB_RETRYCANCEL, MB_SETFOREGROUND, MessageBoxW,
     };
     let text = format!(
-        "Zeron couldn't finish installing its update.\n\n{error}\n\nCheck your internet connection and choose Retry. Nothing was removed: if you cancel, Zeron tries again the next time it opens."
+        "Naive couldn't finish installing its update.\n\n{error}\n\nCheck your internet connection and choose Retry. Nothing was removed: if you cancel, Naive tries again the next time it opens."
     );
     let wide = |s: &str| s.encode_utf16().chain(std::iter::once(0)).collect::<Vec<u16>>();
-    let (text, caption) = (wide(&text), wide("Zeron"));
+    let (text, caption) = (wide(&text), wide("Naive"));
     // SAFETY: both are NUL-terminated UTF-16 strings that outlive the call.
     let answer = unsafe {
         MessageBoxW(

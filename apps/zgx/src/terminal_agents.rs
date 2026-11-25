@@ -38,7 +38,7 @@ pub fn install(host: &ScriptHost) {
 }
 
 const HOOK_SCRIPT: &str = r#"#!/bin/sh
-case "$ZERON_ORIGIN" in terminal:*) ;; *) exit 0 ;; esac
+case "$NAIVE_ORIGIN" in terminal:*) ;; *) exit 0 ;; esac
 agent="$1"
 event="$2"
 case "$event" in
@@ -61,7 +61,7 @@ while [ "$i" -lt 6 ] && [ -n "$pid" ] && [ "$pid" != 1 ]; do
   t=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
   case "$t" in
     ''|'?'|'??') pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ') ;;
-    *) printf '\033]7501;%s:id=zeron-hook:app=%s\007' "$state" "$agent" > "/dev/$t" 2>/dev/null; exit 0 ;;
+    *) printf '\033]7501;%s:id=naive-hook:app=%s\007' "$state" "$agent" > "/dev/$t" 2>/dev/null; exit 0 ;;
   esac
   i=$((i + 1))
 done
@@ -70,10 +70,10 @@ exit 0
 
 const CLAUDE_EVENTS: &[&str] = &["UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "StopFailure", "SessionEnd"];
 const CODEX_EVENTS: &[&str] = &["UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop"];
-const MARKER: &str = ".zeron/agent-hooks/terminal-hook.sh";
+const MARKER: &str = ".naive/agent-hooks/terminal-hook.sh";
 
 fn hooks_dir() -> PathBuf {
-    std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(std::env::temp_dir).join(".zeron").join("agent-hooks")
+    std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(std::env::temp_dir).join(".naive").join("agent-hooks")
 }
 
 fn script_path() -> PathBuf {
@@ -96,7 +96,7 @@ fn write_if_changed(path: &Path, text: &str) -> Result<(), String> {
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     }
-    let tmp = path.with_extension("zeron-tmp");
+    let tmp = path.with_extension("naive-tmp");
     std::fs::write(&tmp, text).map_err(|e| e.to_string())?;
     std::fs::rename(&tmp, path).map_err(|e| e.to_string())
 }
@@ -312,13 +312,13 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn the_hook_reports_to_its_agents_terminal_and_only_in_zerons() {
+    fn the_hook_reports_to_its_agents_terminal_and_only_in_naives() {
         let dir = tempfile::tempdir().unwrap();
         let script = dir.path().join("hook.sh");
         std::fs::write(&script, HOOK_SCRIPT).unwrap();
         let status = std::process::Command::new("sh").arg("-n").arg(&script).status().unwrap();
         assert!(status.success());
-        let quiet = std::process::Command::new("sh").arg(&script).args(["claude", "Stop"]).env_remove("ZERON_ORIGIN").output().unwrap();
+        let quiet = std::process::Command::new("sh").arg(&script).args(["claude", "Stop"]).env_remove("NAIVE_ORIGIN").output().unwrap();
         assert!(quiet.status.success());
         assert!(quiet.stdout.is_empty());
     }

@@ -24,7 +24,7 @@ local function viewer(head: string): Node
 		h = 130,
 		FileViewer {
 			doc = doc,
-			root = "zeron",
+			root = "naive",
 			readonly = true,
 			head = head :: any,
 			w_full = true,

@@ -17,7 +17,7 @@
 
 use loro::ToJson;
 use serde::{Deserialize, Serialize};
-use zeron_proto::ChatConfig;
+use naive_proto::ChatConfig;
 
 use crate::schema::{DocError, SessionDoc};
 
@@ -746,12 +746,12 @@ mod tests {
     fn queued_config_round_trips_through_moves_and_edits() {
         let d = doc();
         let cfg = ChatConfig {
-            harness: zeron_proto::HarnessId::Antigravity,
+            harness: naive_proto::HarnessId::Antigravity,
             model: Some("gemini-4-neon".into()),
-            reasoning: Some(zeron_proto::ReasoningLevel::High),
+            reasoning: Some(naive_proto::ReasoningLevel::High),
             model_options: serde_json::Map::new(),
-            sandbox: zeron_proto::SandboxLevel::WorkspaceWrite,
-            access: zeron_proto::AccessMode::FullAccess,
+            sandbox: naive_proto::SandboxLevel::WorkspaceWrite,
+            access: naive_proto::AccessMode::FullAccess,
             plan: false,
         };
         let mut switched = item("q-switch", "try neon");

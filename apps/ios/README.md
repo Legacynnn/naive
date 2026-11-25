@@ -1,6 +1,6 @@
-# Zeron for iOS
+# Naive for iOS
 
-A UIKit viewport onto the zeron mesh, built on the Rust mobile core. The phone
+A UIKit viewport onto the naive mesh, built on the Rust mobile core. The phone
 is a **peer device**: it mirrors the workspace registry, joins per-chat session
 rooms, and drives remote engines through the durable command ledger. No agent
 runs on the phone.
@@ -16,25 +16,25 @@ Requires Xcode 26+ and a Rust toolchain with the iOS targets:
 ```sh
 rustup target add aarch64-apple-ios aarch64-apple-ios-sim
 cd apps/ios
-xcodebuild -project Zeron.xcodeproj -scheme Zeron \
+xcodebuild -project Naive.xcodeproj -scheme Naive \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
-The Zeron target's **Rust core** build phase runs `scripts/ios/build-core.sh`,
+The Naive target's **Rust core** build phase runs `scripts/ios/build-core.sh`,
 which builds `crates/mobile` for the active platform (always optimized — the
 `mobile` cargo profile) and refreshes the committed UniFFI bindings in
-`Zeron/Core/Generated/`. `ZERON_SKIP_CORE=1` reuses the last built library
+`Naive/Core/Generated/`. `NAIVE_SKIP_CORE=1` reuses the last built library
 when iterating on Swift only.
 
 ## Layout
 
 ```
-Zeron/
+Naive/
   App/         AppDelegate, SceneDelegate, AppModel (owns CoreClient; maps
                workspace snapshots to view models; Keychain credentials)
   Core/        Generated UniFFI bindings; Fonts (the exact bytes Rust measures,
                registered with CoreText) + CoreText fallback measurer
-  Design/      Palette (Zeron color roles → light/dark), Glass helpers,
+  Design/      Palette (Naive color roles → light/dark), Glass helpers,
                cell-grid status glyph, harness brand marks
   Transcript/  TranscriptListView (virtualized scroll host over LayoutFrame),
                RowView/RowModel (CoreText painter for Rust display lists,
@@ -52,10 +52,10 @@ Zeron/
   Shell/       Tab bar (Sessions, Settings, search; "New session" accessory
                with live summary), sign-in
   Debug/       Transcript lab + hitch meter
-ZeronLiveActivity/  Widget extension: the voice call's Live Activity (Dynamic
+NaiveLiveActivity/  Widget extension: the voice call's Live Activity (Dynamic
                Island + Lock Screen), with the orb's states exported from
-               zeron-orb as vector assets
-ZeronShared/   Compiled into the app and the extension: the activity's
+               naive-orb as vector assets
+NaiveShared/   Compiled into the app and the extension: the activity's
                attributes and its mute/end App Intents
 ```
 
@@ -77,12 +77,12 @@ A session's subagents, side chats and terminals (`Companions/`):
 
 ### Transcript pipeline
 
-1. `zeron-client` applies session-doc updates incrementally (O(changed
+1. `naive-client` applies session-doc updates incrementally (O(changed
    entries)) and publishes immutable snapshots.
 2. `TranscriptView.attach(client, chatId)` subscribes **in Rust**; the layout
    thread turns entries into rows (one per markdown block / user message / tool
    group), reparses streaming markdown incrementally, and measures every row
-   with `zeron-text` at the viewport width.
+   with `naive-text` at the viewport width.
 3. Each pass publishes a `LayoutFrame`: exact heights + prefix-sum offsets.
    `rowsIn(y0, y1)` is a binary search; `display(i)` builds a display list
    (text runs at exact positions, boxes, links, scrollers, widgets).
@@ -120,26 +120,26 @@ A session's subagents, side chats and terminals (`Companions/`):
 
 ```sh
 # Rust
-cargo test -p zeron-text -p zeron-markdown -p zeron-client -p zeron-mobile
-cargo test --release -p zeron-mobile --lib bench_layout -- --ignored --nocapture
+cargo test -p naive-text -p naive-markdown -p naive-client -p naive-mobile
+cargo test --release -p naive-mobile --lib bench_layout -- --ignored --nocapture
 
 # Line-break accuracy vs CoreText (same font bytes), flows, hitch benchmarks
-xcodebuild … -only-testing:ZeronTests/LineBreakAccuracyTests test
-xcodebuild … -only-testing:ZeronUITests/SessionFlowTests test
-xcodebuild … -only-testing:ZeronUITests/ScrollPerformanceTests test
+xcodebuild … -only-testing:NaiveTests/LineBreakAccuracyTests test
+xcodebuild … -only-testing:NaiveUITests/SessionFlowTests test
+xcodebuild … -only-testing:NaiveUITests/ScrollPerformanceTests test
 ```
 
-Live stack (real edge + headless engine; see `ZeronUITests/LiveStackTests.swift`):
+Live stack (real edge + headless engine; see `NaiveUITests/LiveStackTests.swift`):
 
 ```sh
 (cd edge && npx wrangler dev --port 27650 --var AUTH_MODE:dev) &
-ZERON_DATA_DIR=/tmp/e2e ZERON_IPC_PORT=27811 ZERON_EDGE_URL=http://localhost:27650 \
-  ZERON_EDGE_TOKEN=alice@org1 ZERON_ORG_ID=org1 ZERON_HARNESS=mock target/debug/zeron headless &
-TEST_RUNNER_ZERON_LIVE_EDGE=http://localhost:27650 xcodebuild … -only-testing:ZeronUITests/LiveStackTests test
+NAIVE_DATA_DIR=/tmp/e2e NAIVE_IPC_PORT=27811 NAIVE_EDGE_URL=http://localhost:27650 \
+  NAIVE_EDGE_TOKEN=alice@org1 NAIVE_ORG_ID=org1 NAIVE_HARNESS=mock target/debug/naive headless &
+TEST_RUNNER_NAIVE_LIVE_EDGE=http://localhost:27650 xcodebuild … -only-testing:NaiveUITests/LiveStackTests test
 ```
 
 The test launches the app with `-harness mock`: a chat's configured harness
-wins over the engine's `ZERON_HARNESS` default, so without it a real agent
+wins over the engine's `NAIVE_HARNESS` default, so without it a real agent
 would run.
 
 ## Session notifications

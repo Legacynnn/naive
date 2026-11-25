@@ -44,14 +44,14 @@
 //!   `{data_dir}/cloud/git-credentials` (0600) wired once via
 //!   `git config --global credential.https://github.com.helper`, and
 //!   `~/.config/gh/hosts.yml` for `gh` (only when absent or already
-//!   Zeron-managed). Refreshed in the background ~10 min before expiry. Never
+//!   Naive-managed). Refreshed in the background ~10 min before expiry. Never
 //!   `GH_TOKEN`/`GITHUB_TOKEN`: a run's environment is fixed at spawn, `gh`
 //!   prefers it over hosts.yml, and the token expires within the hour, so a
 //!   warm session's `gh` would start failing while `git push` kept working.
 //!   Pushes and pull requests therefore act as the App.
 //!
 //! - **Every other agent** runs on the vault credentials
-//!   [`zeron_proto::providers::cloud_credentials`] lists for it, asked for in
+//!   [`naive_proto::providers::cloud_credentials`] lists for it, asked for in
 //!   one signed round trip (`POST /vault/{orgId}/grants`; one provider at a
 //!   time from an edge that predates it). Within one account group the first
 //!   credential granted is used (a sign-in before a key); separate groups
@@ -91,7 +91,7 @@
 //!     tokens empty), with `TBH_CREDENTIAL_BACKEND=file`; a file the broker
 //!     didn't write (its SHA-256 is kept) is Muse's own and stays.
 //!   - OpenCode: its sign-ins (ChatGPT, Copilot) go in one run variable,
-//!     [`zeron_harness::opencode::CREDENTIALS_ENV`], which its harness
+//!     [`naive_harness::opencode::CREDENTIALS_ENV`], which its harness
 //!     installs through OpenCode's credential API on every server it boots
 //!     (2.x keeps logins in its database), and never passes on.
 //!
@@ -117,8 +117,8 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD as B64URL;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use zeron_proto::providers::{CloudDelivery, cloud_credentials};
-use zeron_proto::{GithubRepo, HarnessId, RunRequest, VaultProvider};
+use naive_proto::providers::{CloudDelivery, cloud_credentials};
+use naive_proto::{GithubRepo, HarnessId, RunRequest, VaultProvider};
 
 use crate::http_error::describe_http_error;
 use crate::runner::{EdgeErrorBody, RunnerIdentity, write_private_atomic};
@@ -199,7 +199,7 @@ fn refresh_ahead(provider: VaultProvider) -> Duration {
 }
 const GITHUB_MAX_PAGES: usize = 10;
 const HOSTS_MARKER: &str =
-    "# Managed by Zeron Cloud (GitHub grant) — delete this line to manage gh yourself.";
+    "# Managed by Naive Cloud (GitHub grant) — delete this line to manage gh yourself.";
 
 /// `{data_dir}/cloud/codex-home` — the managed `CODEX_HOME`.
 pub fn managed_codex_home(data_dir: &Path) -> PathBuf {
@@ -393,7 +393,7 @@ impl AgentPaths {
             grok_home: env("GROK_HOME").unwrap_or(defaults.grok_home),
             pi_agent_dir: env("PI_CODING_AGENT_DIR").unwrap_or(defaults.pi_agent_dir),
             devin_dir: data.join("devin"),
-            antigravity_home: zeron_harness::acp::antigravity_home().ok(),
+            antigravity_home: naive_harness::acp::antigravity_home().ok(),
             opencode_dir: data.join("opencode"),
             hermes_home: env("HERMES_HOME").unwrap_or(defaults.hermes_home),
             muse_auth_file: env("MUSE_AUTH_PATH")
@@ -447,7 +447,7 @@ impl BrokerConfig {
             codex_env_login: ["OPENAI_API_KEY", "CODEX_API_KEY"]
                 .iter()
                 .any(|name| env(name).is_some()),
-            github_api: env("ZERON_GITHUB_API_URL")
+            github_api: env("NAIVE_GITHUB_API_URL")
                 .unwrap_or_else(|| "https://api.github.com".into()),
             github_repo: crate::runner::session()
                 .and_then(crate::runner::CloudSession::github_repo),
@@ -465,7 +465,7 @@ struct FileState {
 struct Inner {
     config: BrokerConfig,
     identity: Arc<RunnerIdentity>,
-    tokens: Arc<dyn zeron_rpc::TokenSource>,
+    tokens: Arc<dyn naive_rpc::TokenSource>,
     http: reqwest::Client,
     cache: Mutex<HashMap<VaultProvider, Cached>>,
     /// One grant request in flight per device: the vault's replay fence
@@ -529,7 +529,7 @@ impl CredentialBroker {
     pub fn new(
         config: BrokerConfig,
         identity: Arc<RunnerIdentity>,
-        tokens: Arc<dyn zeron_rpc::TokenSource>,
+        tokens: Arc<dyn naive_rpc::TokenSource>,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -1075,7 +1075,7 @@ impl CredentialBroker {
                                 .insert(antigravity_proxy::CLOUD_CODE_URL_ENV.into(), proxy_url);
                         }
                         request.env.entry("SSH_CONNECTION".into()).or_insert_with(|| {
-                            zeron_harness::acp::ANTIGRAVITY_SSH_FILE_STORAGE_VALUE.into()
+                            naive_harness::acp::ANTIGRAVITY_SSH_FILE_STORAGE_VALUE.into()
                         });
                     }
                     self.write_agent_file(harness, credential.vault, grant)
@@ -1098,7 +1098,7 @@ impl CredentialBroker {
             .any(|c| c.delivery == CloudDelivery::Api)
         {
             request.env.insert(
-                zeron_harness::opencode::CREDENTIALS_ENV.into(),
+                naive_harness::opencode::CREDENTIALS_ENV.into(),
                 Value::Array(handoffs).to_string(),
             );
         }
@@ -1251,9 +1251,9 @@ impl CredentialBroker {
             CodexCheck::FailedAt(at) if at.elapsed() < CODEX_REPAIR_RETRY => return,
             _ => {}
         }
-        *check = match zeron_harness::codex::npm_repair::repair().await {
-            Ok(zeron_harness::codex::npm_repair::Repair::NotNeeded) => CodexCheck::Passed,
-            Ok(zeron_harness::codex::npm_repair::Repair::Repaired { version }) => {
+        *check = match naive_harness::codex::npm_repair::repair().await {
+            Ok(naive_harness::codex::npm_repair::Repair::NotNeeded) => CodexCheck::Passed,
+            Ok(naive_harness::codex::npm_repair::Repair::Repaired { version }) => {
                 tracing::info!(%version, "reinstalled Codex with its native binary");
                 CodexCheck::Passed
             }
@@ -1771,7 +1771,7 @@ impl CredentialBroker {
 #[derive(Default)]
 struct AgentPlan {
     /// The credentials handed over, one per account group.
-    use_grants: Vec<(zeron_proto::providers::CloudCredential, Grant)>,
+    use_grants: Vec<(naive_proto::providers::CloudCredential, Grant)>,
     /// File credentials the vault no longer grants: their managed files go.
     cleared_files: Vec<VaultProvider>,
     /// A group was filled by a login of the machine's own.
@@ -1805,12 +1805,12 @@ impl CredentialBroker {
             }
             _ => {}
         }
-        let name = zeron_proto::providers::provider_name(harness);
-        if zeron_harness::install::installed(harness) {
+        let name = naive_proto::providers::provider_name(harness);
+        if naive_harness::install::installed(harness) {
             *check = InstallCheck::Passed;
             return Ok(());
         }
-        if !zeron_harness::install::can_install(harness) {
+        if !naive_harness::install::can_install(harness) {
             let why = format!(
                 "{name} isn't installed on this Cloud machine, and it has no installer here."
             );
@@ -1822,9 +1822,9 @@ impl CredentialBroker {
             "credentials: installing a missing agent CLI"
         );
         let started = Instant::now();
-        match zeron_harness::install::install_harness(
+        match naive_harness::install::install_harness(
             harness,
-            zeron_harness::CancellationToken::new(),
+            naive_harness::CancellationToken::new(),
         )
         .await
         {
@@ -1989,7 +1989,7 @@ impl CredentialBroker {
 /// The run's error for `harness` with no credential anywhere: where to
 /// sign in, or which key to add.
 pub fn not_signed_in(harness: HarnessId) -> String {
-    use zeron_proto::providers::{cloud_key_providers, cloud_login_options, provider_name};
+    use naive_proto::providers::{cloud_key_providers, cloud_login_options, provider_name};
     let name = provider_name(harness);
     let logins: Vec<&str> = cloud_login_options(harness)
         .iter()
@@ -2682,7 +2682,7 @@ fn antigravity_token_file(home: &Path) -> PathBuf {
 }
 
 fn antigravity_oauth_token_file(home: &Path) -> PathBuf {
-    zeron_harness::acp::antigravity_oauth_token_file(home)
+    naive_harness::acp::antigravity_oauth_token_file(home)
 }
 
 fn has_nested_refresh(doc: &Value) -> bool {
@@ -3051,7 +3051,7 @@ impl crate::registry::RunEnvironment for CredentialBroker {
         &self,
         _harness: HarnessId,
         credential: &str,
-        windows: Vec<zeron_proto::AgentUsageWindow>,
+        windows: Vec<naive_proto::AgentUsageWindow>,
         plan_label: Option<String>,
     ) {
         CredentialBroker::report_usage(self, credential, windows, plan_label).await;
@@ -3075,7 +3075,7 @@ impl CredentialBroker {
     pub async fn report_usage(
         &self,
         credential: &str,
-        windows: Vec<zeron_proto::AgentUsageWindow>,
+        windows: Vec<naive_proto::AgentUsageWindow>,
         plan_label: Option<String>,
     ) {
         let Some(body) = usage_report(credential, &windows, plan_label.as_deref()) else {
@@ -3108,7 +3108,7 @@ impl CredentialBroker {
 /// planLabel?}`, for a run on exactly one account's subscription.
 fn usage_report(
     credential: &str,
-    windows: &[zeron_proto::AgentUsageWindow],
+    windows: &[naive_proto::AgentUsageWindow],
     plan_label: Option<&str>,
 ) -> Option<Value> {
     let account = credential_accounts(credential).filter(|a| !a.contains(','))?;
@@ -3446,7 +3446,7 @@ fn is_managed_hosts(path: &Path) -> bool {
 }
 
 /// `~/.config/gh/hosts.yml` for interactive terminals — written only when
-/// absent or already Zeron-managed (a user's own `gh auth login` wins).
+/// absent or already Naive-managed (a user's own `gh auth login` wins).
 fn write_gh_hosts(home: &Path, grant: &Grant) {
     let path = gh_hosts_path(home);
     if path.exists() && !is_managed_hosts(&path) {
@@ -3776,7 +3776,7 @@ mod tests {
     /// ChatGPT and a Claude login) or none says nothing.
     #[test]
     fn a_runs_usage_is_its_one_accounts() {
-        let windows = vec![zeron_proto::AgentUsageWindow { label: "5h".into(), used_fraction: 0.25, resets_at: None }];
+        let windows = vec![naive_proto::AgentUsageWindow { label: "5h".into(), used_fraction: 0.25, resets_at: None }];
         let body = usage_report("codex@c1:7", &windows, Some("ChatGPT Pro")).unwrap();
         assert_eq!(body["accounts"], "codex@c1");
         assert_eq!(body["windows"][0]["usedFraction"], 0.25);

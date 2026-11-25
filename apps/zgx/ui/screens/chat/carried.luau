@@ -36,7 +36,7 @@ export type Pack = {
 }
 
 -- The block attached chats go in after the words (src/chat.rs
--- `CHATS_HEADER`): its header, then `- [title](zeron-chat:id)`.
+-- `CHATS_HEADER`): its header, then `- [title](naive-chat:id)`.
 M.CHATS_HEADER = "Chats attached:"
 
 -- `words` with `chats`' block after them.
@@ -162,7 +162,7 @@ end
 
 -- The canonical link an `@` reference to `item` puts in the words: a
 -- picture's or a file's by its number in the draft (ds/attachment_mentions),
--- an attached chat's Zeron chat mention, a browser pick's token. Each the
+-- an attached chat's Naive chat mention, a browser pick's token. Each the
 -- engine gives an agent as its plain label. Nil for what has no such link
 -- (a quote, a review comment, pasted words).
 function M.mention(item: any): string?

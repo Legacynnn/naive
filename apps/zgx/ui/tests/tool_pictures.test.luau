@@ -1,6 +1,6 @@
 -- A tool whose result carried a picture (a Read of a screenshot: the
 -- engine's copy, `previewPaths`) opens to it as a small thumbnail, its own
--- shape within the theme's 240 by 160 (`zeron.prose.picture.thumb`), never
+-- shape within the theme's 240 by 160 (`naive.prose.picture.thumb`), never
 -- the reading column's width; a click opens it in the lightbox. Several sit
 -- in a row. A Read that kept none opens to nothing of the kind
 -- (ui/tool_pictures_fixture.luau).

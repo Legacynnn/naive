@@ -20,7 +20,7 @@ const batch = async (
   providers,
   deviceId: device.deviceId,
   ts,
-  sig: await device.sign(`zeron-vault-grant\n${userId}\n${device.deviceId}\n${signed.join(",")}\n${ts}`)
+  sig: await device.sign(`naive-vault-grant\n${userId}\n${device.deviceId}\n${signed.join(",")}\n${ts}`)
 });
 
 const grokMaterial = (accessToken: string, refreshToken: string, expiresAt: number) => ({

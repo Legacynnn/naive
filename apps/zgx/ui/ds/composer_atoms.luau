@@ -105,14 +105,14 @@ local function ui_glyph_of(data: ChipData): string
 end
 
 -- Atom style table for `ui.textarea`: matches transcript chips in
--- `ds/markdown.luau` (corner 5, `padding = { 2, 7, 2.4 }`, 17×17 `$zeron.chip.well`
+-- `ds/markdown.luau` (corner 5, `padding = { 2, 7, 2.4 }`, 17×17 `$naive.chip.well`
 -- with corner 3 and 2pt pad around the 13px icon, regular body weight).
 local CHIP_PADDING = { 2, 7, 2.4 }
 local CHIP_RADIUS = 5
 
 function M.style_of(data: ChipData): { [string]: any }
 	local is_action = data.kind == "command" or data.kind == "skill"
-	local color = if is_action then "$zeron.composer.token.action" else "$text.primary"
+	local color = if is_action then "$naive.composer.token.action" else "$text.primary"
 	local icon: { [string]: any }
 	if data.file_icon or data.kind == "file" then
 		local fname = data.file_icon or data.label
@@ -120,7 +120,7 @@ function M.style_of(data: ChipData): { [string]: any }
 			src = `assets/icons/files/{icon_set()}/{FileIcon.of(fname, data.dir == true)}.svg`,
 			size = 13,
 			gap = 2,
-			bg = "$zeron.chip.well",
+			bg = "$naive.chip.well",
 			radius = 3,
 			pad = 2,
 		}
@@ -129,14 +129,14 @@ function M.style_of(data: ChipData): { [string]: any }
 			src = `assets/icons/ui/{ui_glyph_of(data)}.svg`,
 			size = 13,
 			gap = 2,
-			bg = "$zeron.chip.well",
+			bg = "$naive.chip.well",
 			radius = 3,
 			pad = 2,
-			tint = if is_action then "currentColor" else "$zeron.chip.glyph",
+			tint = if is_action then "currentColor" else "$naive.chip.glyph",
 		}
 	end
 	return {
-		bg = "$zeron.chip.bg",
+		bg = "$naive.chip.bg",
 		color = color,
 		padding = CHIP_PADDING,
 		radius = CHIP_RADIUS,
@@ -167,7 +167,7 @@ end
 function M.chip_preview(data: ChipData?): Node
 	local d: ChipData = data or { kind = "attachment", label = "Item" }
 	local is_action = d.kind == "command" or d.kind == "skill"
-	local ink = if is_action then "$zeron.composer.token.action" else "$text.primary"
+	local ink = if is_action then "$naive.composer.token.action" else "$text.primary"
 	local lead: Node
 	if d.file_icon or d.kind == "file" then
 		lead = FileIcon { name = d.file_icon or d.label, dir = d.dir == true, size = 13 }
@@ -175,7 +175,7 @@ function M.chip_preview(data: ChipData?): Node
 		lead = Icon {
 			name = ui_glyph_of(d) :: any,
 			size = 13,
-			color = if is_action then "$zeron.composer.token.action" else "$zeron.chip.glyph",
+			color = if is_action then "$naive.composer.token.action" else "$naive.chip.glyph",
 		}
 	end
 	return ui.row {
@@ -185,10 +185,10 @@ function M.chip_preview(data: ChipData?): Node
 		gap = ui.raw(2, "inline chip drag preview icon gap"),
 		items = "center",
 		rounded = ui.raw(5, "inline chip drag preview corner"),
-		bg = "$zeron.chip.bg",
+		bg = "$naive.chip.bg",
 		border = 1,
-		border_color = "$zeron.composer.edge",
-		shadow = "$zeron.composer.shadow",
+		border_color = "$naive.composer.edge",
+		shadow = "$naive.composer.shadow",
 		opacity = 0.94,
 		pointer_events = "none",
 		ui.div {
@@ -198,24 +198,24 @@ function M.chip_preview(data: ChipData?): Node
 			items = "center",
 			justify = "center",
 			rounded = ui.raw(3, "inline chip drag preview icon well corner"),
-			bg = "$zeron.chip.well",
+			bg = "$naive.chip.well",
 			lead,
 		},
 		ui.text {
 			d.label,
 			literal = true,
-			text_size = "$zeron.composer.text",
-			line_height = "$zeron.composer.line",
+			text_size = "$naive.composer.text",
+			line_height = "$naive.composer.line",
 			color = ink,
 		},
 	}
 end
 
 -- Builds a chip spec from a completion item picked from `@`, `/`, or `$`.
--- Returns nil for built-in Zeron commands (`item.zeron` / `item.consume`)
+-- Returns nil for built-in Naive commands (`item.naive` / `item.consume`)
 -- which execute directly rather than becoming chips.
 function M.from_mention(item: any, trigger: string, token: string): ChipSpec?
-	if type(item) ~= "table" or item.zeron or item.consume then
+	if type(item) ~= "table" or item.naive or item.consume then
 		return nil
 	end
 	local data: ChipData

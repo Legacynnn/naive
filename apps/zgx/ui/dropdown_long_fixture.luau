@@ -14,7 +14,7 @@ local n = ui.state("test_long_n", 2000)
 
 -- A repository's refs: local branches, then remote ones, names as people
 -- give them.
-local WHO = { "wing", "gael", "alex", "dependabot", "release", "fix", "feat", "zeron" }
+local WHO = { "wing", "gael", "alex", "dependabot", "release", "fix", "feat", "naive" }
 local WHAT = { "dropdown", "composer", "engine", "relay", "cloud", "sidebar", "transcript", "perf", "scroll", "billing" }
 local function refs(count: number): { Dropdown.Item }
 	local out: { Dropdown.Item } = {}

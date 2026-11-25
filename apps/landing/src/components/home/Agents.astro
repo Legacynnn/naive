@@ -6,7 +6,7 @@ import AgentMark from "../ui/AgentMark.astro";
 
 <section class="section" id="agents">
   <div class="wrap">
-    <h2 class="statement" data-reveal><b>Every agent you run, in one window.</b> Zeron works with the coding agents you already use and puts their sessions side by side.</h2>
+    <h2 class="statement" data-reveal><b>Every agent you run, in one window.</b> Naive works with the coding agents you already use and puts their sessions side by side.</h2>
     <div class="bento">
       <article class="card span-7" data-reveal>
         <div class="card-copy">
@@ -18,7 +18,7 @@ import AgentMark from "../ui/AgentMark.astro";
       <article class="card span-5" data-reveal>
         <div class="card-copy">
           <h3>Works with the agents you already use</h3>
-          <p>Zeron runs each agent with the account and configuration it already has on your machine.</p>
+          <p>Naive runs each agent with the account and configuration it already has on your machine.</p>
         </div>
         <ul class="agents card-visual">
           {AGENTS.map((agent) => <li><AgentMark mark={agent.mark} /><span>{agent.name}</span></li>)}

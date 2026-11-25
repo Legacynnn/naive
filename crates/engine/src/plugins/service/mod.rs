@@ -28,7 +28,7 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError, Weak};
 use std::time::{Duration, Instant};
 
 use serde_json::{Value as Json, json};
-use zeron_plugin_guard::net;
+use naive_plugin_guard::net;
 
 pub use vm::{Described, Failure, Kind, Limits};
 use vm::{Done, Ops, Spec, Vm};
@@ -116,13 +116,13 @@ impl Plan {
 
 /// What the host lends services (plugins/mod.rs implements it).
 pub trait Hooks: Send + Sync + 'static {
-    /// `zeron.emit`: to the plugin's windows here and those watching.
+    /// `naive.emit`: to the plugin's windows here and those watching.
     fn emit(&self, plugin: &str, event: &str, data: Json);
-    /// `zeron.notify`, as `PostNotification` posts (an outcome word).
+    /// `naive.notify`, as `PostNotification` posts (an outcome word).
     fn notify(&self, plugin: &str, title: &str, body: &str, session: Option<&str>) -> String;
     /// This device's `{ id, name }`.
     fn device(&self) -> Json;
-    /// `zeron.folders`: this device's chats' and projects' folders.
+    /// `naive.folders`: this device's chats' and projects' folders.
     fn folders(&self) -> Vec<String> {
         Vec::new()
     }
@@ -131,13 +131,13 @@ pub trait Hooks: Send + Sync + 'static {
     fn verify(&self, _plan: &Plan) -> Result<(), String> {
         Ok(())
     }
-    /// `zeron.usage`, `zeron.switch_account`, `zeron.set_model`, …: asked
+    /// `naive.usage`, `naive.switch_account`, `naive.set_model`, …: asked
     /// of the engine for `plugin`, which checks what this device allowed it
     /// (plugins/agents). `done` with the answer, or why not.
     fn agents(&self, _plugin: &str, _args: Json, done: Done) {
         done(Err("Usage, accounts and models aren't available here".into()));
     }
-    /// The `zeron.on` listeners `plugin`'s service registered, as it loaded:
+    /// The `naive.on` listeners `plugin`'s service registered, as it loaded:
     /// the engine tells each its events (`Kind::Event`).
     fn listeners(&self, _plugin: &str, _listeners: &[(String, String, Json)]) {}
 }
@@ -169,7 +169,7 @@ impl Default for Config {
 /// A call's timeout unless it asks another, and the most it may ask.
 pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
 pub const MAX_TIMEOUT: Duration = Duration::from_secs(300);
-/// What `zeron.emit` sends at once, at most (its JSON).
+/// What `naive.emit` sends at once, at most (its JSON).
 pub const MAX_EMIT_BYTES: usize = 64 * 1024;
 /// A service's log lines kept for `PluginStatus`.
 const LOG_LINES: usize = 50;
@@ -255,7 +255,7 @@ impl Slot {
 }
 
 impl Services {
-    /// Services whose `zeron.store` files live in `store_dir`.
+    /// Services whose `naive.store` files live in `store_dir`.
     pub fn new(store_dir: &Path, config: Config) -> Self {
         Self {
             inner: Arc::new(Shared {
@@ -276,7 +276,7 @@ impl Services {
         self.inner.hooks.get().cloned()
     }
 
-    /// `zeron.store`'s file for `plugin`.
+    /// `naive.store`'s file for `plugin`.
     pub fn store_path(store_dir: &Path, plugin: &str) -> PathBuf {
         store_dir.join(format!("{plugin}.service.json"))
     }
@@ -520,7 +520,7 @@ impl Services {
         timeout: Duration,
     ) -> Result<Json, Refusal> {
         if self.inner.closed.load(Ordering::SeqCst) {
-            return Err(Refusal::new(reason::OFF, "Zeron is stopping"));
+            return Err(Refusal::new(reason::OFF, "Naive is stopping"));
         }
         let slot = self.slot(&plan.plugin);
         {
@@ -650,12 +650,12 @@ impl Services {
         out
     }
 
-    /// Stop every service (Zeron quitting).
+    /// Stop every service (Naive quitting).
     pub fn shutdown(&self) {
         self.inner.closed.store(true, Ordering::SeqCst);
         let slots: Vec<Arc<Slot>> = lock(&self.inner.slots).drain().map(|(_, s)| s).collect();
         for slot in slots {
-            retire(&slot, "Zeron is stopping");
+            retire(&slot, "Naive is stopping");
         }
     }
 }
@@ -817,7 +817,7 @@ impl Ops for PluginOps {
                 let _runtime = self.runtime.enter();
                 hooks.agents(&plugin, args, done);
             }
-            other => done(Err(format!("zeron.{other} isn't something a service can do"))),
+            other => done(Err(format!("naive.{other} isn't something a service can do"))),
         }
     }
 
@@ -829,10 +829,10 @@ impl Ops for PluginOps {
         let mut handles = Vec::new();
         for (place, folder) in folders.into_iter().enumerate() {
             if !folder.is_absolute() {
-                return Err(format!("zeron.watch: \"{}\" isn't a whole path", folder.display()));
+                return Err(format!("naive.watch: \"{}\" isn't a whole path", folder.display()));
             }
             if !folder.is_dir() {
-                return Err(format!("zeron.watch: there's no folder at \"{}\"", folder.display()));
+                return Err(format!("naive.watch: there's no folder at \"{}\"", folder.display()));
             }
             // (Events name the folder as the system knows it: /private/tmp
             // for /tmp.)
@@ -867,7 +867,7 @@ impl Ops for PluginOps {
     fn emit(&self, event: &str, data: Json) {
         let size = serde_json::to_vec(&data).map(|b| b.len()).unwrap_or(usize::MAX);
         if event.is_empty() || size > MAX_EMIT_BYTES {
-            self.log(&format!("zeron.emit(\"{event}\") dropped: an event's name, and 64 KB of data at most"));
+            self.log(&format!("naive.emit(\"{event}\") dropped: an event's name, and 64 KB of data at most"));
             return;
         }
         // (On the VM's thread: the host sends to other devices on the runtime.)
@@ -894,10 +894,10 @@ impl PluginOps {
 /// host its manifest allows, an address literal that's public or named.
 fn check_url(policy: &net::Policy, url: &reqwest::Url) -> Result<(), String> {
     if !matches!(url.scheme(), "http" | "https") {
-        return Err("zeron.fetch reaches http and https addresses only".into());
+        return Err("naive.fetch reaches http and https addresses only".into());
     }
     if !url.username().is_empty() || url.password().is_some() {
-        return Err("zeron.fetch doesn't take credentials in an address".into());
+        return Err("naive.fetch doesn't take credentials in an address".into());
     }
     let port = url.port_or_known_default().unwrap_or(0);
     // (As the URL parser wrote it: `0x7f.1` is `127.0.0.1` by now.)
@@ -965,7 +965,7 @@ fn guarded_client(hosts: &[String]) -> Result<reqwest::Client, String> {
         .map_err(|e| format!("The network isn't available: {e}"))
 }
 
-/// `zeron.fetch`: `{ url, method?, headers?, body?, timeout? }` → `{ status,
+/// `naive.fetch`: `{ url, method?, headers?, body?, timeout? }` → `{ status,
 /// headers, body }` (http and https only; the body as text, 16 MB at most).
 /// Where it may go is plugin-guard's `net` (R15): public addresses, or the
 /// hosts the manifest names; checked again on every redirect and at every

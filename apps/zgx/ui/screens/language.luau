@@ -1,4 +1,4 @@
--- The language Zeron speaks (Settings → General → Language): the Mac's
+-- The language Naive speaks (Settings → General → Language): the Mac's
 -- preferred one ("system", zgx's `ui.locale:set(nil)`), or one chosen,
 -- kept across launches. It applies at once: every message (`ui.t`) in the
 -- window follows the locale; what was made with `:get()` follows the next
@@ -19,9 +19,9 @@ M.LANGUAGES = {
 
 M.chosen = ui.persist("settings_language", "system")
 
--- The locale the app shows, for plugins' own words (the SDK's `zeron.t`):
+-- The locale the app shows, for plugins' own words (the SDK's `naive.t`):
 -- a plugin's VM can't follow `ui.locale` as it changes.
-local shown = ui.shared("zeron.locale", "en")
+local shown = ui.shared("naive.locale", "en")
 
 -- The locale the window asks for: none follows the Mac's.
 -- (`current` read as the locale is set still says the old one: the one
@@ -44,7 +44,7 @@ end)
 -- The choices as a select lists them, in the locale shown (a computed
 -- reading their messages: they follow it).
 -- The question asked when the app quits with work still running and
--- "Keep Zeron running after you quit" off (src/quit_prompt.rs), in the
+-- "Keep Naive running after you quit" off (src/quit_prompt.rs), in the
 -- language shown: by then the scripts are gone, so the host keeps it.
 -- (Many chats are worded with 999999, which the host replaces.)
 ui.effect(function()

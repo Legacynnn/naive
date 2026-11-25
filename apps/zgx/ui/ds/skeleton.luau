@@ -17,7 +17,7 @@ function M.Bar(props: Props): Node
 		h = props.h or 10,
 		shrink = 0,
 		rounded = props.rounded or "$radius.sm",
-		bg = "$zeron.secondary.hover",
+		bg = "$naive.secondary.hover",
 		aria_hidden = true,
 		opacity = ui.loop { from = 0.55, to = 1, duration = 900, yoyo = true, ease = "inOut(2)", fps = 30 },
 	}
@@ -40,7 +40,7 @@ function M.Row(props: { lead: number?, title: number?, line: number?, trail: num
 		ui.column {
 			grow = 1,
 			min_w = 0,
-			gap = "$zeron.space.hair",
+			gap = "$naive.space.hair",
 			ui.div { h = "$font.line.md", justify = "center", M.Bar { w = props.title or 140 } },
 			if props.line ~= 0 then ui.div { h = "$font.line.sm", justify = "center", M.Bar { w = props.line or 240, h = 8 } } else nil,
 		},

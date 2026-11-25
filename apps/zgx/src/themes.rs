@@ -1,7 +1,7 @@
-//! Themes in the window: the colours Zeron wears, chosen apart from the
+//! Themes in the window: the colours Naive wears, chosen apart from the
 //! template it runs (docs/themes.md). What a theme is, where each kind comes
 //! from and how the choice is kept are the shared catalogue's
-//! (`zeron_theme::catalog`), which the engine's theme tools use too: this is
+//! (`naive_theme::catalog`), which the engine's theme tools use too: this is
 //! the window's side of it, handing the list to the scripts and doing what
 //! the Themes page asks.
 //!
@@ -26,9 +26,9 @@ use std::path::PathBuf;
 use std::rc::Rc;
 
 use serde_json::json;
-use zeron_theme::CustomThemeLibrary;
-pub use zeron_theme::catalog::{Choice, TemplateTheme, chosen, choice_of, find_builtin, save_choice};
-use zeron_theme::catalog::{self, describe};
+use naive_theme::CustomThemeLibrary;
+pub use naive_theme::catalog::{Choice, TemplateTheme, chosen, choice_of, find_builtin, save_choice};
+use naive_theme::catalog::{self, describe};
 use zgx_desktop::WindowContext;
 use zgx_script::{ScriptHost, Shared, Value};
 
@@ -112,7 +112,7 @@ pub fn install(_cx: &mut WindowContext, host: &ScriptHost) {
     host.action("themes.remove", move |arg| {
         let Some(dir) = data_dir() else { return };
         if let Err(error) = catalog::remove(&dir, &text(&arg)) {
-            eprintln!("zeron-zgx: themes: {error}");
+            eprintln!("naive-zgx: themes: {error}");
         }
         publish();
     });
@@ -137,8 +137,8 @@ mod tests {
     use super::*;
     use std::path::Path;
     use serde_json::Value as Json;
-    use zeron_theme::ThemeVariant;
-    use zeron_theme::catalog::{Builtin, Palette, builtin, import, legibility, remove, rename};
+    use naive_theme::ThemeVariant;
+    use naive_theme::catalog::{Builtin, Palette, builtin, import, legibility, remove, rename};
 
     /// A variant's palette, as the window is handed it.
     fn palette(v: &ThemeVariant, entry: &str) -> Json {
@@ -233,7 +233,7 @@ mod tests {
 
     // -- Each theme worn (ui/theme_check_fixture.luau) ---------------------
 
-    use zeron_theme::Color;
+    use naive_theme::Color;
     use zgx_script::testing::TestApp;
 
     /// The roles every theme sets (surfaces and glass, text, hairlines,
@@ -241,20 +241,20 @@ mod tests {
     /// composer and the sidebar's rows), on top of whatever else the mapping
     /// writes.
     const ROLES: &[&str] = &[
-        "zeron.window", "background", "glass.tint", "popover.bg", "surface.sunken", "surface.base", "surface.raised", "surface.overlay",
-        "text.primary", "text.secondary", "text.tertiary", "text.disabled", "border", "border.subtle", "border.strong", "zeron.edge",
-        "hover", "pressed", "selection", "selection.item", "focus.ring", "accent", "accent.hover", "accent.text", "zeron.accents.default",
-        "danger", "warning", "success", "info", "zeron.selected.flat.bg", "zeron.selected.bg", "zeron.menu.tint", "zeron.menu.solid",
-        "zeron.composer.tint", "zeron.composer.solid", "zeron.composer.edge", "zeron.island.tint", "zeron.panel.tint", "zeron.field.glass",
-        "zeron.field.glass_hover",
-        "zeron.sidebar.tint", "zeron.tab.selected", "zeron.tab.hover", "zeron.settings.tint", "zeron.settings.note", "zeron.settings.comment",
-        "zeron.bar.ink", "zeron.bar.hover", "zeron.bar.pressed", "caption.pressed", "zeron.primary.bg", "zeron.primary.text",
-        "zeron.destructive.bg", "zeron.destructive.text", "zeron.diff.added", "zeron.diff.removed", "zeron.git.modified",
-        "zeron.git.added", "zeron.git.deleted", "zeron.pr.open", "zeron.pr.merged", "zeron.status.approval", "zeron.status.dot.done",
-        "zeron.status.failed", "zeron.tone.accent.ink", "zeron.tone.danger.ink", "zeron.tone.success.ink", "zeron.tone.warning.ink",
-        "zeron.tone.info.ink", "zeron.visual.series.teal",
+        "naive.window", "background", "glass.tint", "popover.bg", "surface.sunken", "surface.base", "surface.raised", "surface.overlay",
+        "text.primary", "text.secondary", "text.tertiary", "text.disabled", "border", "border.subtle", "border.strong", "naive.edge",
+        "hover", "pressed", "selection", "selection.item", "focus.ring", "accent", "accent.hover", "accent.text", "naive.accents.default",
+        "danger", "warning", "success", "info", "naive.selected.flat.bg", "naive.selected.bg", "naive.menu.tint", "naive.menu.solid",
+        "naive.composer.tint", "naive.composer.solid", "naive.composer.edge", "naive.island.tint", "naive.panel.tint", "naive.field.glass",
+        "naive.field.glass_hover",
+        "naive.sidebar.tint", "naive.tab.selected", "naive.tab.hover", "naive.settings.tint", "naive.settings.note", "naive.settings.comment",
+        "naive.bar.ink", "naive.bar.hover", "naive.bar.pressed", "caption.pressed", "naive.primary.bg", "naive.primary.text",
+        "naive.destructive.bg", "naive.destructive.text", "naive.diff.added", "naive.diff.removed", "naive.git.modified",
+        "naive.git.added", "naive.git.deleted", "naive.pr.open", "naive.pr.merged", "naive.status.approval", "naive.status.dot.done",
+        "naive.status.failed", "naive.tone.accent.ink", "naive.tone.danger.ink", "naive.tone.success.ink", "naive.tone.warning.ink",
+        "naive.tone.info.ink", "naive.visual.series.teal",
     ];
-    /// Code's and Markdown's roles (zeron.syntax.*): all of them.
+    /// Code's and Markdown's roles (naive.syntax.*): all of them.
     const SYNTAX_ROLES: &[&str] = &[
         "text", "keyword", "string", "escape", "regex", "number", "constant", "comment", "function", "macro", "type", "variable",
         "property", "attribute", "label", "operator", "punctuation", "tag", "heading", "link", "url", "emphasis", "strong", "quote",
@@ -264,7 +264,7 @@ mod tests {
     const QUIET: &[&str] = &["comment", "url", "punctuation"];
 
     fn ui() -> PathBuf {
-        std::env::var_os("ZERON_ZGX_TEST_UI").map(PathBuf::from).unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("ui"))
+        std::env::var_os("NAIVE_ZGX_TEST_UI").map(PathBuf::from).unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("ui"))
     }
 
     struct Rig {
@@ -276,7 +276,7 @@ mod tests {
             let entry = ui().join("theme_check_fixture.luau");
             let app = TestApp::new(|runtime| ScriptHost::new(runtime, entry));
             app.frames(4);
-            let keys: Vec<Json> = ROLES.iter().map(|k| json!(k)).chain(SYNTAX_ROLES.iter().map(|k| json!(format!("zeron.syntax.{k}")))).collect();
+            let keys: Vec<Json> = ROLES.iter().map(|k| json!(k)).chain(SYNTAX_ROLES.iter().map(|k| json!(format!("naive.syntax.{k}")))).collect();
             app.host.shared("theme_check.keys", Value::Nil).set(json_value(&Json::Array(keys)));
             Rig { app }
         }
@@ -325,7 +325,7 @@ mod tests {
         let mut worn = 0;
         let mut fixes = Vec::new();
         let mut failures = Vec::new();
-        for theme in builtin().into_iter().filter(|b| b.id != "zeron") {
+        for theme in builtin().into_iter().filter(|b| b.id != "naive") {
             let slots = slots_of(&theme);
             for v in &theme.variants {
                 let kind = if v.appearance.is_dark() { "dark" } else { "light" };
@@ -337,7 +337,7 @@ mod tests {
                 let written = report["written"].as_object().unwrap_or_else(|| panic!("{what}: nothing written: {report}"));
                 // Every role the mapping promises, and every one it wrote,
                 // resolved as written.
-                for role in ROLES.iter().map(|r| r.to_string()).chain(SYNTAX_ROLES.iter().map(|s| format!("zeron.syntax.{s}"))) {
+                for role in ROLES.iter().map(|r| r.to_string()).chain(SYNTAX_ROLES.iter().map(|s| format!("naive.syntax.{s}"))) {
                     if !written.contains_key(&role) {
                         failures.push(format!("{what}: {role} isn't set"));
                     }
@@ -359,8 +359,8 @@ mod tests {
                     failures.push(format!("{what}: the focus ring isn't the accent's"));
                 }
                 // Legible: on the window and on a menu.
-                let window = color(&resolved["zeron.window"]);
-                let menu = color(&resolved["zeron.menu.solid"]);
+                let window = color(&resolved["naive.window"]);
+                let menu = color(&resolved["naive.menu.solid"]);
                 let mut check = |role: &str, on: Color, min: f32| {
                     let c = color(&resolved[role]).contrast(on);
                     if c < min - 0.01 {
@@ -374,18 +374,18 @@ mod tests {
                 }
                 check("accent", window, 3.0);
                 for role in [
-                    "zeron.diff.added", "zeron.diff.removed", "zeron.git.modified", "zeron.git.added", "zeron.git.deleted",
-                    "zeron.pr.open", "zeron.pr.merged", "zeron.status.approval", "zeron.status.failed", "zeron.status.dot.done",
-                    "zeron.tone.accent.ink", "zeron.tone.danger.ink", "zeron.tone.success.ink", "zeron.tone.warning.ink", "zeron.tone.info.ink",
+                    "naive.diff.added", "naive.diff.removed", "naive.git.modified", "naive.git.added", "naive.git.deleted",
+                    "naive.pr.open", "naive.pr.merged", "naive.status.approval", "naive.status.failed", "naive.status.dot.done",
+                    "naive.tone.accent.ink", "naive.tone.danger.ink", "naive.tone.success.ink", "naive.tone.warning.ink", "naive.tone.info.ink",
                 ] {
                     check(role, window, 4.5);
                 }
                 for s in SYNTAX_ROLES {
-                    check(&format!("zeron.syntax.{s}"), window, if QUIET.contains(s) { 3.0 } else { 4.5 });
+                    check(&format!("naive.syntax.{s}"), window, if QUIET.contains(s) { 3.0 } else { 4.5 });
                 }
-                check("zeron.primary.text", color(&resolved["zeron.primary.bg"]), 4.5);
+                check("naive.primary.text", color(&resolved["naive.primary.bg"]), 4.5);
                 check("accent.text", accent, 3.0);
-                check("zeron.destructive.text", color(&resolved["zeron.destructive.bg"]), 3.0);
+                check("naive.destructive.text", color(&resolved["naive.destructive.bg"]), 3.0);
                 // The terminal: its text, and its sixteen ANSI colours on the
                 // window and a menu (the two of the background's own shade at
                 // 3:1, the rest as text). A light theme's white is never
@@ -408,7 +408,7 @@ mod tests {
                 }
             }
         }
-        let variants: usize = builtin().iter().filter(|b| b.id != "zeron").map(|b| b.variants.len()).sum();
+        let variants: usize = builtin().iter().filter(|b| b.id != "naive").map(|b| b.variants.len()).sum();
         assert_eq!(worn, variants);
         // What was moved from the source to stay legible (the deviations).
         eprintln!("{} inks moved to stay legible:\n{}", fixes.len(), fixes.join("\n"));
@@ -419,23 +419,23 @@ mod tests {
     }
 
     #[test]
-    fn each_scheme_wears_its_own_slot_and_an_empty_one_is_zeron_s() {
+    fn each_scheme_wears_its_own_slot_and_an_empty_one_is_naive_s() {
         let rig = Rig::new();
-        let zeron = rig.wear(&json!({}), "dark");
-        assert_eq!(zeron["names"], json!({ "dark": "theme-dark", "light": "theme-light" }), "the names never change");
+        let naive = rig.wear(&json!({}), "dark");
+        assert_eq!(naive["names"], json!({ "dark": "theme-dark", "light": "theme-light" }), "the names never change");
         // Gruvbox for light, Tokyo Night for dark: each scheme its own.
         let slots = json!({ "light": palette(find_builtin("gruvbox").unwrap().variant(false).unwrap(), "gruvbox"),
                             "dark": palette(find_builtin("tokyo-night").unwrap().variant(true).unwrap(), "tokyo-night") });
         let light = rig.wear(&slots, "light");
-        assert!(same(light["resolved"]["zeron.window"].as_str().unwrap(), "#fbf1c7"), "{}", light["resolved"]["zeron.window"]);
+        assert!(same(light["resolved"]["naive.window"].as_str().unwrap(), "#fbf1c7"), "{}", light["resolved"]["naive.window"]);
         let dark = rig.wear(&slots, "dark");
-        assert!(same(dark["resolved"]["zeron.window"].as_str().unwrap(), "#1a1b26"));
-        // One with only a dark theme: light is Zeron's, every role as it was.
+        assert!(same(dark["resolved"]["naive.window"].as_str().unwrap(), "#1a1b26"));
+        // One with only a dark theme: light is Naive's, every role as it was.
         let dracula = rig.wear(&slots_of(&find_builtin("dracula").unwrap()), "light");
         assert_eq!(dracula["current"], "theme-light");
         let own_light = rig.wear(&json!({}), "light");
-        assert_eq!(dracula["asked"], own_light["asked"], "an empty slot is Zeron's");
-        assert_ne!(rig.wear(&slots_of(&find_builtin("dracula").unwrap()), "dark")["asked"], zeron["asked"]);
+        assert_eq!(dracula["asked"], own_light["asked"], "an empty slot is Naive's");
+        assert_ne!(rig.wear(&slots_of(&find_builtin("dracula").unwrap()), "dark")["asked"], naive["asked"]);
     }
 
     /// The terminal's colours zgx gives a terminal shown in the window, as
@@ -447,14 +447,14 @@ mod tests {
     }
 
     #[test]
-    fn zeron_s_own_themes_give_the_terminal_their_colours_dark_light_dark() {
-        // Nothing chosen: each scheme wears Zeron's own, and the terminal
-        // takes Zeron's palette's colours (the host's list), never the
+    fn naive_s_own_themes_give_the_terminal_their_colours_dark_light_dark() {
+        // Nothing chosen: each scheme wears Naive's own, and the terminal
+        // takes Naive's palette's colours (the host's list), never the
         // user's Ghostty ones: a light window's terminal text dark, its
         // whites legible on white.
         let rig = Rig::new();
-        let zeron = builtin().into_iter().find(|b| b.id == "zeron").expect("Zeron's own themes");
-        let list: Vec<Json> = zeron.variants.iter().map(|v| palette(v, "zeron")).collect();
+        let naive = builtin().into_iter().find(|b| b.id == "naive").expect("Naive's own themes");
+        let list: Vec<Json> = naive.variants.iter().map(|v| palette(v, "naive")).collect();
         rig.app
             .host
             .shared("themes.library", Value::Nil)
@@ -463,7 +463,7 @@ mod tests {
         for kind in ["dark", "light", "dark"] {
             let report = rig.wear(&json!({}), kind);
             assert_eq!(report["current"], format!("theme-{kind}"));
-            let v = zeron.variant(kind == "dark").unwrap();
+            let v = naive.variant(kind == "dark").unwrap();
             let window = v.colors.background;
             let (foreground, ansi) = terminal_colors(&rig);
             let foreground = foreground.unwrap_or_else(|| panic!("{kind}: no terminal text colour"));
@@ -481,36 +481,36 @@ mod tests {
     }
 
     #[test]
-    fn wearing_a_theme_and_going_back_restores_zeron_s_colours() {
+    fn wearing_a_theme_and_going_back_restores_naive_s_colours() {
         let rig = Rig::new();
         for kind in ["dark", "light"] {
             let before = rig.wear(&json!({}), kind);
             let theme = rig.wear(&slots_of(&find_builtin("github").unwrap()), kind);
-            assert_ne!(theme["asked"]["text.primary"], before["asked"]["text.primary"], "GitHub's text isn't Zeron's");
-            assert_ne!(theme["asked"]["zeron.syntax.keyword"], before["asked"]["zeron.syntax.keyword"]);
+            assert_ne!(theme["asked"]["text.primary"], before["asked"]["text.primary"], "GitHub's text isn't Naive's");
+            assert_ne!(theme["asked"]["naive.syntax.keyword"], before["asked"]["naive.syntax.keyword"]);
             let after = rig.wear(&json!({}), kind);
-            assert_eq!(after["asked"], before["asked"], "every role back as Zeron's ({kind})");
+            assert_eq!(after["asked"], before["asked"], "every role back as Naive's ({kind})");
         }
     }
 
     /// A field or a select on dark glass (Settings' search, its selects):
-    /// a light wash the glass shows through, as Zeron's settings select
+    /// a light wash the glass shows through, as Naive's settings select
     /// (settings/widgets.rs `select_fill`, wash 0.06, 0.10 under the
     /// pointer), lifting under the pointer: never the composer's
     /// near-solid `input_glass_bg` (#343438b8 drew a grey box on blue
-    /// glass). Zeron's own and every palette. Light keeps its white.
+    /// glass). Naive's own and every palette. Light keeps its white.
     #[test]
     fn a_field_on_dark_glass_is_a_wash_the_glass_shows_through() {
         let rig = Rig::new();
-        let mut worn = vec![("Zeron".to_string(), rig.wear(&json!({}), "dark"))];
-        for theme in builtin().into_iter().filter(|b| b.id != "zeron") {
+        let mut worn = vec![("Naive".to_string(), rig.wear(&json!({}), "dark"))];
+        for theme in builtin().into_iter().filter(|b| b.id != "naive") {
             if let Some(v) = theme.variant(true) {
                 worn.push((v.name.clone(), rig.wear(&slots_of(&theme), "dark")));
             }
         }
         for (what, report) in &worn {
-            let rest = color(&report["asked"]["zeron.field.glass"]);
-            let hover = color(&report["asked"]["zeron.field.glass_hover"]);
+            let rest = color(&report["asked"]["naive.field.glass"]);
+            let hover = color(&report["asked"]["naive.field.glass_hover"]);
             for (state, c) in [("rest", rest), ("hover", hover)] {
                 assert!(c.a <= 0x20, "{what}: a field on glass ({state}) is a wash, not a slab: {c}");
                 let ink = (c.r as u32 + c.g as u32 + c.b as u32) / 3;
@@ -518,9 +518,9 @@ mod tests {
             }
             assert!(hover.a > rest.a, "{what}: it lifts under the pointer: {rest} → {hover}");
         }
-        assert!(same(&color(&worn[0].1["asked"]["zeron.field.glass"]).to_string(), "#ebebeb0f"));
+        assert!(same(&color(&worn[0].1["asked"]["naive.field.glass"]).to_string(), "#ebebeb0f"));
         let light = rig.wear(&json!({}), "light");
-        assert!(same(&color(&light["asked"]["zeron.field.glass"]).to_string(), "#ffffff59"), "light's field on glass as it was");
-        assert!(same(&color(&light["asked"]["zeron.field.glass_hover"]).to_string(), "#ffffffcc"));
+        assert!(same(&color(&light["asked"]["naive.field.glass"]).to_string(), "#ffffff59"), "light's field on glass as it was");
+        assert!(same(&color(&light["asked"]["naive.field.glass_hover"]).to_string(), "#ffffffcc"));
     }
 }

@@ -8,7 +8,7 @@ local motion = require("@ds/motion")
 ds.setup()
 local reduce_was = motion.reduce:peek()
 local theme_was = ui.theme.current:peek()
-ui.theme.current:set("zeron-dark")
+ui.theme.current:set("naive-dark")
 
 local draft = ui.state("fixture_preview_draft", "short")
 local focus = ui.state("fixture_preview_focus", 0)

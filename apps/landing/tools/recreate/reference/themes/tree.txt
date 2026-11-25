@@ -1,4 +1,4 @@
-          @6 dialog "Zeron" 0,0 1320x840
+          @6 dialog "Naive" 0,0 1320x840
             @7 #host-toasts 1304,824 0x0
       @1385 #shell 0,0 1320x840
         @1386 #shell-chats 0,0 1320x840

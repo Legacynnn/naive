@@ -5,12 +5,12 @@
 # pass-on-retry as FLAKY, so it stays visible in the log. Remove an override once
 # its test is fixed.
 
-# zeron-harness `opencode::mcp_injection_tests::mcp_injection_reaches_isolated_server_processes`
+# naive-harness `opencode::mcp_injection_tests::mcp_injection_reaches_isolated_server_processes`
 # starts `node` fixture scripts and `binary_version` gives each `--version` probe 2 s;
 # on a loaded 4-core runner the probe occasionally times out ("cannot determine
 # opencode version for MCP configuration").
 [[profile.default.overrides]]
-filter = 'package(zeron-harness) & test(mcp_injection_reaches_isolated_server_processes)'
+filter = 'package(naive-harness) & test(mcp_injection_reaches_isolated_server_processes)'
 retries = 2
 
 # preview `discovery` tests bind the fixed port 7331 and serialize with a mutex,
@@ -19,7 +19,7 @@ retries = 2
 max-threads = 1
 
 [[profile.default.overrides]]
-filter = 'binary_id(zeron-preview::discovery)'
+filter = 'binary_id(naive-preview::discovery)'
 test-group = 'preview-discovery'
 
 # `ci`: pull requests and main (NEXTEST_PROFILE=ci). Leaves out slow and soak
@@ -29,17 +29,17 @@ test-group = 'preview-discovery'
 #   harness codex: an app server that keeps dying (sleeps the real 1+3+8 s backoff);
 #   preview `leak` (RSS growth under churn) and the two discovery tests that
 #     assert nothing happens during a 5-7 s sleep.
-# The cursor_shim stress test runs 14 rounds instead of 100 (ZERON_STRESS_ROUNDS).
+# The cursor_shim stress test runs 14 rounds instead of 100 (NAIVE_STRESS_ROUNDS).
 [profile.ci]
 default-filter = '''
 not (
-  (package(zeron-engine) & (
+  (package(naive-engine) & (
     test(=doc_host::sync_lifecycle_tests::cold_jobs_get_a_real_timed_turn_without_any_writer_ending)
     | test(=doc_host::sync_lifecycle_tests::slow_checkpoints_survive_idle_grace_with_all_slots_occupied)
     | test(/^doc_host::sync_lifecycle_tests::forty_eight_/)))
-  | (binary_id(zeron-harness::codex) & test(=an_app_server_that_keeps_dying_reports_what_it_printed))
-  | binary_id(zeron-preview::leak)
-  | (binary_id(zeron-preview::discovery) & (test(=a_discovered_server_is_probed_once_not_every_cycle)
+  | (binary_id(naive-harness::codex) & test(=an_app_server_that_keeps_dying_reports_what_it_printed))
+  | binary_id(naive-preview::leak)
+  | (binary_id(naive-preview::discovery) & (test(=a_discovered_server_is_probed_once_not_every_cycle)
       | test(=authentication_callbacks_receive_no_discovery_connections)))
 )
 '''

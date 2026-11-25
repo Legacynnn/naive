@@ -21,18 +21,18 @@ const dataBlock = (html: string): Record<string, unknown> => {
 };
 
 describe("card pages", () => {
-  const urls = urlsFor(card, "https://zeron.sh");
+  const urls = urlsFor(card, "https://naive.sh");
 
   it("names the player, the picture and the assets from the site", () => {
     expect(urls).toEqual({
-      page: "https://zeron.sh/c/ada",
-      player: "https://zeron.sh/c/ada/player",
-      image: "https://zeron.sh/c/ada/card.png",
-      json: "https://zeron.sh/cards/ada",
-      script: "https://zeron.sh/card/card.js",
-      page_script: "https://zeron.sh/card/card-page.js",
-      style: "https://zeron.sh/card/card.css",
-      manifest: "https://zeron.sh/card/art/manifest.json"
+      page: "https://naive.sh/c/ada",
+      player: "https://naive.sh/c/ada/player",
+      image: "https://naive.sh/c/ada/card.png",
+      json: "https://naive.sh/cards/ada",
+      script: "https://naive.sh/card/card.js",
+      page_script: "https://naive.sh/card/card-page.js",
+      style: "https://naive.sh/card/card.css",
+      manifest: "https://naive.sh/card/art/manifest.json"
     });
   });
 
@@ -47,25 +47,25 @@ describe("card pages", () => {
   });
 
   it("shows the first name only, and the handle when there is none", () => {
-    const html = renderShare(card, urls, { site: "@zeron" });
-    expect(html).toContain('<meta name="twitter:title" content="Ada — Zeron member #182" />');
-    expect(html).toContain('<meta name="twitter:site" content="@zeron" />');
+    const html = renderShare(card, urls, { site: "@naive" });
+    expect(html).toContain('<meta name="twitter:title" content="Ada — Naive member #182" />');
+    expect(html).toContain('<meta name="twitter:site" content="@naive" />');
     expect(nameOf({ ...card, firstName: null })).toBe("@ada");
-    expect(renderPlayer({ ...card, firstName: null }, urls)).toContain("<title>@ada — Zeron</title>");
+    expect(renderPlayer({ ...card, firstName: null }, urls)).toContain("<title>@ada — Naive</title>");
   });
 
   it("carries the Player Card and Open Graph tags with absolute URLs, and no noindex", () => {
     const html = renderShare(card, urls);
     for (const tag of [
       '<meta name="twitter:card" content="player" />',
-      '<meta name="twitter:player" content="https://zeron.sh/c/ada/player" />',
+      '<meta name="twitter:player" content="https://naive.sh/c/ada/player" />',
       '<meta name="twitter:player:width" content="480" />',
       '<meta name="twitter:player:height" content="480" />',
-      '<meta name="twitter:image" content="https://zeron.sh/c/ada/card.png" />',
-      '<meta property="og:image" content="https://zeron.sh/c/ada/card.png" />',
-      '<meta property="og:url" content="https://zeron.sh/c/ada" />',
-      '<link rel="canonical" href="https://zeron.sh/c/ada" />',
-      '<script type="module" src="https://zeron.sh/card/card-page.js"></script>'
+      '<meta name="twitter:image" content="https://naive.sh/c/ada/card.png" />',
+      '<meta property="og:image" content="https://naive.sh/c/ada/card.png" />',
+      '<meta property="og:url" content="https://naive.sh/c/ada" />',
+      '<link rel="canonical" href="https://naive.sh/c/ada" />',
+      '<script type="module" src="https://naive.sh/card/card-page.js"></script>'
     ]) {
       expect(html).toContain(tag);
     }

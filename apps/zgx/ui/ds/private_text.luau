@@ -141,7 +141,7 @@ local Hidden = ui.component(function(p: { props: Props, value: () -> string }): 
 			end
 			return false
 		end
-		box.focus = { outline = "$zeron.focus.width", outline_color = "$zeron.focus.ring", outline_offset = ui.raw(2, "the ring clear of the text's own ink") }
+		box.focus = { outline = "$naive.focus.width", outline_color = "$naive.focus.ring", outline_offset = ui.raw(2, "the ring clear of the text's own ink") }
 	end
 	-- Which shows: the stand-in or the address (a real swap; the address
 	-- arrives with a short fade, and goes at once).

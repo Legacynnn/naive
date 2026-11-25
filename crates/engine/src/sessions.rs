@@ -1,7 +1,7 @@
 //! SessionsEngine — per-chat agent runs: dispatch, steering, interrupts, input bridging,
 //! journal + broadcast fan-out, and 120ms coalesced doc streaming.
 //!
-//! Pragmatic port of zeron's `sessions.ts` (spec: feature-inventory §3.2):
+//! Pragmatic port of naive's `sessions.ts` (spec: feature-inventory §3.2):
 //! - every `AgentEvent` is (a) appended to the on-disk run journal, (b) broadcast to
 //!   in-process subscribers, (c) folded via `fold_event_into_parts` and diffed into the
 //!   chat's `SessionDoc` through `SegmentWriter` on a coalesced `STREAM_COMMIT_MS` timer;
@@ -10,7 +10,7 @@
 //! - a `Steered` event splits the assistant entry at the exact boundary;
 //! - recovery (interrupt or a stale journal at boot) stamps the streaming entry `aborted`.
 //!
-//! Scope notes: sessions are keyed by chat id (one live run per chat). Zeron's pulse
+//! Scope notes: sessions are keyed by chat id (one live run per chat). Naive's pulse
 //! loop is ported as the 15s liveness heartbeat in `drive_run`; its stall watchdog is
 //! deliberately NOT ported (rejected in review — agents may legitimately wait on
 //! something for far longer than any timeout, and a live child IS the working signal).
@@ -24,12 +24,12 @@ use chrono::Utc;
 use futures::StreamExt;
 use tokio::sync::{broadcast, mpsc, oneshot, watch};
 
-use zeron_doc::{
+use naive_doc::{
     DocError, MessagePart, MessageRole, MessageStatus, STREAM_COMMIT_MS, SegmentWriter, SessionDoc,
     SessionMessageEntry, fold_event_into_parts, sanitize_tool_call,
 };
-use zeron_harness::{CancellationToken, Harness, RunControls, SteerMessage, TurnControl};
-use zeron_proto::{
+use naive_harness::{CancellationToken, Harness, RunControls, SteerMessage, TurnControl};
+use naive_proto::{
     AgentEvent, DoneStatus, HarnessId, RunRequest, Session, SessionStatus, UserInputAnswer,
     UserInputQuestion,
 };
@@ -64,7 +64,7 @@ type PendingInputs = Arc<Mutex<HashMap<String, oneshot::Sender<Vec<UserInputAnsw
 
 /// A harness-native session id plus the cwd it was created under. Harness
 /// session stores are cwd-scoped (claude keys conversations by project
-/// directory — zeron sessions.ts:563 "harness session stores are keyed by
+/// directory — naive sessions.ts:563 "harness session stores are keyed by
 /// cwd"), so resume is only injected for runs launched from the same cwd.
 #[derive(Debug, Clone)]
 struct HarnessSessionRef {
@@ -149,7 +149,7 @@ impl Drop for VoiceCall {
 }
 
 struct RunHandle {
-    voice: Option<zeron_harness::codex::realtime::RealtimeHandle>,
+    voice: Option<naive_harness::codex::realtime::RealtimeHandle>,
     voice_active: Arc<VoiceActivity>,
     run_id: String,
     steerable: bool,
@@ -208,8 +208,8 @@ struct RunHandle {
     binary: Option<String>,
     /// Launched without the provider's own subagents (Settings → Providers):
     /// a parked session whose setting has since flipped is replaced before
-    /// its next turn. The run's intent: the restriction rides Zeron's MCP
-    /// server, so with no IPC port served ([`Inner::zeron_mcp`] returns
+    /// its next turn. The run's intent: the restriction rides Naive's MCP
+    /// server, so with no IPC port served ([`Inner::naive_mcp`] returns
     /// `None`) the provider keeps its subagents.
     side_chats_only: bool,
     /// Launched with Code Mode enabled (Settings → Providers): a parked
@@ -263,9 +263,9 @@ struct Inner {
     voice: crate::voice::VoiceManager,
     device_id: String,
     /// Per chat: the background processes its runtime runs (as it last
-    /// said), and the background commands its agent started with Zeron's
+    /// said), and the background commands its agent started with Naive's
     /// `run_command`, here or on another device. Its session row shows both.
-    runtime_tasks: Mutex<HashMap<String, Vec<zeron_proto::BackgroundTask>>>,
+    runtime_tasks: Mutex<HashMap<String, Vec<naive_proto::BackgroundTask>>>,
     command_tasks: Mutex<HashMap<String, Vec<crate::commands::CommandTask>>>,
     /// The engine is shutting down: dying runs re-dispatch nothing.
     shutting_down: std::sync::atomic::AtomicBool,
@@ -287,7 +287,7 @@ struct Inner {
     /// nothing to stop, and still ends the turn.
     user_stops: Mutex<HashMap<String, u64>>,
     /// Loopback IPC port this engine serves, once known (0 = not serving):
-    /// what the injected `zeron mcp` server dials back into.
+    /// what the injected `naive mcp` server dials back into.
     ipc_port: std::sync::atomic::AtomicU16,
     /// Rung as the port is recorded: what a run revived on boot, while the
     /// engine is still being assembled, waits on ([`SessionsEngine::ipc_port_ready`]).
@@ -296,11 +296,11 @@ struct Inner {
     /// ([`SessionsEngine::set_no_ipc_port`]): that wait ends at once.
     ipc_none: std::sync::atomic::AtomicBool,
     /// Where this engine publishes its IPC bearer (`{data_dir}/ipc-token`),
-    /// handed to the injected `zeron mcp` as a PATH, never the token itself.
+    /// handed to the injected `naive mcp` as a PATH, never the token itself.
     ipc_token_file: Mutex<Option<std::path::PathBuf>>,
     /// The engine's own agent MCP endpoint ([`SessionsEngine::serve_mcp_endpoint`]):
-    /// runs get a token for it instead of a `zeron mcp` process.
-    mcp_endpoint: Mutex<Option<Arc<zeron_mcp::http::McpHttpServer>>>,
+    /// runs get a token for it instead of a `naive mcp` process.
+    mcp_endpoint: Mutex<Option<Arc<naive_mcp::http::McpHttpServer>>>,
     /// Per chat: who has its transcript open now, and when the last left.
     viewers: Arc<Viewers>,
     journal: Arc<RunJournal>,
@@ -324,7 +324,7 @@ struct Inner {
     last_requests: Mutex<HashMap<String, RunRequest>>,
     /// Harness-native session ids per chat (resume continuity across turns) —
     /// the live-process cache over the durable copy on the workspace chat row
-    /// (zeron kept the same pair on `chats.harness_session_id`). An empty
+    /// (naive kept the same pair on `chats.harness_session_id`). An empty
     /// session id is the "do not resume" tombstone after a rejected resume.
     harness_sessions: Mutex<HashMap<String, HarnessSessionRef>>,
     /// Per chat: session ids the provider said it no longer has. Never
@@ -339,7 +339,7 @@ struct Inner {
     titles: OnceLock<crate::titles::TitleGenerator>,
     generated_images: OnceLock<(crate::uploads::Uploads, std::path::PathBuf)>,
     /// [`crate::Repos::scratch_root`]; bare tests fall back to
-    /// `~/.zeron/scratch`.
+    /// `~/.naive/scratch`.
     scratch_root: OnceLock<std::path::PathBuf>,
     /// Fired with `(chat_id, cwd)` when a user prompt starts a turn (fresh
     /// dispatch or accepted steer) — the diff sync snapshots the checkout tree
@@ -373,7 +373,7 @@ struct Inner {
 /// applies only to a CLI known to make that report (Claude's version gate,
 /// in its driver), and before stopping one the engine looks at its
 /// process's live children — anything but its configured MCP servers holds
-/// it ([`zeron_harness::process::unexpected_descendants`]).
+/// it ([`naive_harness::process::unexpected_descendants`]).
 pub const AGENT_IDLE_STOP: std::time::Duration = std::time::Duration::from_secs(120);
 
 /// The idle window of drivers not stopped after [`AGENT_IDLE_STOP`].
@@ -458,7 +458,7 @@ fn window_now(
     }
 }
 
-/// The engine binary's stdio-to-HTTP MCP forwarder ([`zeron_mcp::proxy`]).
+/// The engine binary's stdio-to-HTTP MCP forwarder ([`naive_mcp::proxy`]).
 pub const MCP_PROXY_SUBCOMMAND: &str = "mcp-proxy";
 
 /// Turn-start hook: called with `(chat_id, cwd)`.
@@ -547,8 +547,8 @@ impl SessionsEngine {
     }
 
     /// Record the loopback IPC port this engine serves. Runs started after
-    /// this carry Zeron's MCP server (see [`Inner::zeron_mcp`]); until then —
-    /// or with 0 — agents get no Zeron tools rather than a dead server.
+    /// this carry Naive's MCP server (see [`Inner::naive_mcp`]); until then —
+    /// or with 0 — agents get no Naive tools rather than a dead server.
     pub fn set_ipc_port(&self, port: u16) {
         self.inner
             .ipc_port
@@ -557,7 +557,7 @@ impl SessionsEngine {
     }
 
     /// Record that this engine serves no IPC port (it lost the bind): a run
-    /// revived on boot goes on at once without Zeron tools, rather than
+    /// revived on boot goes on at once without Naive tools, rather than
     /// waiting out [`Self::ipc_port_ready`]'s limit for a port never coming.
     pub fn set_no_ipc_port(&self) {
         self.inner
@@ -569,7 +569,7 @@ impl SessionsEngine {
     /// Until the IPC port is recorded (or none is said to be coming), or
     /// `limit` passes. Boot recovery revives cut-off turns while the engine is
     /// still being assembled, before it serves its port: dispatched then, a
-    /// revived run went out with no Zeron tools (its agent read them as gone,
+    /// revived run went out with no Naive tools (its agent read them as gone,
     /// and a parent woken by its children's reports couldn't answer them).
     async fn ipc_port_ready(&self, limit: std::time::Duration) {
         let deadline = tokio::time::Instant::now() + limit;
@@ -597,30 +597,30 @@ impl SessionsEngine {
     }
 
     /// Record where the served port's bearer lives (`{data_dir}/ipc-token`).
-    /// The injected MCP server gets `ZERON_IPC_TOKEN_FILE` and reads the file
+    /// The injected MCP server gets `NAIVE_IPC_TOKEN_FILE` and reads the file
     /// at dial time, so it follows token rotation across engine restarts.
     pub fn set_ipc_token_file(&self, path: std::path::PathBuf) {
         *lock(&self.inner.ipc_token_file) = Some(path);
     }
 
-    /// Serve Zeron's MCP tools to this engine's agents from the engine itself
-    /// ([`zeron_mcp::http`]), over `service` (the engine's RPC, reached as
-    /// each run's agent: [`zeron_rpc::agent_service`]). Runs started after
-    /// this get a token for it rather than a `zeron mcp` process.
+    /// Serve Naive's MCP tools to this engine's agents from the engine itself
+    /// ([`naive_mcp::http`]), over `service` (the engine's RPC, reached as
+    /// each run's agent: [`naive_rpc::agent_service`]). Runs started after
+    /// this get a token for it rather than a `naive mcp` process.
     /// `service` holds this engine, and the endpoint lives here: retirement
     /// severs that ([`Self::clear_doc_host`]).
     pub async fn serve_mcp_endpoint(
         &self,
-        service: Arc<dyn zeron_rpc::RpcService>,
+        service: Arc<dyn naive_rpc::RpcService>,
     ) -> std::io::Result<()> {
-        let factory: zeron_mcp::http::ToolsFactory = Arc::new(move |origin: &zeron_mcp::Origin| {
+        let factory: naive_mcp::http::ToolsFactory = Arc::new(move |origin: &naive_mcp::Origin| {
             let chat = origin.chat_id.clone().unwrap_or_default();
-            Arc::new(zeron_mcp::Tools::new(Arc::new(zeron_mcp::Zeron::with_client(
-                zeron_rpc::memory_client(zeron_rpc::agent_service(service.clone(), chat)),
+            Arc::new(naive_mcp::Tools::new(Arc::new(naive_mcp::Naive::with_client(
+                naive_rpc::memory_client(naive_rpc::agent_service(service.clone(), chat)),
                 origin.clone(),
             ))))
         });
-        let endpoint = zeron_mcp::http::McpHttpServer::bind(factory).await?;
+        let endpoint = naive_mcp::http::McpHttpServer::bind(factory).await?;
         *lock(&self.inner.mcp_endpoint) = Some(Arc::new(endpoint));
         Ok(())
     }
@@ -697,7 +697,7 @@ impl SessionsEngine {
     /// Only a row seen and then gone counts: a run may start before its row
     /// syncs in, and that is not a deletion. Archiving keeps the row, so an
     /// archived chat's run goes on (a send revives an archived chat).
-    pub fn follow_chat_deletions(&self, mut chats: watch::Receiver<Vec<zeron_proto::Chat>>) {
+    pub fn follow_chat_deletions(&self, mut chats: watch::Receiver<Vec<naive_proto::Chat>>) {
         let weak = Arc::downgrade(&self.inner);
         let mut known: std::collections::HashSet<String> =
             chats.borrow_and_update().iter().map(|c| c.id.clone()).collect();
@@ -835,13 +835,13 @@ impl SessionsEngine {
         chat_id: &str,
         task_ids: &[String],
         waiting: bool,
-    ) -> Result<zeron_harness::MarkOutcome, AwaitRefused> {
+    ) -> Result<naive_harness::MarkOutcome, AwaitRefused> {
         let turn = lock(&self.inner.runs)
             .get(chat_id)
             .map(|h| h.turn.clone())
             .ok_or(AwaitRefused::NoRun)?;
         turn.mark_awaited(task_ids, waiting).map_err(|refused| match refused {
-            zeron_harness::MarkRefused::NoWake => AwaitRefused::NoWake,
+            naive_harness::MarkRefused::NoWake => AwaitRefused::NoWake,
         })
     }
 
@@ -932,7 +932,7 @@ impl SessionsEngine {
         &self,
         chat_id: &str,
         task_id: &str,
-    ) -> Option<zeron_proto::BackgroundTaskOutput> {
+    ) -> Option<naive_proto::BackgroundTaskOutput> {
         let turn = lock(&self.inner.runs).get(chat_id)?.turn.clone();
         let task_id = task_id.to_owned();
         tokio::task::spawn_blocking(move || turn.background_output(&task_id))
@@ -948,7 +948,7 @@ impl SessionsEngine {
         doc_id: &str,
         tool_id: &str,
         offset: u64,
-    ) -> Result<zeron_proto::ToolOutputChunk, crate::tool_output::ToolOutputError> {
+    ) -> Result<naive_proto::ToolOutputChunk, crate::tool_output::ToolOutputError> {
         let journal = self.inner.journal.clone();
         let (doc_id, tool_id) = (doc_id.to_owned(), tool_id.to_owned());
         tokio::task::spawn_blocking(move || {
@@ -1074,7 +1074,7 @@ impl SessionsEngine {
     pub fn live_run_matches_config(
         &self,
         chat_id: &str,
-        config: &zeron_proto::ChatConfig,
+        config: &naive_proto::ChatConfig,
     ) -> bool {
         if !self.turn_in_flight(chat_id) {
             return true;
@@ -1202,8 +1202,8 @@ impl SessionsEngine {
         &self,
         chat_id: &str,
     ) -> Option<(
-        zeron_harness::codex::realtime::RealtimeHandle,
-        tokio::sync::broadcast::Receiver<zeron_proto::voice::VoiceEvent>,
+        naive_harness::codex::realtime::RealtimeHandle,
+        tokio::sync::broadcast::Receiver<naive_proto::voice::VoiceEvent>,
         Arc<VoiceActivity>,
     )> {
         let mut runs = lock(&self.inner.runs);
@@ -1219,7 +1219,7 @@ impl SessionsEngine {
     ///
     /// - The user message entry is written to the doc immediately (id = `message_id`).
     /// - A live steerable run receives the prompt as its next turn via the mailbox
-    ///   (zeron's persistent-session routing); otherwise any live run is interrupted
+    ///   (naive's persistent-session routing); otherwise any live run is interrupted
     ///   first — never two runtimes driving one chat.
     pub async fn dispatch(
         &self,
@@ -1284,12 +1284,12 @@ impl SessionsEngine {
             .scratch_root
             .get()
             .cloned()
-            .unwrap_or_else(|| crate::repos::home_dir().join(".zeron").join("scratch"));
+            .unwrap_or_else(|| crate::repos::home_dir().join(".naive").join("scratch"));
         request.cwd = crate::repos::resolve_chat_cwd(&request.cwd, &scratch_root)
             .map_err(EngineError::Other)?;
         // Native-only catalog entries have no portable file fallback. Reject
         // cross-harness delivery before recording or routing the user turn.
-        zeron_proto::invocation::validate_harness_invocations(&request.prompt, harness_id)
+        naive_proto::invocation::validate_harness_invocations(&request.prompt, harness_id)
             .map_err(EngineError::Other)?;
         // A revival reaching a chat that has a run again (a message sent
         // since boot): that run owns the chat, and reviving the old turn into
@@ -1380,7 +1380,7 @@ impl SessionsEngine {
                     prompt: if harness_id == HarnessId::Opencode {
                         delivered.to_owned()
                     } else {
-                        zeron_proto::invocation::harness_prompt(delivered, harness_id)
+                        naive_proto::invocation::harness_prompt(delivered, harness_id)
                     },
                     message_id: Some(user_id.clone()),
                     // Images ride the mailbox too: replacing the runtime just
@@ -1515,7 +1515,7 @@ impl SessionsEngine {
         let side_chats_only = self.inner.side_chats_only(chat_id, harness_id);
         let code_mode = self.inner.registry.code_mode(harness_id);
 
-        // Engine-owned resume (zeron sessions.ts:736 — every dispatch read the
+        // Engine-owned resume (naive sessions.ts:736 — every dispatch read the
         // chat's stored harness session): callers always send `resume: None`;
         // the engine threads the chat's prior harness session back in so a new
         // process (app restart) continues the same harness conversation. The
@@ -1588,7 +1588,7 @@ impl SessionsEngine {
         let turn = TurnControl::default();
         let started = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let fork_history_sent = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let (voice_handle, realtime, _voice_events) = zeron_harness::codex::realtime::channel();
+        let (voice_handle, realtime, _voice_events) = naive_harness::codex::realtime::channel();
         let voice_active = Arc::new(VoiceActivity::default());
         let controls = RunControls {
             realtime: (harness_id == HarnessId::Codex).then_some(realtime),
@@ -1771,7 +1771,7 @@ impl SessionsEngine {
 
     /// Whether a session parked between turns runs a CLI binary other than
     /// the one a run would launch now (the CLI updated itself, or was updated
-    /// outside zeron, since it started). Same guards as
+    /// outside naive, since it started). Same guards as
     /// [`Self::credential_changed`]: never mid-turn, never with background
     /// work on it, never on an unknown binary.
     async fn binary_changed(
@@ -1922,7 +1922,7 @@ impl SessionsEngine {
         let Some((run_id, harness_id, steer_tx, ledger, history_sent, retiring)) = target else {
             return Ok(SteerOutcome::NotSteerable);
         };
-        zeron_proto::invocation::validate_harness_invocations(prompt, harness_id)
+        naive_proto::invocation::validate_harness_invocations(prompt, harness_id)
             .map_err(EngineError::Other)?;
         let user_id = message_id.unwrap_or_else(new_id);
         let bootstrap = self.warm_fork_history(chat_id, harness_id, prompt, &history_sent);
@@ -1938,7 +1938,7 @@ impl SessionsEngine {
             prompt: if harness_id == HarnessId::Opencode {
                 delivered.to_owned()
             } else {
-                zeron_proto::invocation::harness_prompt(delivered, harness_id)
+                naive_proto::invocation::harness_prompt(delivered, harness_id)
             },
             message_id: Some(user_id.clone()),
             attachments,
@@ -2040,7 +2040,7 @@ impl SessionsEngine {
         message_id: Option<String>,
         issued_at: i64,
     ) -> Result<SteerOutcome, EngineError> {
-        let from_another_chat = zeron_proto::agent_messages::agent_message_sender(prompt).is_some();
+        let from_another_chat = naive_proto::agent_messages::agent_message_sender(prompt).is_some();
         if !from_another_chat
             && self.steer_stops_tool(chat_id)
             && self.stop_turn_keeping_runtime(chat_id).await
@@ -2312,7 +2312,7 @@ impl SessionsEngine {
     /// entries are stamped `aborted` with a VISIBLE "Run interrupted by engine
     /// restart" error part and its journal closed with a synthetic
     /// `Done{interrupted}`. Then a fresh turn with revival budget left is
-    /// re-dispatched against the remembered harness session (zeron: "not just
+    /// re-dispatched against the remembered harness session (naive: "not just
     /// eulogized"; `MAX_AUTO_RESUME` = 3 consecutive revivals, fresh =
     /// interrupted < 12h ago), under its original user message id.
     ///
@@ -2370,7 +2370,7 @@ impl SessionsEngine {
             // Harness continuity first: the crashed run's session id may only
             // exist in the journal (the debounced workspace-row write may
             // never have landed) — remember it so the revived run resumes the
-            // same harness conversation (zeron recoverDraft, sessions.ts:538).
+            // same harness conversation (naive recoverDraft, sessions.ts:538).
             if let Some((session_id, cwd, Some(owner))) =
                 self.inner.journal_harness_session(&chat_id)
             {
@@ -2525,7 +2525,7 @@ impl SessionsEngine {
                     lock(&sessions.inner.revivals_starting).remove(&chat_id);
                     return;
                 };
-                // Its Zeron tools need the port the engine is about to serve.
+                // Its Naive tools need the port the engine is about to serve.
                 // (One serving none, its in-process transport alone, goes on
                 // without them after a moment, as any run of its does.)
                 sessions
@@ -2583,7 +2583,7 @@ impl SessionsEngine {
         let mut request = self
             .last_request(chat_id)
             .or_else(|| host.request_from_chat_row(chat_id, prompt))
-            // Last resort: the journal's own cwd (zeron's draft config)
+            // Last resort: the journal's own cwd (naive's draft config)
             // — a crash can predate the debounced workspace-row write.
             .or_else(|| {
                 let (_, cwd, _) = self.inner.journal_harness_session(chat_id)?;
@@ -2595,7 +2595,7 @@ impl SessionsEngine {
                     reasoning: None,
                     model_options: Default::default(),
                     cwd,
-                    sandbox: zeron_proto::SandboxLevel::WorkspaceWrite,
+                    sandbox: naive_proto::SandboxLevel::WorkspaceWrite,
                     auto_approve: false,
                     access: Default::default(),
                     plan: false,
@@ -2709,7 +2709,7 @@ impl Inner {
         &self,
         chat_id: &str,
         tool_id: &str,
-        payloads: Vec<zeron_proto::ToolResultImage>,
+        payloads: Vec<naive_proto::ToolResultImage>,
     ) -> Vec<String> {
         let Some((uploads, _)) = self.generated_images.get() else {
             tracing::warn!(
@@ -2963,7 +2963,7 @@ impl Inner {
     /// tool input being generated) still carry events — the UI's 45s
     /// staleness gate must not flip "Working" off mid-run. Each touch is a
     /// stored registry write, so it comes only as often as that gate needs
-    /// ([`zeron_proto::view::SESSION_HEARTBEAT_MS`]), and never for a row
+    /// ([`naive_proto::view::SESSION_HEARTBEAT_MS`]), and never for a row
     /// with nothing to expire: a session parked idle after its turn read the
     /// same with or without one, and touched every 15 s for its 30 minutes.
     fn touch_session(&self, chat_id: &str) {
@@ -3026,7 +3026,7 @@ impl Inner {
     /// Publish the background processes `chat_id`'s runtime runs, mirrored
     /// like [`Self::set_running_subagents`]. The live heartbeat keeps the row
     /// fresh while they run; an engine that stops beating took them with it.
-    fn set_background_tasks(&self, chat_id: &str, tasks: Vec<zeron_proto::BackgroundTask>) {
+    fn set_background_tasks(&self, chat_id: &str, tasks: Vec<naive_proto::BackgroundTask>) {
         {
             let mut runtime = lock(&self.runtime_tasks);
             if tasks.is_empty() {
@@ -3127,12 +3127,12 @@ impl Inner {
             }
             entry.status = status;
             if let Some(outcome) = outcome {
-                entry.last_turn_outcome = Some(zeron_proto::NativeTurnOutcome {
+                entry.last_turn_outcome = Some(naive_proto::NativeTurnOutcome {
                     status: outcome,
                     finished_at: now,
                 });
             } else if status == SessionStatus::Errored {
-                entry.last_turn_outcome = Some(zeron_proto::NativeTurnOutcome {
+                entry.last_turn_outcome = Some(naive_proto::NativeTurnOutcome {
                     status: DoneStatus::Errored,
                     finished_at: now,
                 });
@@ -3181,7 +3181,7 @@ impl Inner {
     /// Publish what `chat_id`'s agent waits on after its turn ended (`None`:
     /// no wait), mirrored like [`Self::set_background_tasks`]; the live
     /// heartbeat keeps the row fresh while the wait holds.
-    fn set_waiting(&self, chat_id: &str, waiting: Option<zeron_proto::SessionWaiting>) {
+    fn set_waiting(&self, chat_id: &str, waiting: Option<naive_proto::SessionWaiting>) {
         let session = {
             let mut statuses = lock(&self.statuses);
             let Some(entry) = statuses.get_mut(chat_id) else {
@@ -3235,23 +3235,23 @@ impl Inner {
             })
     }
 
-    /// Zeron's own MCP server for a run of `chat_id`, stamped with the
+    /// Naive's own MCP server for a run of `chat_id`, stamped with the
     /// originating chat + device so the agent's side chats link back here.
     /// None when the engine serves neither its MCP endpoint nor an IPC port.
     ///
     /// With the engine's MCP endpoint up ([`SessionsEngine::serve_mcp_endpoint`]),
     /// the engine serves the tools itself: the run gets a token of its own
-    /// ([`zeron_mcp::http::Grant`], returned beside the server and held for
+    /// ([`naive_mcp::http::Grant`], returned beside the server and held for
     /// as long as the run lives), naming this chat and revoked when the run
     /// ends. Agents that speak HTTP MCP get the endpoint
-    /// ([`zeron_proto::McpServer::http`]) and start no process; the rest get
+    /// ([`naive_proto::McpServer::http`]) and start no process; the rest get
     /// this binary's `mcp-proxy`, a few-MB stdio-to-HTTP forwarder. The token
     /// reaches what the agent-scoped IPC token reached, pinned to this chat.
     ///
-    /// Without it (no endpoint bound): this binary's `zeron mcp`, dialing the
+    /// Without it (no endpoint bound): this binary's `naive mcp`, dialing the
     /// engine's IPC port with the agent-scoped bearer
-    /// (`{data_dir}/ipc-token-agent`, [`zeron_rpc::agent_allowed`]), handed
-    /// over as a file PATH (`ZERON_IPC_TOKEN_FILE`) because some harnesses
+    /// (`{data_dir}/ipc-token-agent`, [`naive_rpc::agent_allowed`]), handed
+    /// over as a file PATH (`NAIVE_IPC_TOKEN_FILE`) because some harnesses
     /// put this env on the command line (Claude's inline `--mcp-config`).
     ///
     /// `side_chats_only`: the run's provider launches without its own
@@ -3259,34 +3259,34 @@ impl Inner {
     /// runtime wakes its agent as background work ends
     /// ([`Harness::wakes_on_background`]), so the agent is offered
     /// `wait_on_background`.
-    fn zeron_mcp(
+    fn naive_mcp(
         &self,
         chat_id: &str,
         side_chats_only: bool,
         waits: bool,
-    ) -> Option<(zeron_proto::McpServer, Option<zeron_mcp::http::Grant>)> {
+    ) -> Option<(naive_proto::McpServer, Option<naive_mcp::http::Grant>)> {
         let command = crate::managed::mcp_executable()?.to_str()?.to_owned();
         let mut env: std::collections::BTreeMap<String, String> = [
-            (zeron_proto::McpServer::CHAT_ID_ENV.to_owned(), chat_id.to_owned()),
-            ("ZERON_DEVICE_ID".to_owned(), self.device_id.clone()),
+            (naive_proto::McpServer::CHAT_ID_ENV.to_owned(), chat_id.to_owned()),
+            ("NAIVE_DEVICE_ID".to_owned(), self.device_id.clone()),
         ]
         .into_iter()
         .collect();
         if side_chats_only {
             env.insert(
-                zeron_proto::McpServer::SIDE_CHATS_ONLY_ENV.to_owned(),
+                naive_proto::McpServer::SIDE_CHATS_ONLY_ENV.to_owned(),
                 "1".to_owned(),
             );
         }
         if waits {
             env.insert(
-                zeron_proto::McpServer::WAITS_ON_BACKGROUND_ENV.to_owned(),
+                naive_proto::McpServer::WAITS_ON_BACKGROUND_ENV.to_owned(),
                 "1".to_owned(),
             );
         }
         let endpoint = lock(&self.mcp_endpoint).clone();
         if let Some(endpoint) = endpoint {
-            let origin = zeron_mcp::Origin {
+            let origin = naive_mcp::Origin {
                 chat_id: Some(chat_id.to_owned()),
                 device_id: Some(self.device_id.clone()),
                 side_chats_only,
@@ -3295,9 +3295,9 @@ impl Inner {
             match endpoint.grant(origin) {
                 Ok(grant) => {
                     let url = endpoint.url();
-                    env.insert(zeron_proto::McpServer::URL_ENV.to_owned(), url.clone());
+                    env.insert(naive_proto::McpServer::URL_ENV.to_owned(), url.clone());
                     env.insert(
-                        zeron_proto::McpServer::TOKEN_ENV.to_owned(),
+                        naive_proto::McpServer::TOKEN_ENV.to_owned(),
                         grant.token().to_owned(),
                     );
                     let headers = [(
@@ -3307,12 +3307,12 @@ impl Inner {
                     .into_iter()
                     .collect();
                     return Some((
-                        zeron_proto::McpServer {
-                            name: "zeron".into(),
+                        naive_proto::McpServer {
+                            name: "naive".into(),
                             command,
                             args: vec![MCP_PROXY_SUBCOMMAND.into()],
                             env,
-                            http: Some(zeron_proto::McpHttp { url, headers }),
+                            http: Some(naive_proto::McpHttp { url, headers }),
                         },
                         Some(grant),
                     ));
@@ -3326,19 +3326,19 @@ impl Inner {
         if port == 0 {
             return None;
         }
-        env.insert("ZERON_IPC_PORT".to_owned(), port.to_string());
+        env.insert("NAIVE_IPC_PORT".to_owned(), port.to_string());
         if let Some(path) = lock(&self.ipc_token_file)
             .as_ref()
             .and_then(|path| path.to_str())
         {
             env.insert(
-                zeron_rpc::ipc_auth::TOKEN_FILE_ENV.to_owned(),
+                naive_rpc::ipc_auth::TOKEN_FILE_ENV.to_owned(),
                 path.to_owned(),
             );
         }
         Some((
-            zeron_proto::McpServer {
-                name: "zeron".into(),
+            naive_proto::McpServer {
+                name: "naive".into(),
                 command,
                 args: vec!["mcp".into()],
                 env,
@@ -3384,7 +3384,7 @@ impl Inner {
 
     /// Record the chat's harness-native session id (and its cwd): live-process
     /// cache plus the durable workspace chat row — the row is what survives an
-    /// engine restart (zeron sessions.ts:1039).
+    /// engine restart (naive sessions.ts:1039).
     fn remember_harness_session(
         &self,
         chat_id: &str,
@@ -3418,7 +3418,7 @@ impl Inner {
     // when the provider itself says the session is gone (`resume_rejected`).
 
     /// The session id to resume for a run of `harness` in `chat_id` launching
-    /// from `cwd` (zeron sessions.ts:736, looked up on every dispatch):
+    /// from `cwd` (naive sessions.ts:736, looked up on every dispatch):
     /// live-process cache → workspace chat row → journal scan (the crash path
     /// where the debounced row write never landed — SessionStarted/Done events
     /// are journaled per event, flushed immediately). Cwd-gated throughout:
@@ -3548,7 +3548,7 @@ impl Inner {
             (Some(old), Some(new)) if position(&old) > position(&new) => Some(old),
             (old, new) => new.or(old),
         };
-        let mark = zeron_doc::ProviderSessionMark {
+        let mark = naive_doc::ProviderSessionMark {
             session_id: session_id.to_owned(),
             cwd: cwd.to_owned(),
             seen,
@@ -3833,7 +3833,7 @@ impl Inner {
             && !known.session_id.is_empty()
             && let Err(err) = doc.doc().set_provider_session(
                 previous.as_str(),
-                &zeron_doc::ProviderSessionMark {
+                &naive_doc::ProviderSessionMark {
                     session_id: known.session_id,
                     cwd: known.cwd,
                     // Not the message that triggers this switch (written
@@ -3841,7 +3841,7 @@ impl Inner {
                     // switch back must replay them.
                     seen: entries
                         .iter()
-                        .rposition(|entry| entry.role != zeron_doc::MessageRole::User)
+                        .rposition(|entry| entry.role != naive_doc::MessageRole::User)
                         .map(|ix| entries[ix].id.clone()),
                 },
             )
@@ -3932,8 +3932,8 @@ impl Inner {
                     entry.parts.iter().any(|part| {
                         matches!(
                             part,
-                            zeron_doc::MessagePart::Fork { .. }
-                                | zeron_doc::MessagePart::Switch { .. }
+                            naive_doc::MessagePart::Fork { .. }
+                                | naive_doc::MessagePart::Switch { .. }
                         )
                     })
                 })?
@@ -3975,7 +3975,7 @@ impl Inner {
 /// Format `entries` within [`HISTORY_REPLAY_CHARS`] (newest messages win) in
 /// front of `prompt`, or `None` if `entries` carry no replayable text/tools.
 fn format_history_prompt(
-    entries: &[zeron_doc::SessionMessageEntry],
+    entries: &[naive_doc::SessionMessageEntry],
     prompt: &str,
     intro: &str,
 ) -> Option<String> {
@@ -3986,8 +3986,8 @@ fn format_history_prompt(
                 .parts
                 .iter()
                 .filter_map(|part| match part {
-                    zeron_doc::MessagePart::Text { text, .. } => Some(text.clone()),
-                    zeron_doc::MessagePart::Tool { call, output, .. } => Some(format!(
+                    naive_doc::MessagePart::Text { text, .. } => Some(text.clone()),
+                    naive_doc::MessagePart::Tool { call, output, .. } => Some(format!(
                         "Tool: {}\n{}",
                         serde_json::to_string(call).unwrap_or_default(),
                         clip_chars(
@@ -4042,7 +4042,7 @@ fn format_history_prompt(
 /// it model input. A leading path ("/tmp/app/main.rs panics…") is not a
 /// command name: it is ordinary work.
 fn native_command(prompt: &str, harness: HarnessId) -> bool {
-    use zeron_proto::invocation::{self, Invocation};
+    use naive_proto::invocation::{self, Invocation};
     let selected = invocation::invocation_links(prompt)
         .into_iter()
         .next()
@@ -4162,7 +4162,7 @@ fn answered_in(entries: &[SessionMessageEntry], user_id: &str) -> bool {
 /// its resume fails — and without it that session would get only the nudge.
 fn revival_prompt(original: &str) -> String {
     format!(
-        "Your previous turn was cut off before it finished (Zeron restarted). Continue \
+        "Your previous turn was cut off before it finished (Naive restarted). Continue \
          where you left off. Anything you already completed, such as edits, commands or \
          commits, is done: check before repeating it. The request is below for \
          reference; if it is not in your history yet, handle it now.\n\n\
@@ -4193,9 +4193,9 @@ const SPAWN_RETRY_DELAYS: [std::time::Duration; 3] = [
 /// bit fails that way forever, so it counts only when the harness's CLI was
 /// rewritten moments ago (`cli_just_replaced`, see
 /// [`cli_replaced_recently`]).
-fn transient_start_failure(err: &zeron_harness::HarnessError, cli_just_replaced: bool) -> bool {
+fn transient_start_failure(err: &naive_harness::HarnessError, cli_just_replaced: bool) -> bool {
     use std::io::ErrorKind;
-    let zeron_harness::HarnessError::Io(err) = err else {
+    let naive_harness::HarnessError::Io(err) = err else {
         return false;
     };
     match err.kind() {
@@ -4267,9 +4267,9 @@ const HEARTBEAT_CHECK: std::time::Duration = std::time::Duration::from_secs(5);
 /// `now`: only a row readers would expire, once its last stamp is a
 /// heartbeat old.
 fn touch_due(session: &Session, now: chrono::DateTime<Utc>) -> bool {
-    zeron_proto::view::session_expires(session)
+    naive_proto::view::session_expires(session)
         && now.signed_duration_since(session.updated_at).num_milliseconds()
-            >= zeron_proto::view::SESSION_HEARTBEAT_MS
+            >= naive_proto::view::SESSION_HEARTBEAT_MS
 }
 
 // ── subagent docs ───────────────────────────────────────────────────────────
@@ -4450,7 +4450,7 @@ impl SubagentSink {
         if let Err(err) = finished {
             tracing::warn!(doc = %self.doc_id, error = %err, "subagent sink finish failed");
         }
-        let entries = zeron_doc::join_continuation_entries(self.doc.read_entries().ok()?);
+        let entries = naive_doc::join_continuation_entries(self.doc.read_entries().ok()?);
         serde_json::to_string(&entries).ok()
     }
 }
@@ -4473,10 +4473,10 @@ fn subagent_chip_update(event: &AgentEvent) -> Option<&'static str> {
 /// full access). Refused before launch, whatever the client sent.
 fn auto_unavailable(
     request: &RunRequest,
-    offered: &[zeron_proto::AccessMode],
-) -> Option<zeron_harness::HarnessError> {
+    offered: &[naive_proto::AccessMode],
+) -> Option<naive_harness::HarnessError> {
     (!request.auto_approve && request.access.honored_by(offered).is_none()).then(|| {
-        zeron_harness::HarnessError::Protocol(
+        naive_harness::HarnessError::Protocol(
             "This agent can't run in Auto. Choose another access mode or agent.".into(),
         )
     })
@@ -4539,7 +4539,7 @@ fn render_parts(parts: &[MessagePart]) -> Vec<MessagePart> {
                 output_lines: *output_lines,
                 // The reviewer's verdict stays: it's what the person needs to
                 // see. Its words are bounded, as an output summary is.
-                review: review.as_ref().map(|r| zeron_proto::ToolReview {
+                review: review.as_ref().map(|r| naive_proto::ToolReview {
                     risk: r.risk.as_deref().map(|risk| cap_review_text(risk, 32)),
                     reason: r.reason.as_deref().map(|why| cap_review_text(why, 600)),
                     ..r.clone()
@@ -4633,7 +4633,7 @@ fn cursor_unstarted_history(
     // Convert each message before JSON encoding. Rewriting canonical chips in
     // the encoded envelope can introduce unescaped quotes or newlines and can
     // cause Cursor's current message to be converted twice.
-    let prompt = zeron_proto::invocation::harness_prompt(prompt, HarnessId::Cursor);
+    let prompt = naive_proto::invocation::harness_prompt(prompt, HarnessId::Cursor);
     let entries = doc.read_entries()?;
     let preceding: Vec<_> = entries
         .iter()
@@ -4675,7 +4675,7 @@ fn cursor_unstarted_history(
                 .join("\n")
         })
         .filter(|text| !text.is_empty())
-        .map(|text| zeron_proto::invocation::harness_prompt(&text, HarnessId::Cursor))
+        .map(|text| naive_proto::invocation::harness_prompt(&text, HarnessId::Cursor))
         .collect();
     if previous.is_empty() {
         return Ok(prompt);
@@ -4711,7 +4711,7 @@ pub enum AwaitRefused {
 /// - the run ends (stopped, crashed, reaped, replaced): it goes, its held
 ///   completion marked unless the person stopped it;
 /// - the engine dies: its row goes stale and every reader drops the wait
-///   ([`zeron_proto::view::waiting`]).
+///   ([`naive_proto::view::waiting`]).
 struct ParkedWait {
     since: chrono::DateTime<Utc>,
     completed_turn: Option<String>,
@@ -4723,9 +4723,9 @@ struct ParkedWait {
 /// How long a wait outlives the work it waited on before the turn's end
 /// stands. The runtime normally starts its wake turn at once (Claude Code:
 /// 0.1 s after the roster drains, live-verified 2.1.319), so this only ever
-/// runs out when no wake comes. `ZERON_WAKE_GRACE_MS` overrides it (tests).
+/// runs out when no wake comes. `NAIVE_WAKE_GRACE_MS` overrides it (tests).
 fn wake_grace() -> std::time::Duration {
-    std::env::var("ZERON_WAKE_GRACE_MS")
+    std::env::var("NAIVE_WAKE_GRACE_MS")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
         .map(std::time::Duration::from_millis)
@@ -4785,7 +4785,7 @@ async fn drive_run(
         }
     };
     // Launched with native subagents or Code Mode switched otherwise than now:
-    // its Zeron server and the CLI's flags are another runtime's.
+    // its Naive server and the CLI's flags are another runtime's.
     if let Some(reason) = warm.as_ref().and_then(|taken| {
         if taken.parked.side_chats_only != side_chats_only {
             Some("native subagents switched")
@@ -4808,7 +4808,7 @@ async fn drive_run(
     }
     if request.mcp.is_none()
         && let Some((server, grant)) =
-            inner.zeron_mcp(&chat_id, side_chats_only, harness.wakes_on_background())
+            inner.naive_mcp(&chat_id, side_chats_only, harness.wakes_on_background())
     {
         request.mcp = Some(server);
         _mcp_grant = grant;
@@ -4823,7 +4823,7 @@ async fn drive_run(
     request.code_mode = code_mode;
     // The MCP servers the agent starts from this run's config: the only
     // children it may hold when stopped idle (see the reaper).
-    let mut known_servers: Vec<zeron_harness::process::KnownServer> = request
+    let mut known_servers: Vec<naive_harness::process::KnownServer> = request
         .mcp
         .iter()
         .chain(&request.extra_mcp)
@@ -4951,7 +4951,7 @@ async fn drive_run(
     // optimistic echo) is replaced in place.
     if crate::runner::setup_pending() {
         let user_id = resume_state.user_message_id.clone();
-        entry_id = zeron_proto::cloud_setup_entry_id(&user_id);
+        entry_id = naive_proto::cloud_setup_entry_id(&user_id);
         let sent_at = doc_ref.read_entries().ok().and_then(|entries| {
             entries
                 .iter()
@@ -5000,7 +5000,7 @@ async fn drive_run(
             request.resume.is_some(),
         )
         .map(|prompt| request.prompt = prompt)
-        .map_err(|e| zeron_harness::HarnessError::Protocol(e.to_string()))
+        .map_err(|e| naive_harness::HarnessError::Protocol(e.to_string()))
     } else {
         Ok(())
     };
@@ -5037,13 +5037,13 @@ async fn drive_run(
                 let mut wire_request = request;
                 if !matches!(harness_id, HarnessId::Cursor | HarnessId::Opencode) {
                     wire_request.prompt =
-                        zeron_proto::invocation::harness_prompt(&wire_request.prompt, harness_id);
+                        naive_proto::invocation::harness_prompt(&wire_request.prompt, harness_id);
                 }
                 // Everything the agent starts inherits its chat, which is how
                 // preview discovery tells its dev servers from the user's own.
                 wire_request.env.insert(
-                    zeron_proto::ORIGIN_ENV.into(),
-                    zeron_proto::chat_origin(&chat_id),
+                    naive_proto::ORIGIN_ENV.into(),
+                    naive_proto::chat_origin(&chat_id),
                 );
                 // Host-resolved spawn env (a Cloud device's credential broker);
                 // `RunRequest::env` is serde-skipped, never persisted.
@@ -5096,7 +5096,7 @@ async fn drive_run(
                             None => harness.run(wire_request, controls).await,
                         }
                     }
-                    Err(message) => Err(zeron_harness::HarnessError::NotSignedIn(message)),
+                    Err(message) => Err(naive_harness::HarnessError::NotSignedIn(message)),
                 }
             } else {
                 Ok(futures::stream::once(async {
@@ -5122,7 +5122,7 @@ async fn drive_run(
     // Only a refused permission needs to know (a filesystem read, kept off
     // the async threads like `binary_identity`).
     let cli_just_replaced = match &started {
-        Err(zeron_harness::HarnessError::Io(err))
+        Err(naive_harness::HarnessError::Io(err))
             if err.kind() == std::io::ErrorKind::PermissionDenied =>
         {
             let harness = harness.clone();
@@ -5334,18 +5334,18 @@ async fn drive_run(
     let mut waiting_on = turn.watch_waiting();
     let mut wait: Option<ParkedWait> = None;
     let wake_grace = wake_grace();
-    // PERSISTENT SESSION (zeron runsBySession): a completed turn on a
+    // PERSISTENT SESSION (naive runsBySession): a completed turn on a
     // steerable harness parks here instead of ending the run — the child and
     // its steering mailbox stay warm, and the next user message (dispatch
     // routes into a live run) starts the next turn with zero respawn/resume
     // latency. `Some(when)` = idle since then; the idle reaper below stops a
     // runtime nobody comes back to. A driver whose resume brings the session
     // back whole ([`Harness::stops_when_idle`]) is stopped after
-    // [`AGENT_IDLE_STOP`], the rest after [`SESSION_IDLE`] (zeron
+    // [`AGENT_IDLE_STOP`], the rest after [`SESSION_IDLE`] (naive
     // SESSION_IDLE_MS). A voice orchestrator holds Codex and its MCP servers
     // (~200 MB) for calls only, so it goes after 5 minutes. A call holds the
     // reaper off, and the window restarts at hang-up. Nothing pending is
-    // ever stopped (see the reaper arm). `ZERON_SESSION_IDLE_MS` overrides
+    // ever stopped (see the reaper arm). `NAIVE_SESSION_IDLE_MS` overrides
     // every window (tests, the measurement rig).
     // (May ask the CLI its version: off the runtime's threads.)
     let stops_when_idle = {
@@ -5354,12 +5354,12 @@ async fn drive_run(
             .await
             .unwrap_or(false)
     };
-    let idle_override = std::env::var("ZERON_SESSION_IDLE_MS")
+    let idle_override = std::env::var("NAIVE_SESSION_IDLE_MS")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
         .map(std::time::Duration::from_millis);
     let session_idle = idle_override.unwrap_or(
-        if zeron_proto::voice::is_orchestrator_chat(&chat_id) {
+        if naive_proto::voice::is_orchestrator_chat(&chat_id) {
             std::time::Duration::from_secs(5 * 60)
         } else if stops_when_idle {
             AGENT_IDLE_STOP
@@ -5371,7 +5371,7 @@ async fn drive_run(
     // end and its last viewer leaving (only where the short window applies).
     let short_window = idle_override.is_none()
         && stops_when_idle
-        && !zeron_proto::voice::is_orchestrator_chat(&chat_id);
+        && !naive_proto::voice::is_orchestrator_chat(&chat_id);
     let unwatched_idle = if short_window { UNWATCHED_IDLE_STOP } else { session_idle };
     // Viewers coming and going: the window is worked out again.
     let mut viewers_changed = inner.viewers.sender().subscribe();
@@ -5410,7 +5410,7 @@ async fn drive_run(
     // segment finalized Complete, status Idle, child and mailbox warm. A
     // false trip (the agent was quietly waiting on something invisible)
     // costs a status dip: the parked-resume path below re-arms Working the
-    // moment output flows again, and nothing is lost. `ZERON_TURN_QUIESCE_MS`
+    // moment output flows again, and nothing is lost. `NAIVE_TURN_QUIESCE_MS`
     // overrides the window; 0 disables.
     // RETIRED for native drivers: a harness whose every turn shape ends with
     // a deterministic wire Done (claude/codex/cursor native) needs no
@@ -5420,7 +5420,7 @@ async fn drive_run(
     // ACP retains the watchdog only for unowned self-continued activity.
     let deterministic_turn_end = harness.deterministic_turn_end();
     let authoritative_prompt_end = harness.authoritative_prompt_end();
-    let quiesce_after: Option<std::time::Duration> = match std::env::var("ZERON_TURN_QUIESCE_MS")
+    let quiesce_after: Option<std::time::Duration> = match std::env::var("NAIVE_TURN_QUIESCE_MS")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
     {
@@ -5439,11 +5439,11 @@ async fn drive_run(
     // so the default 120s window read as 2min of stuck-Working after every
     // background notification (user report 2026-08-13). The in-flight
     // fold gate below still protects running tools; reasoning heartbeats
-    // push the window during real thinking. `ZERON_SELF_TURN_QUIESCE_MS`
+    // push the window during real thinking. `NAIVE_SELF_TURN_QUIESCE_MS`
     // overrides; 0 falls back to the normal window. An explicit
-    // `ZERON_TURN_QUIESCE_MS=0` still disables the watchdog entirely.
+    // `NAIVE_TURN_QUIESCE_MS=0` still disables the watchdog entirely.
     let self_quiesce_after: Option<std::time::Duration> =
-        match std::env::var("ZERON_SELF_TURN_QUIESCE_MS")
+        match std::env::var("NAIVE_SELF_TURN_QUIESCE_MS")
             .ok()
             .and_then(|v| v.parse::<u64>().ok())
         {
@@ -5514,7 +5514,7 @@ async fn drive_run(
                         };
                         inner.set_waiting(
                             &chat_id,
-                            Some(zeron_proto::SessionWaiting { since: parked.since, on }),
+                            Some(naive_proto::SessionWaiting { since: parked.since, on }),
                         );
                     }
                     continue;
@@ -5584,7 +5584,7 @@ async fn drive_run(
                     }
                     break SessionStatus::Idle;
                 }
-                // Idle reaper (zeron SESSION_IDLE_MS): a parked persistent session
+                // Idle reaper (naive SESSION_IDLE_MS): a parked persistent session
                 // nobody returned to within its window releases its child. The turn
                 // was finalized at Done, so this end is clean — no aborted stamp.
                 // A live background subagent is somebody still using the child:
@@ -5669,7 +5669,7 @@ async fn drive_run(
                         }
                         let known = known_servers.clone();
                         let lingering = tokio::task::spawn_blocking(move || {
-                            zeron_harness::process::unexpected_descendants(pid, &known)
+                            naive_harness::process::unexpected_descendants(pid, &known)
                         })
                         .await
                         .unwrap_or_else(|_| vec!["(the check failed)".to_owned()]);
@@ -5798,7 +5798,7 @@ async fn drive_run(
                     && steerable
                     && !folded.iter().any(|p| match p {
                         MessagePart::Tool { id, resolved: false, .. } => {
-                            id != zeron_proto::LIVE_PLAN_TOOL_ID
+                            id != naive_proto::LIVE_PLAN_TOOL_ID
                         }
                         MessagePart::Input { resolved: false, .. } => true,
                         _ => false,
@@ -5933,7 +5933,7 @@ async fn drive_run(
                         }
                     }
                 }
-                zeron_doc::fold_event_into_parts(&mut folded, &event);
+                naive_doc::fold_event_into_parts(&mut folded, &event);
                 if !dirty {
                     dirty = true;
                     flush_at = next_commit(last_flush);
@@ -5996,7 +5996,7 @@ async fn drive_run(
                     continue;
                 }
                 let was_clean = !sink.dirty;
-                zeron_doc::fold_event_into_parts(&mut sink.folded, sub_event);
+                naive_doc::fold_event_into_parts(&mut sink.folded, sub_event);
                 sink.dirty = true;
                 // A sink waking on its own must arm the same commit window
                 // the parent's dirty flag does — `flush_at` is otherwise only
@@ -6031,7 +6031,7 @@ async fn drive_run(
                     {
                         host.upload_tool_sidecar(
                             &chat_id,
-                            zeron_doc::SidecarPayload {
+                            naive_doc::SidecarPayload {
                                 part_id: doc_id,
                                 output: Some(json),
                                 diff: None,
@@ -6131,7 +6131,7 @@ async fn drive_run(
                 ) || matches!(
                     &event,
                     AgentEvent::ToolCall { id, .. }
-                        if id == zeron_proto::LIVE_PLAN_TOOL_ID || !seen_tools.contains(id)
+                        if id == naive_proto::LIVE_PLAN_TOOL_ID || !seen_tools.contains(id)
                 ));
             if self_continued {
                 tracing::info!(
@@ -6218,8 +6218,8 @@ async fn drive_run(
             // treating its reappearance after a park/steer reset as a stale
             // echo dropped the todo list for the rest of the run — from the
             // first boundary on, plans never rendered again.
-            AgentEvent::ToolCall { id, .. } if id == zeron_proto::LIVE_PLAN_TOOL_ID => {}
-            AgentEvent::ToolResult { id, .. } if id == zeron_proto::LIVE_PLAN_TOOL_ID => {}
+            AgentEvent::ToolCall { id, .. } if id == naive_proto::LIVE_PLAN_TOOL_ID => {}
+            AgentEvent::ToolResult { id, .. } if id == naive_proto::LIVE_PLAN_TOOL_ID => {}
             AgentEvent::ToolCall { id, .. } => {
                 if !in_segment(&folded, id) && seen_tools.contains(id) {
                     continue;
@@ -6237,7 +6237,7 @@ async fn drive_run(
         }
         match &event {
             AgentEvent::ToolCall { id, .. }
-                if id != zeron_proto::LIVE_PLAN_TOOL_ID && !closed_tools.contains(id) =>
+                if id != naive_proto::LIVE_PLAN_TOOL_ID && !closed_tools.contains(id) =>
             {
                 if open_tools.insert(id.clone()) {
                     publish_open(&open_tools);
@@ -6461,7 +6461,7 @@ async fn drive_run(
 
         inner.publish(&chat_id, &event);
 
-        // Defensive rule from zeron: a mid-run SessionStarted re-emission (Claude SDK
+        // Defensive rule from naive: a mid-run SessionStarted re-emission (Claude SDK
         // background re-invocations) must not wipe the segment being written.
         let skip_fold = matches!(&event, AgentEvent::SessionStarted { .. }) && !folded.is_empty();
         if !skip_fold {
@@ -6469,7 +6469,7 @@ async fn drive_run(
             // R2 sidecar PARKED (2026-08-10, product call): the fold's
             // summary/stats ARE the doc's whole record — no refs stamped, no
             // uploads. Full outputs survive only in the host's local run
-            // journal. To reintroduce: `zeron_doc::sidecar_payload(&event)`
+            // journal. To reintroduce: `naive_doc::sidecar_payload(&event)`
             // → `apply_sidecar_refs` → `doc_host.upload_tool_sidecar`, all
             // still in place and tested.
         }
@@ -6614,7 +6614,7 @@ async fn drive_run(
                         grace: None,
                     });
                     inner.set_status_with_completion(&chat_id, SessionStatus::Idle, false, None, None);
-                    inner.set_waiting(&chat_id, Some(zeron_proto::SessionWaiting { since, on }));
+                    inner.set_waiting(&chat_id, Some(naive_proto::SessionWaiting { since, on }));
                     continue;
                 }
                 wait = None;
@@ -6658,7 +6658,7 @@ async fn drive_run(
         {
             host.upload_tool_sidecar(
                 &chat_id,
-                zeron_doc::SidecarPayload {
+                naive_doc::SidecarPayload {
                     part_id: doc_id,
                     output: Some(json),
                     diff: None,
@@ -6782,7 +6782,7 @@ mod tests {
     fn liveness_touches_only_rows_that_expire_once_a_heartbeat_old() {
         let now = Utc::now();
         let ms = chrono::Duration::milliseconds;
-        let beat = zeron_proto::view::SESSION_HEARTBEAT_MS;
+        let beat = naive_proto::view::SESSION_HEARTBEAT_MS;
         for status in [SessionStatus::Working, SessionStatus::AwaitingInput] {
             assert!(!touch_due(&session_at(status, now - ms(beat - 1)), now));
             assert!(touch_due(&session_at(status, now - ms(beat)), now));
@@ -6791,7 +6791,7 @@ mod tests {
         // leaves shipped readers' 45 s gate 15 s for delivery and skew.
         let check = HEARTBEAT_CHECK.as_millis() as i64;
         assert!(beat + check <= 30_000);
-        assert!(beat + check + 15_000 <= zeron_proto::view::SESSION_STALE_MS);
+        assert!(beat + check + 15_000 <= naive_proto::view::SESSION_STALE_MS);
 
         let long_ago = now - chrono::Duration::minutes(20);
         assert!(!touch_due(&session_at(SessionStatus::Idle, long_ago), now));
@@ -6800,7 +6800,7 @@ mod tests {
         subagents.running_subagents = 1;
         assert!(touch_due(&subagents, now));
         let mut waiting = session_at(SessionStatus::Idle, long_ago);
-        waiting.waiting = Some(zeron_proto::SessionWaiting {
+        waiting.waiting = Some(naive_proto::SessionWaiting {
             on: Vec::new(),
             since: long_ago,
         });
@@ -6822,18 +6822,18 @@ mod tests {
 
     #[test]
     fn cursor_recovery_converts_rich_messages_before_json_encoding() {
-        let doc = zeron_doc::SessionDoc::init("cursor-rich-recovery").unwrap();
-        let skill = zeron_proto::invocation::Invocation::Skill {
+        let doc = naive_doc::SessionDoc::init("cursor-rich-recovery").unwrap();
+        let skill = naive_proto::invocation::Invocation::Skill {
             name: "review \"quoted\"".into(),
             path: "/repo/quoted \"path\"/SKILL.md".into(),
             command: None,
         }
         .link();
         let previous = format!("Previous {skill}\nSecond line with \\ and \"quotes\"");
-        doc.push_message(&zeron_doc::SessionMessageEntry {
+        doc.push_message(&naive_doc::SessionMessageEntry {
             id: "u1".into(),
-            role: zeron_doc::MessageRole::User,
-            parts: vec![zeron_doc::MessagePart::Text {
+            role: naive_doc::MessageRole::User,
+            parts: vec![naive_doc::MessagePart::Text {
                 id: "u1-text".into(),
                 text: previous.clone(),
             }],
@@ -6850,31 +6850,31 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(json).unwrap();
         assert_eq!(
             parsed["currentUserMessage"],
-            zeron_proto::invocation::harness_prompt(&current, zeron_proto::HarnessId::Cursor)
+            naive_proto::invocation::harness_prompt(&current, naive_proto::HarnessId::Cursor)
         );
         assert_eq!(
             parsed["previousUserMessages"][0],
-            zeron_proto::invocation::harness_prompt(&previous, zeron_proto::HarnessId::Cursor)
+            naive_proto::invocation::harness_prompt(&previous, naive_proto::HarnessId::Cursor)
         );
     }
 
     #[test]
     fn cursor_without_a_session_id_retains_only_preceding_user_messages() {
-        let doc = zeron_doc::SessionDoc::init("cursor-unstarted").unwrap();
+        let doc = naive_doc::SessionDoc::init("cursor-unstarted").unwrap();
         for (id, role, text) in [
             (
                 "u1",
-                zeron_doc::MessageRole::User,
+                naive_doc::MessageRole::User,
                 "first interrupted request",
             ),
-            ("a1", zeron_doc::MessageRole::Assistant, "partial output"),
-            ("u2", zeron_doc::MessageRole::User, "current request"),
-            ("u3", zeron_doc::MessageRole::User, "future pending request"),
+            ("a1", naive_doc::MessageRole::Assistant, "partial output"),
+            ("u2", naive_doc::MessageRole::User, "current request"),
+            ("u3", naive_doc::MessageRole::User, "future pending request"),
         ] {
-            doc.push_message(&zeron_doc::SessionMessageEntry {
+            doc.push_message(&naive_doc::SessionMessageEntry {
                 id: id.into(),
                 role,
-                parts: vec![zeron_doc::MessagePart::Text {
+                parts: vec![naive_doc::MessagePart::Text {
                     id: format!("{id}-text"),
                     text: text.into(),
                 }],
@@ -6911,7 +6911,7 @@ mod tests {
         assert_eq!(doc.read_entries().unwrap().len(), 4);
     }
 
-    use zeron_proto::{HarnessId, RunRequest, SandboxLevel};
+    use naive_proto::{HarnessId, RunRequest, SandboxLevel};
 
     #[tokio::test]
     async fn generated_image_failure_is_sanitized_even_inside_subagents() {
@@ -6942,7 +6942,7 @@ mod tests {
             &mut parts,
             &AgentEvent::ToolCall {
                 id: "i".into(),
-                call: zeron_proto::ToolCall::Unknown {
+                call: naive_proto::ToolCall::Unknown {
                     name: "Generate image".into(),
                     input: None,
                 },
@@ -7018,7 +7018,7 @@ mod tests {
                 output: None,
                 diff: None,
                 preview_paths: Vec::new(),
-                image_payloads: vec![zeron_proto::ToolResultImage {
+                image_payloads: vec![naive_proto::ToolResultImage {
                     name: "1.png".into(),
                     data_base64: png_b64.into(),
                 }],
@@ -7097,7 +7097,7 @@ mod tests {
             output: None,
             diff: None,
             preview_paths: Vec::new(),
-            image_payloads: vec![zeron_proto::ToolResultImage {
+            image_payloads: vec![naive_proto::ToolResultImage {
                 name: "note.txt".into(),
                 data_base64: base64::engine::general_purpose::STANDARD
                     .encode(b"not an image")
@@ -7122,7 +7122,7 @@ mod tests {
         // never reach the doc, with stored pictures or without.
         for payloads in [
             Vec::new(),
-            vec![zeron_proto::ToolResultImage {
+            vec![naive_proto::ToolResultImage {
                 name: "1.png".into(),
                 data_base64: png_b64.into(),
             }],
@@ -7185,7 +7185,7 @@ mod tests {
     async fn journal_harness_session_matches_forward_scan() {
         fn started(id: &str, cwd: &str) -> AgentEvent {
             AgentEvent::SessionStarted {
-                harness: zeron_proto::HarnessId::ClaudeCode,
+                harness: naive_proto::HarnessId::ClaudeCode,
                 model: "m".into(),
                 tools: Vec::new(),
                 cwd: cwd.into(),
@@ -7321,7 +7321,7 @@ mod tests {
         std::io::Write::write_all(&mut f, b"{\"seq\":3,\"event\":{\"type\":\"done\"").unwrap();
         assert_eq!(
             sessions.inner.journal_harness_session("started-only"),
-            Some(("s1".into(), "/a".into(), Some(zeron_proto::HarnessId::ClaudeCode)))
+            Some(("s1".into(), "/a".into(), Some(naive_proto::HarnessId::ClaudeCode)))
         );
     }
 
@@ -7330,7 +7330,7 @@ mod tests {
     /// offered, or full access was asked for outright, the run goes ahead.
     #[test]
     fn auto_is_refused_where_it_would_become_full_access() {
-        use zeron_proto::AccessMode::{self, *};
+        use naive_proto::AccessMode::{self, *};
         let asking = |access: AccessMode, auto_approve: bool| RunRequest {
             access,
             auto_approve,
@@ -7350,7 +7350,7 @@ mod tests {
             prompt: "first".into(),
             harness: None,
             model: Some("grok-4.6".into()),
-            reasoning: Some(zeron_proto::ReasoningLevel::High),
+            reasoning: Some(naive_proto::ReasoningLevel::High),
             model_options: serde_json::Map::new(),
             cwd: "/tmp".into(),
             sandbox: SandboxLevel::WorkspaceWrite,
@@ -7372,7 +7372,7 @@ mod tests {
         fail: bool,
     }
     #[async_trait::async_trait]
-    impl zeron_harness::Harness for IdleStartupFixture {
+    impl naive_harness::Harness for IdleStartupFixture {
         fn id(&self) -> HarnessId {
             HarnessId::Codex
         }
@@ -7382,22 +7382,22 @@ mod tests {
         fn supports_steering(&self) -> bool {
             false
         }
-        fn steering_mode(&self) -> zeron_proto::SteeringMode {
-            zeron_proto::SteeringMode::TurnBoundary
+        fn steering_mode(&self) -> naive_proto::SteeringMode {
+            naive_proto::SteeringMode::TurnBoundary
         }
-        fn reasoning_levels(&self) -> &[zeron_proto::ReasoningLevel] {
+        fn reasoning_levels(&self) -> &[naive_proto::ReasoningLevel] {
             &[]
         }
-        async fn models(&self) -> Result<Vec<zeron_proto::Model>, zeron_harness::HarnessError> {
+        async fn models(&self) -> Result<Vec<naive_proto::Model>, naive_harness::HarnessError> {
             Ok(vec![])
         }
         async fn start_idle(
             &self,
             request: RunRequest,
-            _controls: zeron_harness::RunControls,
+            _controls: naive_harness::RunControls,
         ) -> Result<
-            futures::stream::BoxStream<'static, Result<AgentEvent, zeron_harness::HarnessError>>,
-            zeron_harness::HarnessError,
+            futures::stream::BoxStream<'static, Result<AgentEvent, naive_harness::HarnessError>>,
+            naive_harness::HarnessError,
         > {
             use futures::StreamExt;
             self.idle_calls
@@ -7406,7 +7406,7 @@ mod tests {
             assert_eq!(request.resume.as_deref(), Some("old-native-thread"));
             let event = if self.fail {
                 AgentEvent::Done {
-                    status: zeron_proto::DoneStatus::Errored,
+                    status: naive_proto::DoneStatus::Errored,
                     result: None,
                     error: Some("offline startup failed".into()),
                     session_id: None,
@@ -7428,14 +7428,14 @@ mod tests {
         async fn run(
             &self,
             _request: RunRequest,
-            _controls: zeron_harness::RunControls,
+            _controls: naive_harness::RunControls,
         ) -> Result<
-            futures::stream::BoxStream<'static, Result<AgentEvent, zeron_harness::HarnessError>>,
-            zeron_harness::HarnessError,
+            futures::stream::BoxStream<'static, Result<AgentEvent, naive_harness::HarnessError>>,
+            naive_harness::HarnessError,
         > {
             self.inference_calls
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            Err(zeron_harness::HarnessError::Protocol(
+            Err(naive_harness::HarnessError::Protocol(
                 "fixture forbids inference".into(),
             ))
         }
@@ -7501,7 +7501,7 @@ mod tests {
         assert!(
             !entries
                 .iter()
-                .any(|entry| entry.role == zeron_doc::MessageRole::User)
+                .any(|entry| entry.role == naive_doc::MessageRole::User)
         );
         if !fail {
             assert!(entries.is_empty());
@@ -7533,7 +7533,7 @@ mod tests {
         let config = RuntimeConfig::new(
             HarnessId::Grok,
             &initial,
-            Arc::new(zeron_harness::AcpHarness::grok()),
+            Arc::new(naive_harness::AcpHarness::grok()),
         );
 
         let mut follow_up = initial.clone();
@@ -7554,7 +7554,7 @@ mod tests {
         let config = RuntimeConfig::new(
             HarnessId::Grok,
             &spelled,
-            Arc::new(zeron_harness::AcpHarness::grok()),
+            Arc::new(naive_harness::AcpHarness::grok()),
         );
         follow_up
             .model_options
@@ -7565,13 +7565,13 @@ mod tests {
         assert!(!config.can_route(HarnessId::Grok, &follow_up));
         follow_up.model = initial.model.clone();
 
-        follow_up.reasoning = Some(zeron_proto::ReasoningLevel::Medium);
+        follow_up.reasoning = Some(naive_proto::ReasoningLevel::Medium);
         assert!(!config.can_route(HarnessId::Grok, &follow_up));
     }
 
     #[test]
     fn claude_routing_compares_what_the_cli_launches_with() {
-        let claude = || -> Arc<dyn Harness> { Arc::new(zeron_harness::ClaudeHarness::new()) };
+        let claude = || -> Arc<dyn Harness> { Arc::new(naive_harness::ClaudeHarness::new()) };
         let mut initial = request();
         initial.model = Some("claude-opus-5-5".into());
         initial
@@ -7632,7 +7632,7 @@ mod tests {
     async fn subagent_sink_flush_clears_dirty_when_nothing_folded() {
         use super::*;
         let dir = tempfile::tempdir().unwrap();
-        let store = Arc::new(zeron_sync::DocsStore::open(dir.path()).unwrap());
+        let store = Arc::new(naive_sync::DocsStore::open(dir.path()).unwrap());
         let host = DocHost::new(
             store,
             crate::doc_host::DocHostConfig {
@@ -7675,13 +7675,13 @@ mod tests {
         fn supports_steering(&self) -> bool {
             true
         }
-        fn steering_mode(&self) -> zeron_proto::SteeringMode {
-            zeron_proto::SteeringMode::StepBoundary
+        fn steering_mode(&self) -> naive_proto::SteeringMode {
+            naive_proto::SteeringMode::StepBoundary
         }
-        fn reasoning_levels(&self) -> &[zeron_proto::ReasoningLevel] {
-            &[zeron_proto::ReasoningLevel::Medium]
+        fn reasoning_levels(&self) -> &[naive_proto::ReasoningLevel] {
+            &[naive_proto::ReasoningLevel::Medium]
         }
-        async fn models(&self) -> Result<Vec<zeron_proto::Model>, zeron_harness::HarnessError> {
+        async fn models(&self) -> Result<Vec<naive_proto::Model>, naive_harness::HarnessError> {
             Ok(vec![])
         }
         async fn run(
@@ -7689,8 +7689,8 @@ mod tests {
             _request: RunRequest,
             _controls: RunControls,
         ) -> Result<
-            futures::stream::BoxStream<'static, Result<AgentEvent, zeron_harness::HarnessError>>,
-            zeron_harness::HarnessError,
+            futures::stream::BoxStream<'static, Result<AgentEvent, naive_harness::HarnessError>>,
+            naive_harness::HarnessError,
         > {
             let mut feed = self
                 .feed
@@ -7737,7 +7737,7 @@ mod tests {
         // parent clean, parked and past its deadline.
         feed.send(AgentEvent::ToolCall {
             id: "tool-1".into(),
-            call: zeron_proto::ToolCall::Unknown {
+            call: naive_proto::ToolCall::Unknown {
                 name: "Agent: probe".into(),
                 input: None,
             },
@@ -7798,7 +7798,7 @@ mod tests {
             .unwrap();
         let call = |id: &str, name: &str| AgentEvent::ToolCall {
             id: id.into(),
-            call: zeron_proto::ToolCall::Unknown {
+            call: naive_proto::ToolCall::Unknown {
                 name: name.into(),
                 input: None,
             },
@@ -8019,7 +8019,7 @@ mod tests {
     #[test]
     fn only_transient_start_failures_retry() {
         use std::io::{Error, ErrorKind};
-        use zeron_harness::HarnessError;
+        use naive_harness::HarnessError;
         for kind in [
             ErrorKind::ResourceBusy,
             ErrorKind::ExecutableFileBusy,
@@ -8089,7 +8089,7 @@ mod tests {
                 "{harness:?}"
             );
         }
-        let selected = zeron_proto::invocation::Invocation::Command {
+        let selected = naive_proto::invocation::Invocation::Command {
             name: "review".into(),
         }
         .link();
@@ -8127,13 +8127,13 @@ mod tests {
         fn supports_steering(&self) -> bool {
             true
         }
-        fn steering_mode(&self) -> zeron_proto::SteeringMode {
-            zeron_proto::SteeringMode::StepBoundary
+        fn steering_mode(&self) -> naive_proto::SteeringMode {
+            naive_proto::SteeringMode::StepBoundary
         }
-        fn reasoning_levels(&self) -> &[zeron_proto::ReasoningLevel] {
-            &[zeron_proto::ReasoningLevel::Medium]
+        fn reasoning_levels(&self) -> &[naive_proto::ReasoningLevel] {
+            &[naive_proto::ReasoningLevel::Medium]
         }
-        async fn models(&self) -> Result<Vec<zeron_proto::Model>, zeron_harness::HarnessError> {
+        async fn models(&self) -> Result<Vec<naive_proto::Model>, naive_harness::HarnessError> {
             Ok(vec![])
         }
         async fn run(
@@ -8141,8 +8141,8 @@ mod tests {
             _request: RunRequest,
             controls: RunControls,
         ) -> Result<
-            futures::stream::BoxStream<'static, Result<AgentEvent, zeron_harness::HarnessError>>,
-            zeron_harness::HarnessError,
+            futures::stream::BoxStream<'static, Result<AgentEvent, naive_harness::HarnessError>>,
+            naive_harness::HarnessError,
         > {
             *self.turn.lock().unwrap() = Some(controls.turn.clone());
             let mut feed = self
@@ -8165,10 +8165,10 @@ mod tests {
 
     /// A run on [`WakeHarness`] whose runtime wakes its agent (`wakes`),
     /// started and mid-turn. The grace a wait gets once its work is gone is
-    /// short here (`ZERON_WAKE_GRACE_MS`, read per run).
+    /// short here (`NAIVE_WAKE_GRACE_MS`, read per run).
     async fn wake_rig(chat: &'static str, wakes: bool) -> WakeRig {
         // SAFETY: tests only; nothing reads this but the run loop, per run.
-        unsafe { std::env::set_var("ZERON_WAKE_GRACE_MS", "300") };
+        unsafe { std::env::set_var("NAIVE_WAKE_GRACE_MS", "300") };
         let (feed, rx) = mpsc::unbounded_channel();
         let turn_slot = Arc::new(Mutex::new(None));
         let registry = HarnessRegistry::new();
@@ -8196,16 +8196,16 @@ mod tests {
         WakeRig { core, feed, turn, chat, _dir: dir }
     }
 
-    fn waiting_agent(id: &str) -> zeron_proto::WaitingOn {
-        zeron_proto::WaitingOn {
+    fn waiting_agent(id: &str) -> naive_proto::WaitingOn {
+        naive_proto::WaitingOn {
             id: id.into(),
-            kind: zeron_proto::WaitingKind::Agent,
+            kind: naive_proto::WaitingKind::Agent,
             label: format!("agent {id}"),
         }
     }
 
-    fn bg_process(id: &str) -> zeron_proto::BackgroundTask {
-        zeron_proto::BackgroundTask {
+    fn bg_process(id: &str) -> naive_proto::BackgroundTask {
+        naive_proto::BackgroundTask {
             id: id.into(),
             command: format!("run {id}"),
             description: None,
@@ -8365,7 +8365,7 @@ mod tests {
     }
 
     /// What a turn revived on boot waits on before it dispatches: the port its
-    /// Zeron tools dial. An engine serving none goes on at the limit.
+    /// Naive tools dial. An engine serving none goes on at the limit.
     #[tokio::test(start_paused = true)]
     async fn the_wait_for_the_port_gives_up_at_its_limit_wakes_as_it_is_recorded_and_is_over_after() {
         use std::time::Duration;

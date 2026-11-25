@@ -62,7 +62,7 @@ const assistProject = (assist: Record<string, unknown>): string | undefined => {
 /** Google answers Antigravity's limits only to an Antigravity client ("You do
  * not have a valid license of this product" to any other): its server sends
  * `antigravity/acp/<version>`. */
-export const ANTIGRAVITY_USER_AGENT = "antigravity/acp/zeron";
+export const ANTIGRAVITY_USER_AGENT = "antigravity/acp/naive";
 
 const antigravityUsage = async (material: GrantMaterial, fetchFn: FetchFn): Promise<UsageOutcome> => {
   const headers = {

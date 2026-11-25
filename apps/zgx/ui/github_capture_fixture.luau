@@ -1,8 +1,8 @@
 -- The shell with GitHub's sidebar badges (plugins-builtin/github), for
--- comparing them with Zeron's: ui/shell_fixture.luau as it is, and the host's
+-- comparing them with Naive's: ui/shell_fixture.luau as it is, and the host's
 -- part played here, its sessions' pull requests open, merged and closed
 -- (the numbers and states the shipping app's sidebar fixture shows).
--- Run: ZERON_ZGX_DEV_PLUGINS=plugins-builtin/github zeron-zgx github_capture_fixture.luau --inspect
+-- Run: NAIVE_ZGX_DEV_PLUGINS=plugins-builtin/github naive-zgx github_capture_fixture.luau --inspect
 
 local node = require("./shell_fixture")
 

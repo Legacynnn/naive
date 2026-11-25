@@ -69,7 +69,7 @@ local function now(): agents.Now
 	return agents.now:get() :: agents.Now
 end
 
--- The agents shown: those with a mark (every one Zeron runs but a test rig),
+-- The agents shown: those with a mark (every one Naive runs but a test rig),
 -- and those added from the ACP registry.
 local function shown(): { agents.Agent }
 	local out = {}
@@ -149,7 +149,7 @@ end
 local function choose_device(id: string)
 	agents.target(if id == here() then nil else id)
 	-- (The registry as that device sees it: what it has added, its builds.
-	-- Cloud runs only Zeron's own.)
+	-- Cloud runs only Naive's own.)
 	if id ~= CLOUD then
 		registry.load()
 	end
@@ -510,7 +510,7 @@ local function cards(): Node
 	)
 end
 
--- The agents still to install: Zeron's own, a click each; one it can't
+-- The agents still to install: Naive's own, a click each; one it can't
 -- install says to install it yourself. Each brings the rule above it but
 -- the first.
 local function more(): Node
@@ -674,7 +674,7 @@ local function settings_dialog(): Node
 	end
 	-- One added from the ACP registry (or of your own): it can be removed
 	-- from the device, and has an environment there. One of your own isn't
-	-- updated by Zeron: no policy.
+	-- updated by Naive: no policy.
 	local function from_registry(): boolean
 		local a = agent()
 		return a ~= nil and (a :: any).registry == true
@@ -754,7 +754,7 @@ local function settings_dialog(): Node
 			ui.div {
 				w_full = true,
 				opacity = function()
-					return if switchable() then 1 else "$zeron.disabled"
+					return if switchable() then 1 else "$naive.disabled"
 				end,
 				disabled = function()
 					return not switchable()

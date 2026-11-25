@@ -1,11 +1,11 @@
-//! `mcp-proxy`: Zeron's MCP tools on stdio for an agent that only speaks
+//! `mcp-proxy`: Naive's MCP tools on stdio for an agent that only speaks
 //! stdio MCP, forwarded to the engine's own HTTP endpoint ([`crate::http`]).
 //!
-//! It is what an agent's run starts in place of a whole `zeron mcp` server:
+//! It is what an agent's run starts in place of a whole `naive mcp` server:
 //! no async runtime, no engine client, no state beyond the calls in flight —
 //! std only, a thread per call — so it stays a couple of MB resident. Each
 //! line from the agent is POSTed on its own connection with the run's token
-//! (`ZERON_MCP_TOKEN`) to `ZERON_MCP_URL`; whatever comes back (one JSON
+//! (`NAIVE_MCP_TOKEN`) to `NAIVE_MCP_URL`; whatever comes back (one JSON
 //! object, or an SSE stream of progress and then the response) is written
 //! back as lines. Once the agent has initialized, a `subscriptions/listen`
 //! stream brings tool-list changes, as the stdio server sent them.
@@ -33,10 +33,10 @@ struct Endpoint {
 
 impl Endpoint {
     fn from_env() -> anyhow::Result<Self> {
-        let url = std::env::var(zeron_proto::McpServer::URL_ENV)
-            .map_err(|_| anyhow::anyhow!("{} is not set", zeron_proto::McpServer::URL_ENV))?;
-        let token = std::env::var(zeron_proto::McpServer::TOKEN_ENV)
-            .map_err(|_| anyhow::anyhow!("{} is not set", zeron_proto::McpServer::TOKEN_ENV))?;
+        let url = std::env::var(naive_proto::McpServer::URL_ENV)
+            .map_err(|_| anyhow::anyhow!("{} is not set", naive_proto::McpServer::URL_ENV))?;
+        let token = std::env::var(naive_proto::McpServer::TOKEN_ENV)
+            .map_err(|_| anyhow::anyhow!("{} is not set", naive_proto::McpServer::TOKEN_ENV))?;
         Self::parse(&url, token)
     }
 
@@ -243,9 +243,9 @@ fn forward_request(endpoint: &Endpoint, out: &Out, id: Value, line: &str) {
     });
     if !answered {
         let why = match result {
-            Ok(401) => "the Zeron engine no longer knows this agent's run (it restarted?)".to_owned(),
-            Ok(status) => format!("the Zeron engine answered HTTP {status}"),
-            Err(err) => format!("the Zeron engine can't be reached: {err}"),
+            Ok(401) => "the Naive engine no longer knows this agent's run (it restarted?)".to_owned(),
+            Ok(status) => format!("the Naive engine answered HTTP {status}"),
+            Err(err) => format!("the Naive engine can't be reached: {err}"),
         };
         write_line(out, &failure(id, why));
     }
@@ -256,12 +256,12 @@ fn forward_request(endpoint: &Endpoint, out: &Out, id: Value, line: &str) {
 fn listen_for_changes(endpoint: Endpoint, out: Out) {
     let body = json!({
         "jsonrpc": "2.0",
-        "id": "zeron-proxy-listen",
+        "id": "naive-proxy-listen",
         "method": "subscriptions/listen",
         "params": {
             "_meta": {
                 "io.modelcontextprotocol/protocolVersion": LISTEN_VERSION,
-                "io.modelcontextprotocol/clientInfo": { "name": "zeron-mcp-proxy", "version": env!("CARGO_PKG_VERSION") },
+                "io.modelcontextprotocol/clientInfo": { "name": "naive-mcp-proxy", "version": env!("CARGO_PKG_VERSION") },
                 "io.modelcontextprotocol/clientCapabilities": {},
             },
             "notifications": { "toolsListChanged": true },

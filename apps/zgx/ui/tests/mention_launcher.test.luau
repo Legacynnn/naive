@@ -160,7 +160,7 @@ test("each scope says when it has nothing, and when nothing matches", function()
 	expect(app:tree("#mention-launcher")).to_contain("No chats match “zzzz”")
 end)
 
-test("a file picked goes as its mention, a chat as Zeron's chat link", function()
+test("a file picked goes as its mention, a chat as Naive's chat link", function()
 	local app = chat()
 	app:type(BOX, "@chat.r")
 	settle(app)
@@ -175,8 +175,8 @@ test("a file picked goes as its mention, a chat as Zeron's chat link", function(
 	settle(app)
 	expect(app:wait('~"and"', { timeout_ms = 2000 })).to_be(true)
 	local calls = app:state("calls")
-	expect(calls).to_contain("zeron-file:")
-	expect(calls).to_contain("[Long chat](zeron-chat:s1)")
+	expect(calls).to_contain("naive-file:")
+	expect(calls).to_contain("[Long chat](naive-chat:s1)")
 end)
 
 test("what's attached, picked, goes as its mention by name; removing it deletes its inline chip", function()
@@ -192,7 +192,7 @@ test("what's attached, picked, goes as its mention by name; removing it deletes 
 	app:key("Enter")
 	settle(app)
 	expect(app:wait('~"look at"', { timeout_ms = 2000 })).to_be(true)
-	expect(app:state("calls")).to_contain("look at [zgx.png](zeron-attachment:3)")
+	expect(app:state("calls")).to_contain("look at [zgx.png](naive-attachment:3)")
 	-- Taken off before it goes: inline chip mentioning it is deleted.
 	app:command("drop_pictures")
 	settle(app)
@@ -215,7 +215,7 @@ test("what's attached, picked, goes as its mention by name; removing it deletes 
 	local second = string.match(calls, "send:s2:then.*$") or ""
 	expect(second).to_contain("send:s2:then")
 	expect(second).never.to_contain("photo.heic")
-	expect(second).never.to_contain("](zeron-attachment:2)")
+	expect(second).never.to_contain("](naive-attachment:2)")
 end)
 
 -- The bubble's words (its paragraph's text).
@@ -246,10 +246,10 @@ test("round trip: an attachment picked in the draft goes as its mention, and the
 	app:key("Enter")
 	settle(app)
 	expect(app:wait('~"Look at"', { timeout_ms = 2000 })).to_be(true)
-	expect(app:state("calls")).to_contain("Look at [zgx.png](zeron-attachment:3)")
+	expect(app:state("calls")).to_contain("Look at [zgx.png](naive-attachment:3)")
 	local tree = app:tree("#transcript")
 	expect(tree).to_contain("Look at zgx.png")
-	expect(tree).never.to_contain("zeron-attachment")
+	expect(tree).never.to_contain("naive-attachment")
 end)
 
 -- Whether the launcher shows (in the tree and not hidden), and what has the

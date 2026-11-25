@@ -16,7 +16,7 @@ interface Props {
 }
 const { id, crop = [0, 0, 1320, 840], class: className } = Astro.props;
 const [x, y, w, h] = crop;
-const label = "Zeron with its frosted glass window: the sidebar's projects and sessions, and a conversation with Claude Code, in the chosen theme.";
+const label = "Naive with its frosted glass window: the sidebar's projects and sessions, and a conversation with Claude Code, in the chosen theme.";
 ---
 
 <div class:list={["zw-fit", className]} style={`--zx:${x};--zy:${y};--zw:${w};--zh:${h}`}>

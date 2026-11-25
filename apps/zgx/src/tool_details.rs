@@ -359,7 +359,7 @@ fn stored_tool_picture(path: &str, data_dir: Option<&std::path::Path>) -> bool {
         Some(file.starts_with(data) && file.components().any(|c| c.as_os_str() == "uploads"))
     };
     meta.is_file()
-        && meta.len() <= zeron_proto::IMAGE_MAX_BYTES as u64
+        && meta.len() <= naive_proto::IMAGE_MAX_BYTES as u64
         && within().unwrap_or(false)
 }
 
@@ -371,7 +371,7 @@ fn file_name(path: &str) -> Option<&str> {
 mod tests {
     use super::*;
 
-    const STORED: &str = "/home/me/.zeron/uploads/tool-0123456789abcdef-0000000000000000000000000000000000000000000000000000000000000001-image.png";
+    const STORED: &str = "/home/me/.naive/uploads/tool-0123456789abcdef-0000000000000000000000000000000000000000000000000000000000000001-image.png";
 
     #[test]
     fn a_result_s_stored_pictures_are_the_row_s_named_as_the_call_s_file() {
@@ -417,7 +417,7 @@ mod tests {
         let outside = elsewhere.path().join(name);
         std::fs::write(&outside, b"\x89PNG\r\n\x1a\n").unwrap();
         let big = uploads.join(name.replace("01-image", "02-image"));
-        std::fs::File::create(&big).unwrap().set_len(zeron_proto::IMAGE_MAX_BYTES as u64 + 1).unwrap();
+        std::fs::File::create(&big).unwrap().set_len(naive_proto::IMAGE_MAX_BYTES as u64 + 1).unwrap();
         let dir = Some(data.path());
         let ok = |p: &std::path::Path| stored_tool_picture(p.to_str().unwrap(), dir);
         assert!(ok(&inside));
@@ -434,7 +434,7 @@ mod tests {
             assert!(!stored_tool_picture(path, dir), "{path}");
         }
         // Another device's copy (no such file here) is read there, by its engine.
-        assert!(stored_tool_picture(&format!("/Users/other/.zeron/uploads/{name}"), dir));
+        assert!(stored_tool_picture(&format!("/Users/other/.naive/uploads/{name}"), dir));
     }
 
     #[test]

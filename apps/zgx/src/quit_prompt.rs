@@ -1,4 +1,4 @@
-//! Quitting with "Keep Zeron running after you quit" off (Settings →
+//! Quitting with "Keep Naive running after you quit" off (Settings →
 //! General; the engine's `crates/engine/src/keep_running.rs`).
 //!
 //! On (the default) nothing happens here: the engine keeps running, as it
@@ -114,7 +114,7 @@ pub fn after_quit() {
         Ok(check) => check,
         // No engine, or one too old to know the setting: it runs on.
         Err(error) => {
-            eprintln!("zeron-zgx: quit: the engine didn't say what's running ({error}); it keeps running");
+            eprintln!("naive-zgx: quit: the engine didn't say what's running ({error}); it keeps running");
             return;
         }
     };
@@ -123,7 +123,7 @@ pub fn after_quit() {
         return;
     };
     if let Err(error) = call("AppQuitting", quitting) {
-        eprintln!("zeron-zgx: quit: couldn't tell the engine ({error}); it keeps running");
+        eprintln!("naive-zgx: quit: couldn't tell the engine ({error}); it keeps running");
     }
 }
 

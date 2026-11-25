@@ -1,5 +1,5 @@
 [package]
-name = "zeron-veil"
+name = "naive-veil"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

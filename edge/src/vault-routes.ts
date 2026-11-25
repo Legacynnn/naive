@@ -66,7 +66,7 @@ const accountProfile = (value: unknown): Record<string, string> | null => {
  * `VAULT_PROVIDERS_HEADER`). A status lists only those: an older client reads
  * provider names strictly and would refuse the whole status over one it
  * doesn't know. Without the header, the providers every client knows. */
-export const VAULT_PROVIDERS_HEADER = "x-zeron-vault-providers";
+export const VAULT_PROVIDERS_HEADER = "x-naive-vault-providers";
 
 export const understoodProviders = (request: Request): ReadonlySet<string> => {
   const header = request.headers.get(VAULT_PROVIDERS_HEADER);

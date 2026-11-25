@@ -1,5 +1,5 @@
-/* zeron.sh wears the app's own dark theme. Every colour, radius and control
-   size here is a token from apps/zgx/ui/ds/themes/zeron-dark.json, so the
+/* naive.sh wears the app's own dark theme. Every colour, radius and control
+   size here is a token from apps/zgx/ui/ds/themes/naive-dark.json, so the
    site and the window pictured on it are one design. Change them there
    first. Fonts come from astro.config.mjs (Geist and Geist Mono, the app's). */
 

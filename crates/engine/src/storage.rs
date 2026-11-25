@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 
 use futures::{StreamExt, stream};
 use serde::{Deserialize, Serialize};
-use zeron_proto::Chat;
+use naive_proto::Chat;
 
 use crate::EngineError;
 use crate::repos::{Repos, canonical_lossy};
@@ -568,13 +568,13 @@ impl Storage {
             let Ok(entries) = std::fs::read_dir(&updates) else {
                 return outcome;
             };
-            let current = zeron_update::app_version();
+            let current = naive_update::app_version();
             for entry in entries.flatten() {
                 let path = entry.path();
                 let name = entry.file_name().to_string_lossy().into_owned();
                 // A newer version's folder is a stage waiting to apply (or still downloading).
-                if zeron_update::version_newer(&name, current)
-                    || zeron_update::process_runs_from(&path)
+                if naive_update::version_newer(&name, current)
+                    || naive_update::process_runs_from(&path)
                 {
                     continue;
                 }
@@ -825,7 +825,7 @@ fn compute_usage(
     store_root: Option<&Path>,
     discovered: &[Discovered],
     chats: &[Chat],
-    spaces: &[zeron_proto::Space],
+    spaces: &[naive_proto::Space],
 ) -> (StorageUsage, HashMap<PathBuf, u64>) {
     let root = canonical_lossy(worktrees_root);
     let data = canonical_lossy(data_dir);

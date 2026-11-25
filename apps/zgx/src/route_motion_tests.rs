@@ -26,7 +26,7 @@ impl Shell {
     }
 
     fn of(fixture: &str, reduced: bool) -> Self {
-        let ui = std::env::var_os("ZERON_ZGX_TEST_UI")
+        let ui = std::env::var_os("NAIVE_ZGX_TEST_UI")
             .map(std::path::PathBuf::from)
             .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui"));
         let app = TestApp::new(|runtime| ScriptHost::new(runtime, ui.join(fixture)));
@@ -112,7 +112,7 @@ impl Composer {
             target,
             editor,
             trace: Vec::new(),
-            print_trace: std::env::var_os("ZERON_ZGX_COMPOSER_TRACE").is_some_and(|v| v != "0"),
+            print_trace: std::env::var_os("NAIVE_ZGX_COMPOSER_TRACE").is_some_and(|v| v != "0"),
         }
     }
 
@@ -629,9 +629,9 @@ fn composer_resize_theme_transparency_and_zoom_reflow_preserve_the_draft() {
         });
         c.watch(40);
         for (width, height, zoom, theme, frosted) in [
-            (1200., 800., 1., "zeron-dark", true),
-            (950., 800., 1.25, "zeron-light", false),
-            (1400., 900., 0.9, "zeron-dark", true),
+            (1200., 800., 1., "naive-dark", true),
+            (950., 800., 1.25, "naive-light", false),
+            (1400., 900., 0.9, "naive-dark", true),
         ] {
             c.trace.clear();
             c.act(|app| {

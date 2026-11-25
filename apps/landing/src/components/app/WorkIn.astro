@@ -3,7 +3,7 @@
 // of machines, in HTML: the composer's foot, its chips, and the two menus
 // that hang from the place chip, laid out to the point as the app lays
 // them (the numbers are those of the canvas drawing the earlier landing
-// page checked against the app: zeron/landing-newchat-hero,
+// page checked against the app: naive/landing-newchat-hero,
 // public/hero/chrome.js `drawOver` and `drawPopups`). Not diffed again here.
 import api from "../../../tools/recreate/reference/artwork/api.svg?raw";
 import AgentMark from "../ui/AgentMark.astro";
@@ -25,7 +25,7 @@ const devices: Row[] = [
   { y: 156, icon: "cloud", label: "Cloud" },
 ];
 const art = `data:image/svg+xml,${encodeURIComponent(api)}`;
-const label = "Zeron's message box with its Work in menu open: the machine, project and branch a new session will run on, and the list of machines: this MacBook Pro, a Linux devbox, a Mac mini that is offline, and Cloud.";
+const label = "Naive's message box with its Work in menu open: the machine, project and branch a new session will run on, and the list of machines: this MacBook Pro, a Linux devbox, a Mac mini that is offline, and Cloud.";
 ---
 
 <Stage width={700} height={372} label={label} class={Astro.props.class}>

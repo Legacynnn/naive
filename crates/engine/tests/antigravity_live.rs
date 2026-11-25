@@ -1,11 +1,11 @@
 //! Live end-to-end verification against the real `agy_acp_server` 1.5.0 binary
-//! through Zeron's [`AcpHarness::antigravity`] and [`EngineCore`].
+//! through Naive's [`AcpHarness::antigravity`] and [`EngineCore`].
 //!
 //! Strictly isolates state in a temporary `GEMINI_HOME` (copying only
 //! `acp_token.json` and `settings.json` from `~/.gemini/antigravity-acp/`).
 //!
 //! Run manually:
-//! `cargo test -p zeron-engine --test antigravity_live -- --ignored --nocapture`
+//! `cargo test -p naive-engine --test antigravity_live -- --ignored --nocapture`
 
 #![cfg(unix)]
 
@@ -13,12 +13,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use zeron_doc::{
+use naive_doc::{
     MessagePart, MessageRole, MessageStatus, SessionCommandPayload, SessionMessageEntry,
 };
-use zeron_engine::{EngineCore, HarnessRegistry};
-use zeron_harness::{AcpHarness, Harness};
-use zeron_proto::{
+use naive_engine::{EngineCore, HarnessRegistry};
+use naive_harness::{AcpHarness, Harness};
+use naive_proto::{
     AccessMode, HarnessId, ReasoningLevel, RunRequest, SandboxLevel, SessionStatus,
 };
 
@@ -60,11 +60,11 @@ fn antigravity_binary() -> PathBuf {
         return PathBuf::from(path);
     }
     let home = std::env::var("HOME").expect("HOME set");
-    let unified = PathBuf::from(&home).join(".zeron/adapters/antigravity-acp/1.5.15/antigravity");
+    let unified = PathBuf::from(&home).join(".naive/adapters/antigravity-acp/1.5.15/antigravity");
     if unified.exists() {
         return unified;
     }
-    PathBuf::from(home).join(".zeron/adapters/antigravity-acp/1.5.0/agy_acp_server.par")
+    PathBuf::from(home).join(".naive/adapters/antigravity-acp/1.5.0/agy_acp_server.par")
 }
 
 fn prepare_isolated_gemini_home(tmp: &tempfile::TempDir) -> PathBuf {
@@ -558,7 +558,7 @@ async fn antigravity_live_neon_streams_reasoning_summaries() {
     assert!(bin.is_file(), "missing Antigravity binary at {}", bin.display());
 
     let tmp = tempfile::tempdir().expect("tempdir");
-    let data_dir = tmp.path().join("zeron-data");
+    let data_dir = tmp.path().join("naive-data");
     let work_dir = tmp.path().join("work");
     std::fs::create_dir_all(&work_dir).expect("mkdir work");
     let gemini_home = prepare_isolated_gemini_home(&tmp);
@@ -624,15 +624,15 @@ async fn antigravity_live_neon_streams_reasoning_summaries() {
 #[tokio::test]
 #[ignore = "live verification of unified Antigravity CLI manifest install, paste-login, and token refresh"]
 async fn antigravity_live_unified_cli_install_paste_login_and_refresh() {
-    // 1. Live release manifest fetch + verified archive install into isolated ZERON_ADAPTERS_DIR.
+    // 1. Live release manifest fetch + verified archive install into isolated NAIVE_ADAPTERS_DIR.
     let tmp = tempfile::tempdir().expect("tempdir");
     let adapters_dir = tmp.path().join("adapters");
     std::fs::create_dir_all(&adapters_dir).expect("mkdir adapters");
-    let _adapters_guard = EnvGuard::set("ZERON_ADAPTERS_DIR", &adapters_dir);
+    let _adapters_guard = EnvGuard::set("NAIVE_ADAPTERS_DIR", &adapters_dir);
 
     eprintln!("[1/4] Fetching live Antigravity manifest & installing verified release...");
     let client = reqwest::Client::new();
-    let release = zeron_harness::acp::fetch_antigravity_release(&client)
+    let release = naive_harness::acp::fetch_antigravity_release(&client)
         .await
         .expect("live Antigravity release manifest fetch");
     eprintln!("Fetched release {}", release.version);
@@ -641,7 +641,7 @@ async fn antigravity_live_unified_cli_install_paste_login_and_refresh() {
         "expected release {} to be installable on this platform",
         release.version
     );
-    let installed_bin = zeron_harness::acp::install_antigravity_release(&release)
+    let installed_bin = naive_harness::acp::install_antigravity_release(&release)
         .await
         .expect("live Antigravity release install");
     assert!(
@@ -650,7 +650,7 @@ async fn antigravity_live_unified_cli_install_paste_login_and_refresh() {
         installed_bin.display()
     );
     assert!(
-        zeron_harness::acp::is_unified_antigravity_cli(&installed_bin),
+        naive_harness::acp::is_unified_antigravity_cli(&installed_bin),
         "installed binary {} should be recognized as unified CLI",
         installed_bin.display()
     );
@@ -683,8 +683,8 @@ async fn antigravity_live_unified_cli_install_paste_login_and_refresh() {
     // 3. Live isolated token refresh from an expired migrated token.
     eprintln!("[3/4] Testing live isolated OAuth token refresh...");
     let isolated_home = prepare_isolated_gemini_home(&tmp);
-    zeron_harness::acp::ensure_antigravity_oauth_token(&isolated_home);
-    let migrated_path = zeron_harness::acp::antigravity_oauth_token_file(&isolated_home);
+    naive_harness::acp::ensure_antigravity_oauth_token(&isolated_home);
+    let migrated_path = naive_harness::acp::antigravity_oauth_token_file(&isolated_home);
     let mut doc: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(&migrated_path).expect("read migrated token"),
     )
@@ -708,18 +708,18 @@ async fn antigravity_live_unified_cli_install_paste_login_and_refresh() {
     eprintln!("Live isolated OAuth refresh succeeded cleanly!");
 
     // 4. Live AgentAccounts CCPA usage probe on a unified-only slot whose
-    //    access_token is expired (proves real auto-refresh via ZERON_ADAPTERS_DIR
+    //    access_token is expired (proves real auto-refresh via NAIVE_ADAPTERS_DIR
     //    + live loadCodeAssist + retrieveUserQuotaSummary).
     eprintln!("[4/4] Testing live AgentAccounts usage probe with unified CLI auto-refresh...");
     let accounts_root = tmp.path().join("accounts-root");
-    let config = zeron_engine::AgentAccountsConfig::isolated(&accounts_root);
+    let config = naive_engine::AgentAccountsConfig::isolated(&accounts_root);
     let agy_home = config.antigravity_home.clone().expect("antigravity_home");
-    let oauth_dest = zeron_harness::acp::antigravity_oauth_token_file(&agy_home);
+    let oauth_dest = naive_harness::acp::antigravity_oauth_token_file(&agy_home);
     std::fs::create_dir_all(oauth_dest.parent().unwrap()).expect("mkdir agy_home");
     std::fs::write(&oauth_dest, serde_json::to_string_pretty(&doc).unwrap())
         .expect("write expired unified token");
 
-    let accounts = zeron_engine::AgentAccounts::new(config);
+    let accounts = naive_engine::AgentAccounts::new(config);
     let snap = accounts.list(true).await.expect("live accounts.list(true)");
     let agy_rows: Vec<_> = snap
         .accounts

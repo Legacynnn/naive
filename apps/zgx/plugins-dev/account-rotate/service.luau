@@ -1,11 +1,11 @@
--- Account rotate's service: run by Zeron's engine on each device that
+-- Account rotate's service: run by Naive's engine on each device that
 -- allowed it, with no window open. When the active Claude Code account
 -- drops below 10% remaining in any of its windows (its session, its week),
 -- it switches to the next saved account that has more left. The switch
 -- waits for that provider's running chats to finish (`when_idle`), so a
--- turn is never cut off; Zeron paces switches, so this can't spin.
+-- turn is never cut off; Naive paces switches, so this can't spin.
 
-local zeron = require("./zeron")("account-rotate")
+local naive = require("./naive")("account-rotate")
 
 local PROVIDER = "claude-code"
 local BELOW = 10
@@ -19,11 +19,11 @@ local function least_left(row: any): number
 	return least
 end
 
--- The next saved account (after the active one, in Zeron's order) with
+-- The next saved account (after the active one, in Naive's order) with
 -- more than BELOW left, or nil.
 local function next_account(): (string?, string?)
-	local accounts = zeron.accounts({ provider = PROVIDER }):await()
-	local usage = zeron.usage({ provider = PROVIDER }):await()
+	local accounts = naive.accounts({ provider = PROVIDER }):await()
+	local usage = naive.usage({ provider = PROVIDER }):await()
 	local left: { [string]: number } = {}
 	for _, row in usage do
 		left[row.account] = least_left(row)
@@ -43,19 +43,19 @@ local function next_account(): (string?, string?)
 	return nil, nil
 end
 
-zeron.on("usage.threshold", function(e)
+naive.on("usage.threshold", function(e)
 	local account, email = next_account()
 	if not account then
-		zeron.emit("stuck", { remaining = e.remaining, window = e.window })
+		naive.emit("stuck", { remaining = e.remaining, window = e.window })
 		return
 	end
-	local done = zeron.switch_account({ provider = PROVIDER, account = account, when_idle = true }):await()
-	zeron.emit("rotating", { status = done.status, to = email or account, window = e.window, remaining = e.remaining })
+	local done = naive.switch_account({ provider = PROVIDER, account = account, when_idle = true }):await()
+	naive.emit("rotating", { status = done.status, to = email or account, window = e.window, remaining = e.remaining })
 end, { below = BELOW, provider = PROVIDER })
 
 -- Told again once the switch happened (now, or when the chats finished).
-zeron.on("account.switched", function(e)
+naive.on("account.switched", function(e)
 	if e.by and e.by.plugin == "account-rotate" then
-		zeron.emit("rotated", { to = e.email or e.account })
+		naive.emit("rotated", { to = e.email or e.account })
 	end
 end, { provider = PROVIDER })

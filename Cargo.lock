@@ -3822,6 +3822,574 @@ dependencies = [
 ]
 
 [[package]]
+name = "naive"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "clap",
+ "embed-resource",
+ "libc",
+ "libmimalloc-sys",
+ "mimalloc",
+ "naive-cli",
+ "naive-engine",
+ "naive-mcp",
+ "naive-notify",
+ "naive-rpc",
+ "naive-sync",
+ "naive-update",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "naive-audio"
+version = "0.3.18"
+dependencies = [
+ "base64 0.22.1",
+ "cpal 0.18.2",
+ "crossbeam-queue",
+ "naive-proto",
+ "thiserror 2.0.20",
+ "webrtc-audio-processing",
+]
+
+[[package]]
+name = "naive-cli"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "clap",
+ "libc",
+ "naive-launch",
+ "naive-update",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "naive-client"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "chrono",
+ "futures",
+ "loro",
+ "naive-doc",
+ "naive-preview",
+ "naive-proto",
+ "naive-rpc",
+ "naive-sync",
+ "naive-term-link",
+ "naive-visual",
+ "naive-voice-session",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "naive-doc"
+version = "0.3.18"
+dependencies = [
+ "chrono",
+ "loro",
+ "naive-proto",
+ "serde",
+ "serde_json",
+ "sha2",
+ "similar",
+ "thiserror 2.0.20",
+ "tracing",
+]
+
+[[package]]
+name = "naive-engine"
+version = "0.3.18"
+dependencies = [
+ "alacritty_terminal",
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "core-foundation 0.10.1",
+ "dunce",
+ "fff-search",
+ "flate2",
+ "futures",
+ "gethostname",
+ "ignore",
+ "image",
+ "libc",
+ "loro",
+ "mlua",
+ "naive-doc",
+ "naive-harness",
+ "naive-launch",
+ "naive-mcp",
+ "naive-notify",
+ "naive-plugin-guard",
+ "naive-preview",
+ "naive-proto",
+ "naive-rpc",
+ "naive-sync",
+ "naive-term-link",
+ "naive-theme",
+ "naive-update",
+ "naive-visual",
+ "notify 7.0.0",
+ "portable-pty",
+ "reqwest",
+ "ring",
+ "rusqlite",
+ "same-file",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sysinfo",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+ "toml 0.8.23",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "windows-sys 0.61.2",
+ "zip",
+]
+
+[[package]]
+name = "naive-harness"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "bzip2",
+ "chrono",
+ "deser-hjson",
+ "filetime",
+ "flate2",
+ "futures",
+ "libc",
+ "naive-doc",
+ "naive-proto",
+ "naive-voice-media",
+ "reqwest",
+ "rusqlite",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_yaml_ng",
+ "sha2",
+ "tar",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
+ "windows-sys 0.61.2",
+ "zip",
+]
+
+[[package]]
+name = "naive-launch"
+version = "0.3.18"
+dependencies = [
+ "libc",
+ "tempfile",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "naive-markdown"
+version = "0.3.18"
+dependencies = [
+ "pulldown-cmark",
+]
+
+[[package]]
+name = "naive-mcp"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "bytes",
+ "chrono",
+ "futures",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "naive-doc",
+ "naive-proto",
+ "naive-rpc",
+ "naive-theme",
+ "naive-visual",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "naive-mobile"
+version = "0.3.18"
+dependencies = [
+ "async-trait",
+ "naive-client",
+ "naive-doc",
+ "naive-markdown",
+ "naive-orb",
+ "naive-proto",
+ "naive-syntax",
+ "naive-term",
+ "naive-text",
+ "naive-veil",
+ "naive-visual",
+ "naive-visual-gpu",
+ "naive-voice-session",
+ "serde",
+ "serde_json",
+ "similar",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-util",
+ "uniffi",
+ "zatex",
+]
+
+[[package]]
+name = "naive-mobile-bindgen"
+version = "0.3.18"
+dependencies = [
+ "uniffi",
+]
+
+[[package]]
+name = "naive-notify"
+version = "0.3.18"
+dependencies = [
+ "objc",
+ "sha2",
+ "tracing",
+]
+
+[[package]]
+name = "naive-orb"
+version = "0.3.18"
+
+[[package]]
+name = "naive-plugin-guard"
+version = "0.3.18"
+dependencies = [
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "naive-preview"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bytes",
+ "chrono",
+ "futures",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "libc",
+ "naive-preview-label",
+ "naive-proto",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "webrtc",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "naive-preview-label"
+version = "0.3.18"
+
+[[package]]
+name = "naive-proto"
+version = "0.3.18"
+dependencies = [
+ "chrono",
+ "pulldown-cmark",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "naive-rpc"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "futures",
+ "getrandom 0.4.3",
+ "naive-doc",
+ "naive-proto",
+ "naive-sync",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-tungstenite",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "naive-sync"
+version = "0.3.18"
+dependencies = [
+ "base64 0.22.1",
+ "block2",
+ "chrono",
+ "futures",
+ "loro",
+ "loro-protocol",
+ "naive-doc",
+ "naive-proto",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+ "tokio-tungstenite",
+ "tokio-util",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "naive-syntax"
+version = "0.3.18"
+dependencies = [
+ "thiserror 2.0.20",
+ "tree-sitter",
+ "tree-sitter-bash",
+ "tree-sitter-c",
+ "tree-sitter-c-sharp",
+ "tree-sitter-containerfile",
+ "tree-sitter-cpp",
+ "tree-sitter-css",
+ "tree-sitter-go",
+ "tree-sitter-highlight",
+ "tree-sitter-html",
+ "tree-sitter-java",
+ "tree-sitter-javascript",
+ "tree-sitter-json",
+ "tree-sitter-kotlin-ng",
+ "tree-sitter-lua",
+ "tree-sitter-luau",
+ "tree-sitter-make",
+ "tree-sitter-md",
+ "tree-sitter-nix",
+ "tree-sitter-php",
+ "tree-sitter-python",
+ "tree-sitter-ruby",
+ "tree-sitter-rust",
+ "tree-sitter-sequel",
+ "tree-sitter-swift",
+ "tree-sitter-toml-ng",
+ "tree-sitter-typescript",
+ "tree-sitter-yaml",
+]
+
+[[package]]
+name = "naive-term"
+version = "0.3.18"
+dependencies = [
+ "alacritty_terminal",
+]
+
+[[package]]
+name = "naive-term-link"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "base64 0.22.1",
+ "futures",
+ "naive-preview",
+ "naive-proto",
+ "naive-rpc",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "naive-text"
+version = "0.3.18"
+dependencies = [
+ "core-foundation 0.10.1",
+ "core-graphics",
+ "core-text",
+ "criterion",
+ "hashbrown 0.15.5",
+ "icu_properties",
+ "icu_segmenter",
+ "rustc-hash 2.1.3",
+ "rustybuzz",
+ "unicode-bidi",
+ "unicode-segmentation",
+]
+
+[[package]]
+name = "naive-theme"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "clap",
+ "json5",
+ "plist",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "naive-update"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "futures",
+ "libc",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "naive-veil"
+version = "0.3.18"
+
+[[package]]
+name = "naive-visual"
+version = "0.3.18"
+dependencies = [
+ "base64 0.22.1",
+ "gltf",
+ "image",
+ "mlua",
+ "naga",
+ "thiserror 2.0.20",
+]
+
+[[package]]
+name = "naive-visual-gpu"
+version = "0.3.18"
+dependencies = [
+ "image",
+ "naive-visual",
+ "pollster",
+ "tracing",
+ "wgpu",
+]
+
+[[package]]
+name = "naive-voice"
+version = "0.3.18"
+dependencies = [
+ "anyhow",
+ "cpal 0.17.3",
+ "hound",
+ "ort",
+ "ort-sys",
+ "parakeet-rs",
+ "reqwest",
+ "rubato",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "naive-voice-media"
+version = "0.3.18"
+dependencies = [
+ "async-trait",
+ "naive-proto",
+ "naive-voice-session",
+ "semver",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "naive-voice-session"
+version = "0.3.18"
+dependencies = [
+ "async-trait",
+ "futures",
+ "naive-orb",
+ "naive-proto",
+ "naive-rpc",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8836,574 +9404,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "zeron"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "clap",
- "embed-resource",
- "libc",
- "libmimalloc-sys",
- "mimalloc",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "windows-sys 0.61.2",
- "zeron-cli",
- "zeron-engine",
- "zeron-mcp",
- "zeron-notify",
- "zeron-rpc",
- "zeron-sync",
- "zeron-update",
-]
-
-[[package]]
-name = "zeron-audio"
-version = "0.3.18"
-dependencies = [
- "base64 0.22.1",
- "cpal 0.18.2",
- "crossbeam-queue",
- "thiserror 2.0.20",
- "webrtc-audio-processing",
- "zeron-proto",
-]
-
-[[package]]
-name = "zeron-cli"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "clap",
- "libc",
- "tempfile",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "windows-sys 0.61.2",
- "zeron-launch",
- "zeron-update",
-]
-
-[[package]]
-name = "zeron-client"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "chrono",
- "futures",
- "loro",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.20",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
- "tracing",
- "uuid",
- "zeron-doc",
- "zeron-preview",
- "zeron-proto",
- "zeron-rpc",
- "zeron-sync",
- "zeron-term-link",
- "zeron-visual",
- "zeron-voice-session",
-]
-
-[[package]]
-name = "zeron-doc"
-version = "0.3.18"
-dependencies = [
- "chrono",
- "loro",
- "serde",
- "serde_json",
- "sha2",
- "similar",
- "thiserror 2.0.20",
- "tracing",
- "zeron-proto",
-]
-
-[[package]]
-name = "zeron-engine"
-version = "0.3.18"
-dependencies = [
- "alacritty_terminal",
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "bytes",
- "chrono",
- "core-foundation 0.10.1",
- "dunce",
- "fff-search",
- "flate2",
- "futures",
- "gethostname",
- "ignore",
- "image",
- "libc",
- "loro",
- "mlua",
- "notify 7.0.0",
- "portable-pty",
- "reqwest",
- "ring",
- "rusqlite",
- "same-file",
- "semver",
- "serde",
- "serde_json",
- "sha2",
- "sysinfo",
- "tar",
- "tempfile",
- "thiserror 2.0.20",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
- "toml 0.8.23",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "windows-sys 0.61.2",
- "zeron-doc",
- "zeron-harness",
- "zeron-launch",
- "zeron-mcp",
- "zeron-notify",
- "zeron-plugin-guard",
- "zeron-preview",
- "zeron-proto",
- "zeron-rpc",
- "zeron-sync",
- "zeron-term-link",
- "zeron-theme",
- "zeron-update",
- "zeron-visual",
- "zip",
-]
-
-[[package]]
-name = "zeron-harness"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "bzip2",
- "chrono",
- "deser-hjson",
- "filetime",
- "flate2",
- "futures",
- "libc",
- "reqwest",
- "rusqlite",
- "semver",
- "serde",
- "serde_json",
- "serde_yaml_ng",
- "sha2",
- "tar",
- "tempfile",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "tracing",
- "uuid",
- "windows-sys 0.61.2",
- "zeron-doc",
- "zeron-proto",
- "zeron-voice-media",
- "zip",
-]
-
-[[package]]
-name = "zeron-launch"
-version = "0.3.18"
-dependencies = [
- "libc",
- "tempfile",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "zeron-markdown"
-version = "0.3.18"
-dependencies = [
- "pulldown-cmark",
-]
-
-[[package]]
-name = "zeron-mcp"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "bytes",
- "chrono",
- "futures",
- "http-body-util",
- "hyper",
- "hyper-util",
- "serde",
- "serde_json",
- "tempfile",
- "tokio",
- "tracing",
- "uuid",
- "zeron-doc",
- "zeron-proto",
- "zeron-rpc",
- "zeron-theme",
- "zeron-visual",
-]
-
-[[package]]
-name = "zeron-mobile"
-version = "0.3.18"
-dependencies = [
- "async-trait",
- "serde",
- "serde_json",
- "similar",
- "thiserror 2.0.20",
- "tokio",
- "tokio-util",
- "uniffi",
- "zatex",
- "zeron-client",
- "zeron-doc",
- "zeron-markdown",
- "zeron-orb",
- "zeron-proto",
- "zeron-syntax",
- "zeron-term",
- "zeron-text",
- "zeron-veil",
- "zeron-visual",
- "zeron-visual-gpu",
- "zeron-voice-session",
-]
-
-[[package]]
-name = "zeron-mobile-bindgen"
-version = "0.3.18"
-dependencies = [
- "uniffi",
-]
-
-[[package]]
-name = "zeron-notify"
-version = "0.3.18"
-dependencies = [
- "objc",
- "sha2",
- "tracing",
-]
-
-[[package]]
-name = "zeron-orb"
-version = "0.3.18"
-
-[[package]]
-name = "zeron-plugin-guard"
-version = "0.3.18"
-dependencies = [
- "serde_json",
- "tempfile",
-]
-
-[[package]]
-name = "zeron-preview"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "async-trait",
- "bytes",
- "chrono",
- "futures",
- "http-body-util",
- "hyper",
- "hyper-util",
- "libc",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "webrtc",
- "windows-sys 0.61.2",
- "zeron-preview-label",
- "zeron-proto",
-]
-
-[[package]]
-name = "zeron-preview-label"
-version = "0.3.18"
-
-[[package]]
-name = "zeron-proto"
-version = "0.3.18"
-dependencies = [
- "chrono",
- "pulldown-cmark",
- "serde",
- "serde_json",
- "uuid",
-]
-
-[[package]]
-name = "zeron-rpc"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "async-trait",
- "futures",
- "getrandom 0.4.3",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.20",
- "tokio",
- "tokio-tungstenite",
- "tracing",
- "uuid",
- "zeron-doc",
- "zeron-proto",
- "zeron-sync",
-]
-
-[[package]]
-name = "zeron-sync"
-version = "0.3.18"
-dependencies = [
- "base64 0.22.1",
- "block2",
- "chrono",
- "futures",
- "loro",
- "loro-protocol",
- "reqwest",
- "rusqlite",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.20",
- "tokio",
- "tokio-tungstenite",
- "tokio-util",
- "tracing",
- "uuid",
- "zeron-doc",
- "zeron-proto",
-]
-
-[[package]]
-name = "zeron-syntax"
-version = "0.3.18"
-dependencies = [
- "thiserror 2.0.20",
- "tree-sitter",
- "tree-sitter-bash",
- "tree-sitter-c",
- "tree-sitter-c-sharp",
- "tree-sitter-containerfile",
- "tree-sitter-cpp",
- "tree-sitter-css",
- "tree-sitter-go",
- "tree-sitter-highlight",
- "tree-sitter-html",
- "tree-sitter-java",
- "tree-sitter-javascript",
- "tree-sitter-json",
- "tree-sitter-kotlin-ng",
- "tree-sitter-lua",
- "tree-sitter-luau",
- "tree-sitter-make",
- "tree-sitter-md",
- "tree-sitter-nix",
- "tree-sitter-php",
- "tree-sitter-python",
- "tree-sitter-ruby",
- "tree-sitter-rust",
- "tree-sitter-sequel",
- "tree-sitter-swift",
- "tree-sitter-toml-ng",
- "tree-sitter-typescript",
- "tree-sitter-yaml",
-]
-
-[[package]]
-name = "zeron-term"
-version = "0.3.18"
-dependencies = [
- "alacritty_terminal",
-]
-
-[[package]]
-name = "zeron-term-link"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "async-trait",
- "base64 0.22.1",
- "futures",
- "serde_json",
- "tokio",
- "tracing",
- "uuid",
- "zeron-preview",
- "zeron-proto",
- "zeron-rpc",
-]
-
-[[package]]
-name = "zeron-text"
-version = "0.3.18"
-dependencies = [
- "core-foundation 0.10.1",
- "core-graphics",
- "core-text",
- "criterion",
- "hashbrown 0.15.5",
- "icu_properties",
- "icu_segmenter",
- "rustc-hash 2.1.3",
- "rustybuzz",
- "unicode-bidi",
- "unicode-segmentation",
-]
-
-[[package]]
-name = "zeron-theme"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "clap",
- "json5",
- "plist",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "zeron-update"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "futures",
- "libc",
- "reqwest",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "tracing",
- "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "zeron-veil"
-version = "0.3.18"
-
-[[package]]
-name = "zeron-visual"
-version = "0.3.18"
-dependencies = [
- "base64 0.22.1",
- "gltf",
- "image",
- "mlua",
- "naga",
- "thiserror 2.0.20",
-]
-
-[[package]]
-name = "zeron-visual-gpu"
-version = "0.3.18"
-dependencies = [
- "image",
- "pollster",
- "tracing",
- "wgpu",
- "zeron-visual",
-]
-
-[[package]]
-name = "zeron-voice"
-version = "0.3.18"
-dependencies = [
- "anyhow",
- "cpal 0.17.3",
- "hound",
- "ort",
- "ort-sys",
- "parakeet-rs",
- "reqwest",
- "rubato",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
-]
-
-[[package]]
-name = "zeron-voice-media"
-version = "0.3.18"
-dependencies = [
- "async-trait",
- "semver",
- "serde_json",
- "sha2",
- "tempfile",
- "tokio",
- "tokio-util",
- "zeron-proto",
- "zeron-voice-session",
-]
-
-[[package]]
-name = "zeron-voice-session"
-version = "0.3.18"
-dependencies = [
- "async-trait",
- "futures",
- "serde",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
- "zeron-orb",
- "zeron-proto",
- "zeron-rpc",
 ]
 
 [[package]]

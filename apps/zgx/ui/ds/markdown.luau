@@ -1,4 +1,4 @@
--- A reply's markdown, set for reading, from what Zeron's transcript draws
+-- A reply's markdown, set for reading, from what Naive's transcript draws
 -- (crates/ui/src/markdown/render.rs) and a step past it.
 --
 -- `Markdown { text }`: `text` a string, or a function of the text as it
@@ -109,7 +109,7 @@ export type Props = {
 	-- wholly above it changes.)
 	window: { key: string, view: Ref, offset: State<number>, live: (() -> boolean)?, at_end: State<boolean>?, row: Ref? }?,
 	-- A reply's own pictures (screens/chat/reply_images): each drawn as
-	-- Zeron's reply image row (ds/reply_picture), read as it is asked for;
+	-- Naive's reply image row (ds/reply_picture), read as it is asked for;
 	-- `group` names the reply, whose pictures open together in the
 	-- lightbox (← →).
 	pictures: ReplyPicture.Pictures?,
@@ -136,7 +136,7 @@ export type Find = {
 
 -- What a document's links and pictures resolve by (Props' `image`, `open`).
 -- The streaming veil: text arriving is laid out at once and fades in, colour only, so
--- nothing moves or wraps for it (as Zeron's crates/veil). Each paragraph remembers what
+-- nothing moves or wraps for it (as Naive's crates/veil). Each paragraph remembers what
 -- it has shown; what's new is a chunk, fading exactly once, its time following how fast
 -- text is coming. Kept by the reply's key, so a row made again doesn't fade again.
 local VEIL_MIN, VEIL_MAX, VEIL_EMA_SEED, VEIL_GAP_MAX = 120, 400, 160, 1000
@@ -497,11 +497,11 @@ local function number_tasks(list: { MarkdownBlock }, into: { [any]: number })
 end
 
 
-local SIZE = "$zeron.prose.size"
-local LINE = "$zeron.prose.line"
+local SIZE = "$naive.prose.size"
+local LINE = "$naive.prose.line"
 -- The small setting's (`small`).
-local SMALL_SIZE = "$zeron.prose.small.size"
-local SMALL_LINE = "$zeron.prose.small.line"
+local SMALL_SIZE = "$naive.prose.small.size"
+local SMALL_LINE = "$naive.prose.small.line"
 
 -- The text's size and line as the context sets them.
 local function size_of(ctx: Ctx?): (string, string)
@@ -525,26 +525,26 @@ end
 -- instead of cramping the upper/lower gap around the well.
 local CHIP_PADDING = { 2, 7, 2 }
 local CHIP_PADDING_TIGHT = { 2, 7, 3 }
-local CHIP_RADIUS = ui.raw(5, "Zeron's inline chip corner (chip.rs)")
+local CHIP_RADIUS = ui.raw(5, "Naive's inline chip corner (chip.rs)")
 local function chip_padding(span: { [any]: any }): { number }
 	return if span.text_size ~= nil then CHIP_PADDING_TIGHT else CHIP_PADDING
 end
 local function chip_icon(icon: { [string]: any }): { [string]: any }
 	icon.size = 13
 	icon.gap = 2
-	icon.bg = "$zeron.chip.well"
+	icon.bg = "$naive.chip.well"
 	icon.radius = 3
 	icon.pad = 2
 	return icon
 end
 
--- A mention in a prompt (Zeron's `[name](zeron-file:path)`, a chat's
--- `zeron-chat:`): a chip in the line, as Zeron's sent bubble draws it
+-- A mention in a prompt (Naive's `[name](naive-file:path)`, a chat's
+-- `naive-chat:`): a chip in the line, as Naive's sent bubble draws it
 -- (transcript.rs `user_bubble_text`, composer/chip.rs `paint_chip`): its
 -- name in the body's ink on the composer chip's wash, corner 5, its file's
 -- icon (or a chat's) before it. Its click is the document's `open`.
 local function mention_chip(span: { [any]: any }, target: string, name: string)
-	local chat = string.match(target, "^zeron%-chat:") ~= nil
+	local chat = string.match(target, "^naive%-chat:") ~= nil
 	local dir = string.sub(target, -1) == "/"
 	-- (Its icon by its file's own name: a reply's link may say it in other
 	-- words, `[the config](src/config.rs:12)`.)
@@ -561,17 +561,17 @@ local function mention_chip(span: { [any]: any }, target: string, name: string)
 	-- (A hover of its own, which changes nothing: without one, a link's
 	-- pointer draws the focus ring round its words.)
 	span.hover = {}
-	span.bg = "$zeron.chip.bg"
+	span.bg = "$naive.chip.bg"
 	span[1] = name
 	span.padding = chip_padding(span)
 	span.radius = CHIP_RADIUS
 	span.icon = if chat
-		then chip_icon { src = "assets/icons/ui/side-chat.svg", tint = "$zeron.chip.glyph" }
+		then chip_icon { src = "assets/icons/ui/side-chat.svg", tint = "$naive.chip.glyph" }
 		else chip_icon { src = `assets/icons/files/{set}/{FileIcon.of(if string.find(file, ".", 1, true) or dir then file else name, dir)}.svg` }
 end
 
 -- a command or skill picked in the composer has nothing to open, but reads
--- as the same pill a mention does, as zeron's sent bubble and mobile draw it
+-- as the same pill a mention does, as naive's sent bubble and mobile draw it
 -- What a prompt carries, named in its words: "(attachment: <name>)", the
 -- words the send writes for an `@` reference (screens/chat/carried
 -- `refs`). Drawn as that one's chip (its kind's icon, its name), where it
@@ -635,13 +635,13 @@ local function attachment_chip(span: { [any]: any }, name: string, item: { kind:
 	span.underline_offset = nil
 	span.hover = {}
 	span.color = nil
-	span.bg = "$zeron.chip.bg"
+	span.bg = "$naive.chip.bg"
 	span[1] = name
 	span.padding = chip_padding(span)
 	span.radius = CHIP_RADIUS
 	local glyph = if item.kind == "chat" then "side-chat" elseif item.kind == "image" then "gallery" else item.icon
 	span.icon = if glyph
-		then chip_icon { src = `assets/icons/ui/{glyph}.svg`, tint = "$zeron.chip.glyph" }
+		then chip_icon { src = `assets/icons/ui/{glyph}.svg`, tint = "$naive.chip.glyph" }
 		else chip_icon { src = `assets/icons/files/{set}/{FileIcon.of(name, false)}.svg` }
 end
 
@@ -658,11 +658,11 @@ local function invocation_chip(span: { [any]: any }, name: string)
 	-- (A hover of its own, which changes nothing: without one, a link's
 	-- pointer draws the focus ring round its words.)
 	span.hover = {}
-	span.bg = "$zeron.chip.bg"
+	span.bg = "$naive.chip.bg"
 	span[1] = name
 	span.padding = chip_padding(span)
 	span.radius = CHIP_RADIUS
-	span.icon = chip_icon { src = `assets/icons/ui/{glyph}.svg`, tint = "$zeron.chip.glyph" }
+	span.icon = chip_icon { src = `assets/icons/ui/{glyph}.svg`, tint = "$naive.chip.glyph" }
 end
 
 -- A web address written bare in a run's words (not in code, not a link
@@ -755,7 +755,7 @@ local function runs_now(list: { MarkdownRun }, style: { [string]: any }?, ctx: C
 			props[k] = v
 		end
 	end
-	local inline = ui.theme.get("zeron.prose.code.inline")
+	local inline = ui.theme.get("naive.prose.code.inline")
 	-- A find's matches in the paragraph's words, numbered on from the
 	-- block's count so far; each span cut where one starts or ends.
 	local f = if ctx then ctx.find else nil
@@ -784,7 +784,7 @@ local function runs_now(list: { MarkdownRun }, style: { [string]: any }?, ctx: C
 		if span.icon then
 			for i, m in marks do
 				if m[1] <= to and m[2] >= from then
-					span.bg = if base + i == cur then "$zeron.editor.match_current" else "$zeron.editor.match"
+					span.bg = if base + i == cur then "$naive.editor.match_current" else "$naive.editor.match"
 				end
 			end
 			table.insert(props, ui.span(span))
@@ -817,7 +817,7 @@ local function runs_now(list: { MarkdownRun }, style: { [string]: any }?, ctx: C
 				end
 				local hit = table.clone(span)
 				hit[1] = string.sub(text, s - from + 1, e - from + 1)
-				hit.bg = if base + i == cur then "$zeron.editor.match_current" else "$zeron.editor.match"
+				hit.bg = if base + i == cur then "$naive.editor.match_current" else "$naive.editor.match"
 				table.insert(props, ui.span(hit))
 				at = e + 1
 			end
@@ -831,7 +831,7 @@ local function runs_now(list: { MarkdownRun }, style: { [string]: any }?, ctx: C
 	for _, run in list do
 		-- A picture among the words, not drawn as one (a reply's that it can
 		-- show are: `block`'s paragraph): the link it is, by its alt or its
-		-- file's name, as Zeron's markdown keeps a picture the host won't
+		-- file's name, as Naive's markdown keeps a picture the host won't
 		-- draw. (One byte to a find: ds/markdown_find `words`.)
 		local r = run
 		if run.img then
@@ -854,14 +854,14 @@ local function runs_now(list: { MarkdownRun }, style: { [string]: any }?, ctx: C
 			-- In code's font (Settings → Appearance; a span takes a family,
 			-- not a token), as code blocks are.
 			span.font = look.code_family()
-			span.bg = "$zeron.prose.code_wash"
+			span.bg = "$naive.prose.code_wash"
 			-- (Its ink the accent with "Accent colour throughout", as the
 			-- shipping app's; else the text's own.)
 			span.color = accented_ink(span.color)
 			span.padding = { 4, 1 }
-			-- Zeron's inline code corner (markdown/render.rs's 4.5), each
+			-- Naive's inline code corner (markdown/render.rs's 4.5), each
 			-- line's piece of a wrapped span rounded on its own.
-			span.radius = ui.raw(4.5, "Zeron's inline code corner")
+			span.radius = ui.raw(4.5, "Naive's inline code corner")
 			span.text_size = inline
 		end
 		-- (What the page says a link is: one of the chat's files, or one of
@@ -871,16 +871,16 @@ local function runs_now(list: { MarkdownRun }, style: { [string]: any }?, ctx: C
 		local named = (r :: any).attached
 		if named and ctx and ctx.attached and ctx.attached[named] then
 			attachment_chip(span, named, ctx.attached[named])
-		elseif r.a and string.match(r.a, "^zeron%-invoke:") then
+		elseif r.a and string.match(r.a, "^naive%-invoke:") then
 			invocation_chip(span, r.x)
-		elseif r.a and (string.match(r.a, "^zeron%-image:%d+$") or string.match(r.a, "^zeron%-attachment:%d+$")) then
+		elseif r.a and (string.match(r.a, "^naive%-image:%d+$") or string.match(r.a, "^naive%-attachment:%d+$")) then
 			-- What it carries, mentioned by its number (ds/attachment_mentions):
 			-- its chip, a picture's glyph or a file's icon, by its name.
-			local is_image = string.match(r.a, "^zeron%-image:") ~= nil
+			local is_image = string.match(r.a, "^naive%-image:") ~= nil
 				or AttachmentMentions.is_image_name(r.x)
 				or (ctx ~= nil and ctx.attached ~= nil and ctx.attached[r.x] ~= nil and ctx.attached[r.x].kind == "image")
 			attachment_chip(span, r.x, { kind = if is_image then "image" else "file" })
-		elseif r.a and string.match(r.a, "^zeron%-annotation:") then
+		elseif r.a and string.match(r.a, "^naive%-annotation:") then
 			-- A browser pick, mentioned (its token): its chip.
 			attachment_chip(span, r.x, { kind = "file", icon = "cursor" })
 		elseif chip and chip.skill then
@@ -895,8 +895,8 @@ local function runs_now(list: { MarkdownRun }, style: { [string]: any }?, ctx: C
 			span.hover = { underline = true, color = "$accent" }
 			if not pending then
 				if
-					string.match(r.a, "^zeron%-file:")
-					or string.match(r.a, "^zeron%-chat:")
+					string.match(r.a, "^naive%-file:")
+					or string.match(r.a, "^naive%-chat:")
 					or (chip and chip.file)
 				then
 					mention_chip(span, r.a, r.x)
@@ -981,7 +981,7 @@ local function runs(list: { MarkdownRun }, style: { [string]: any }?, ctx: Ctx?,
 	end
 	local targets: { string } = {}
 	for _, r in list do
-		if r.a and r.a ~= PENDING_LINK and not opens(r.a) and not string.match(r.a, "^zeron%-") then
+		if r.a and r.a ~= PENDING_LINK and not opens(r.a) and not string.match(r.a, "^naive%-") then
 			table.insert(targets, r.a)
 		end
 	end
@@ -1060,8 +1060,8 @@ local TableBlock = ui.component(function(props: { b: any, ctx: Ctx?, veil_id: st
 			-- (Not wrapping by a rounding, a short column's track being as wide
 			-- as its words.)
 			wrap = long[c] == true,
-			text_size = "$zeron.prose.small.size",
-			line_height = "$zeron.prose.small.line",
+			text_size = "$naive.prose.small.size",
+			line_height = "$naive.prose.small.line",
 		}
 		if head then
 			text.weight = "$font.weight.medium"
@@ -1171,8 +1171,8 @@ local function code_text(text: string, lang: string, wrap: boolean?, find: CodeF
 	local props: { [any]: any } = {
 		wrap = wrap,
 		font = "$font.mono",
-		text_size = "$zeron.prose.code.size",
-		line_height = "$zeron.prose.code.line",
+		text_size = "$naive.prose.code.size",
+		line_height = "$naive.prose.code.line",
 		color = "$text.primary",
 		literal = true,
 		pl = "$space.4",
@@ -1203,7 +1203,7 @@ local function code_text(text: string, lang: string, wrap: boolean?, find: CodeF
 					string.sub(t, s - from + 1, e - from + 1),
 					color = color,
 					literal = true,
-					bg = if base + i == cur then "$zeron.editor.match_current" else "$zeron.editor.match",
+					bg = if base + i == cur then "$naive.editor.match_current" else "$naive.editor.match",
 				})
 				at = e + 1
 			end
@@ -1269,9 +1269,9 @@ local CodeBlock = ui.component(function(props: { lang: string, text: string, cla
 		w_full = true,
 		min_w = 0,
 		rounded = "$radius.xl",
-		bg = "$zeron.prose.code.bg",
+		bg = "$naive.prose.code.bg",
 		border = 1,
-		border_color = "$zeron.prose.code.edge",
+		border_color = "$naive.prose.code.edge",
 		overflow = "hidden",
 		ui.row {
 			h = 34,
@@ -1439,7 +1439,7 @@ local function marker(ordered: boolean, n: number, ctx: Ctx?): Node
 			tabular = true,
 			text_size = size,
 			line_height = line,
-			color = "$zeron.prose.marker",
+			color = "$naive.prose.marker",
 		}
 	end
 	return ui.row {
@@ -1449,7 +1449,7 @@ local function marker(ordered: boolean, n: number, ctx: Ctx?): Node
 		shrink = 0,
 		items = "center",
 		pl = "$space.1",
-		ui.div { w = 5, h = 5, rounded = "$radius.full", bg = "$zeron.prose.marker" },
+		ui.div { w = 5, h = 5, rounded = "$radius.full", bg = "$naive.prose.marker" },
 	}
 end
 
@@ -1485,7 +1485,7 @@ local function block(b: MarkdownBlock, ink: string?, ctx: Ctx?, veil_id: string?
 	if b.t == "p" then
 		local style = if ink then { color = ink } else nil
 		-- Pictures among a reply's words that it can show: drawn, the words
-		-- around them lines of their own above and below, as Zeron's
+		-- around them lines of their own above and below, as Naive's
 		-- markdown draws a picture its host takes (render.rs
 		-- `text_element`); those with only spaces between on one tray. One
 		-- it won't show stays its link (`runs`).
@@ -1546,7 +1546,7 @@ local function block(b: MarkdownBlock, ink: string?, ctx: Ctx?, veil_id: string?
 		return runs(b.s, style, ctx, veil_id)
 	elseif b.t == "h" then
 		local level = math.min(b.l, 3)
-		local key = `zeron.prose.h{level}`
+		local key = `naive.prose.h{level}`
 		-- (Set small, a heading keeps the prose's size: a thought's heading
 		-- is a title in the margin, not a chapter's.)
 		local small = ctx ~= nil and ctx.small == true
@@ -1670,13 +1670,13 @@ local function block(b: MarkdownBlock, ink: string?, ctx: Ctx?, veil_id: string?
 				}
 			)
 		end
-		return ui.column { role = "list", w_full = true, gap = "$zeron.space.tight", items }
+		return ui.column { role = "list", w_full = true, gap = "$naive.space.tight", items }
 	elseif b.t == "quote" then
 		return ui.row {
 			class = "md-quote",
 			w_full = true,
 			gap = "$space.4",
-			ui.div { w = 2, shrink = 0, rounded = "$radius.full", bg = "$zeron.prose.quote_rail" },
+			ui.div { w = 2, shrink = 0, rounded = "$radius.full", bg = "$naive.prose.quote_rail" },
 			ui.column { grow = 1, min_w = 0, gap = "$space.3", blocks(b.b, "$text.secondary", ctx, if veil_id then `{veil_id}.q` else nil) },
 		}
 	elseif b.t == "hr" then
@@ -1686,7 +1686,7 @@ local function block(b: MarkdownBlock, ink: string?, ctx: Ctx?, veil_id: string?
 	elseif (b.t == "img" or b.t == "pics") and ctx and ctx.pictures then
 		-- A reply's pictures (ds/reply_picture): one alone, or several that
 		-- follow one another together on a tray. One it won't draw (a URL, a
-		-- home path, a GIF) is the link the reply wrote, as Zeron keeps it.
+		-- home path, a GIF) is the link the reply wrote, as Naive keeps it.
 		local pictures = ctx.pictures :: ReplyPicture.Pictures
 		local group = ctx.group or "reply"
 		local function set(): { ReplyPicture.Entry }

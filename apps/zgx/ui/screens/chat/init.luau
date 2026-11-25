@@ -27,7 +27,7 @@ local function part(path: string, what: string): any
 	if ok and loaded ~= nil then
 		return loaded
 	end
-	print(`zeron-zgx: {path} didn't load: {loaded}`)
+	print(`naive-zgx: {path} didn't load: {loaded}`)
 	return function(): Node
 		return ui.column {
 			w_full = true,

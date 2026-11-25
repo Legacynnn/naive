@@ -70,18 +70,18 @@ local OWN = {
 -- same place, with a glyph or without.
 function M.glyph(name: Icon.Name | () -> Icon.Name, ink: string?): Node
 	return ui.div {
-		w = "$zeron.menu.glyph.box",
-		h = "$zeron.menu.glyph.box",
+		w = "$naive.menu.glyph.box",
+		h = "$naive.menu.glyph.box",
 		shrink = 0,
 		items = "center",
 		justify = "center",
 		color = ink or "$text.secondary",
-		Icon { name = name, size = (ui.theme.get("zeron.menu.glyph.size") :: number?) or 16 },
+		Icon { name = name, size = (ui.theme.get("naive.menu.glyph.size") :: number?) or 16 },
 	}
 end
 
 local function empty_glyph(): Node
-	return ui.div { w = "$zeron.menu.glyph.box", h = "$zeron.menu.glyph.box", shrink = 0 }
+	return ui.div { w = "$naive.menu.glyph.box", h = "$naive.menu.glyph.box", shrink = 0 }
 end
 
 -- A glyph's box, empty: a row without a glyph among rows with them.
@@ -106,7 +106,7 @@ end
 -- A row's corner: concentric with the panel, through its edge and its
 -- group's inset (the token ds/tokens makes of them).
 function M.row_radius(): string
-	return "$zeron.menu.row_radius"
+	return "$naive.menu.row_radius"
 end
 
 -- A row's look without its content: for a row built by hand (a
@@ -121,7 +121,7 @@ function M.look(props: { [any]: any }, tall: boolean?): { [any]: any }
 		props.py = "$space.2"
 		props.items = props.items or "start"
 	else
-		props.h = props.h or "$zeron.menu.row"
+		props.h = props.h or "$naive.menu.row"
 		props.items = props.items or "center"
 	end
 	if props.cursor == nil then
@@ -191,12 +191,12 @@ function M.Row(props: RowProps): Node
 	end
 	local hover: Styles? = p.hover
 	if props.danger and enabled and hover and hover.bg == "$hover" then
-		p.hover = { bg = "$zeron.menu.danger" }
-		p.active = { bg = "$zeron.menu.danger" }
+		p.hover = { bg = "$naive.menu.danger" }
+		p.active = { bg = "$naive.menu.danger" }
 	end
 	local lit = props.lit
 	if lit then
-		local wash = if props.danger then "$zeron.menu.danger" else "$hover"
+		local wash = if props.danger then "$naive.menu.danger" else "$hover"
 		local rest: (Color | () -> Color)? = p.bg
 		p.bg = function(): Color
 			if lit() then
@@ -237,7 +237,7 @@ function M.Row(props: RowProps): Node
 				ui.column {
 					grow = 1,
 					min_w = 0,
-					gap = "$zeron.space.hair",
+					gap = "$naive.space.hair",
 					name,
 					ui.text {
 						props.description,
@@ -275,7 +275,7 @@ function M.Heading(props: { [any]: any }): Node
 	local first = props.first == true
 	return ui.row {
 		w_full = true,
-		h = if first then nil else "$zeron.menu.heading",
+		h = if first then nil else "$naive.menu.heading",
 		pb = if first then "$space.1" else nil,
 		px = "$space.2",
 		items = if first then "end" else "center",
@@ -303,7 +303,7 @@ function M.Group(props: { heading: (string | Message)?, [any]: any }): Node
 	p.heading = nil
 	p.w_full = true
 	p.p = p.p or "$space.1"
-	p.gap = p.gap or "$zeron.list.gap"
+	p.gap = p.gap or "$naive.list.gap"
 	p.shrink = 0
 	if heading then
 		p.role = p.role or "group"
@@ -343,14 +343,14 @@ end
 -- one's without the room over it).
 local function line_height(line: string, i: number, row: number): number
 	if line == "heading" then
-		local heading = (ui.theme.get("zeron.menu.heading") :: number?) or 24
+		local heading = (ui.theme.get("naive.menu.heading") :: number?) or 24
 		local inset = (ui.theme.get("space.1") :: number?) or 4
 		return if i == 1 then heading - inset else heading
 	end
 	return row
 end
 local function list_gap(): number
-	return (ui.theme.get("zeron.list.gap") :: number?) or 2
+	return (ui.theme.get("naive.list.gap") :: number?) or 2
 end
 
 -- How tall a list's lines stand, up to its first `rows` rows (with the

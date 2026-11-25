@@ -119,8 +119,8 @@ local engine: { [string]: any } = {
 	GetCommitCredit = { enabled = false, cloud = false },
 	GetWorktreeSettings = {
 		settings = { useCustomDirectory = false },
-		defaultDirectory = "~/.zeron/worktrees",
-		effectiveDirectory = "~/.zeron/worktrees",
+		defaultDirectory = "~/.naive/worktrees",
+		effectiveDirectory = "~/.naive/worktrees",
 	},
 	GetTitleSettings = {},
 	GetNativeSubagents = { switchable = { "claude-code" }, off = {} },
@@ -129,14 +129,14 @@ local engine: { [string]: any } = {
 }
 local GB = 1024 * 1024 * 1024
 local MB = 1024 * 1024
-local storage_root = "~/.zeron"
-local storage_wt = "~/.zeron/worktrees"
+local storage_root = "~/.naive"
+local storage_wt = "~/.naive/worktrees"
 local storage_app: { [string]: number } = { updates = 412 * MB, templates = 3 * MB, plugins = 28 * MB, logs = 96 * MB, uploads = 54 * MB, other = 12 * MB }
 local storage_computed_at = (os.time() - 300) * 1000
 local storage_worktrees = {
-	{ path = `{storage_wt}/zeron/storage-cleanup`, repoPath = "~/www/zeron", project = "zeron", name = "storage-cleanup", branch = "storage-cleanup", bytes = math.floor(3.4 * GB), modifiedAt = (os.time() - 1200) * 1000, chatId = "c_storage", chatTitle = "Storage settings page", chatState = "active", dirty = true, unpushed = 2, missing = false },
-	{ path = `{storage_wt}/zeron/sidebar-rows`, repoPath = "~/www/zeron", project = "zeron", name = "sidebar-rows", branch = "sidebar-rows", bytes = math.floor(2.1 * GB), modifiedAt = (os.time() - 9 * 86400) * 1000, chatId = "c_sidebar", chatTitle = "Worktree rows in the sidebar", chatState = "archived", dirty = false, unpushed = 0, missing = false },
-	{ path = `{storage_wt}/zeron/fix-paste`, repoPath = "~/www/zeron", project = "zeron", name = "fix-paste", branch = "fix-paste", bytes = math.floor(1.8 * GB), modifiedAt = (os.time() - 21 * 86400) * 1000, chatId = "c_paste", chatTitle = "Paste images into the composer", chatState = "deleted", dirty = false, unpushed = 0, missing = false },
+	{ path = `{storage_wt}/naive/storage-cleanup`, repoPath = "~/www/naive", project = "naive", name = "storage-cleanup", branch = "storage-cleanup", bytes = math.floor(3.4 * GB), modifiedAt = (os.time() - 1200) * 1000, chatId = "c_storage", chatTitle = "Storage settings page", chatState = "active", dirty = true, unpushed = 2, missing = false },
+	{ path = `{storage_wt}/naive/sidebar-rows`, repoPath = "~/www/naive", project = "naive", name = "sidebar-rows", branch = "sidebar-rows", bytes = math.floor(2.1 * GB), modifiedAt = (os.time() - 9 * 86400) * 1000, chatId = "c_sidebar", chatTitle = "Worktree rows in the sidebar", chatState = "archived", dirty = false, unpushed = 0, missing = false },
+	{ path = `{storage_wt}/naive/fix-paste`, repoPath = "~/www/naive", project = "naive", name = "fix-paste", branch = "fix-paste", bytes = math.floor(1.8 * GB), modifiedAt = (os.time() - 21 * 86400) * 1000, chatId = "c_paste", chatTitle = "Paste images into the composer", chatState = "deleted", dirty = false, unpushed = 0, missing = false },
 	{ path = `{storage_wt}/analytical-engine/notes`, repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "notes", branch = "notes", bytes = 412 * MB, modifiedAt = (os.time() - 3 * 86400) * 1000, chatId = nil, chatTitle = nil, chatState = "none", dirty = false, unpushed = 1, missing = false },
 	{ path = `{storage_wt}/analytical-engine/old-parser`, repoPath = "~/code/analytical-engine", project = "analytical-engine", name = "old-parser", branch = nil, bytes = nil, modifiedAt = nil, chatId = nil, chatTitle = nil, chatState = "none", dirty = false, unpushed = nil, missing = true },
 }
@@ -153,7 +153,7 @@ local function storage_usage(): any
 		p.worktreeCount += 1
 		p.worktrees += w.bytes or 0
 	end
-	local journals: { [string]: number } = { zeron = 240 * MB, ["analytical-engine"] = 18 * MB, ["muse-notes"] = 6 * MB }
+	local journals: { [string]: number } = { naive = 240 * MB, ["analytical-engine"] = 18 * MB, ["muse-notes"] = 6 * MB }
 	for name, size in journals do
 		if not by[name] then
 			by[name] = { name = name, repoPath = nil, worktrees = 0, worktreeCount = 0, journals = 0, total = 0 }
@@ -282,13 +282,13 @@ local answers: { [string]: (arg: any) -> any } = {
 			return settled(nil, word)
 		end
 		photo_n += 1
-		me.avatar = string.format("https://staging.zeron.sh/auth/avatars/%032x", photo_n)
+		me.avatar = string.format("https://staging.naive.sh/auth/avatars/%032x", photo_n)
 		last_crop:set({ x = arg.x, y = arg.y, side = arg.side })
 		return settled(table.clone(me))
 	end,
 	-- A photo's file: the app's own PNG, whatever the address.
 	["account.photo_file"] = function()
-		return settled("assets/favicons/zeron.png")
+		return settled("assets/favicons/naive.png")
 	end,
 	["account.remove_photo"] = function()
 		me.avatar = nil
@@ -506,7 +506,7 @@ end
 -- A photo picked: the app's own PNG, so a headless host can draw it.
 stub.open_files = function(_opts: any): any
 	log("open_files")
-	return settled({ { path = "assets/favicons/zeron.png", name = "zeron.png", size = 1, type = "image/png" } })
+	return settled({ { path = "assets/favicons/naive.png", name = "naive.png", size = 1, type = "image/png" } })
 end
 
 -- The account's own calls (account/api), the same way.
@@ -743,28 +743,28 @@ ui.command {
 		local t = require("@ds/look").window_theme() or {}
 		window_theme:set({
 			accent = t.accent,
-			keyword = t["zeron.syntax.keyword"],
+			keyword = t["naive.syntax.keyword"],
 			body = t["font.size.md"],
-			window = t["zeron.window"],
+			window = t["naive.window"],
 			sans = t["font.sans"],
 			mono = t["font.mono"],
 			secondary = t["text.secondary"],
 			tertiary = t["text.tertiary"],
 			-- (The page's and sidebar's fill and edge, when the window's
 			-- theme says its own.)
-			page_bg = t["zeron.inset.bg"],
-			page_edge = t["zeron.inset.edge"],
+			page_bg = t["naive.inset.bg"],
+			page_edge = t["naive.inset.edge"],
 			-- "Accent colour throughout": a status dot, a find's highlight,
 			-- an @file token, a list marker, and a link's ink (nil: the
 			-- text's own).
-			working_dot = t["zeron.status.dot.working"],
-			working = t["zeron.status.working"],
-			find = t["zeron.editor.match"],
-			file_token = t["zeron.composer.token.file"],
-			marker = t["zeron.prose.marker"],
+			working_dot = t["naive.status.dot.working"],
+			working = t["naive.status.working"],
+			find = t["naive.editor.match"],
+			file_token = t["naive.composer.token.file"],
+			marker = t["naive.prose.marker"],
 			link = require("@ds/look").accented_ink(nil)(),
 			-- What the accent's own token is, and what the theme's says.
-			accented_ink = ui.theme.get("zeron.accented.ink"),
+			accented_ink = ui.theme.get("naive.accented.ink"),
 			accent_ink = ui.theme.get("accent"),
 		})
 	end,

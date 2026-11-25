@@ -158,7 +158,7 @@ end)
 -- The page's draft is saved at most every 250 ms (screens/chat/shared):
 -- what was typed since the last save waits on a timer, which never fires
 -- once the window has closed. Closing (quitting, or the window closed),
--- Zeron's window sets `app.closing` (src/main.rs) before it writes what was
+-- Naive's window sets `app.closing` (src/main.rs) before it writes what was
 -- saved: the waiting save goes then, the last keystrokes with it.
 local function saved_text(app: any): string?
 	local saved = app:state("chat_new_draft")

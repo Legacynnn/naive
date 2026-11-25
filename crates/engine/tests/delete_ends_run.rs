@@ -18,13 +18,13 @@ use futures::StreamExt;
 use futures::stream::BoxStream;
 use tokio::sync::mpsc;
 
-use zeron_engine::{EngineCore, HarnessRegistry};
-use zeron_harness::{Harness, HarnessError, RunControls, TurnControl};
-use zeron_proto::{
+use naive_engine::{EngineCore, HarnessRegistry};
+use naive_harness::{Harness, HarnessError, RunControls, TurnControl};
+use naive_proto::{
     AgentEvent, ChildKind, DoneStatus, HarnessId, Model, ReasoningLevel, RunRequest, SandboxLevel,
     SessionStatus, SteeringMode,
 };
-use zeron_rpc::{memory_client, methods};
+use naive_rpc::{memory_client, methods};
 
 const CHAT: &str = "chat-delete-ends-run";
 

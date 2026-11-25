@@ -8,8 +8,8 @@ import { cloudflareTest } from "@cloudflare/vitest-pool-workers";
 // one, so the rotation path (open under previous → re-seal under current) is
 // exercised. Upstream providers are stubbed per test with a spy on the global
 // `fetch` (the DOs share the test isolate). `npm run test:workerd`.
-const TEST_KEK = "emVyb24tdmF1bHQtd29ya2VyZC10ZXN0LWtlay0zMmI="; // "zeron-vault-workerd-test-kek-32b"
-const TEST_KEK_PREVIOUS = "emVyb24tdmF1bHQtcHJldmlvdXMtdGVzdC1rZWstMzI="; // "zeron-vault-previous-test-kek-32"
+const TEST_KEK = "emVyb24tdmF1bHQtd29ya2VyZC10ZXN0LWtlay0zMmI="; // "naive-vault-workerd-test-kek-32b"
+const TEST_KEK_PREVIOUS = "emVyb24tdmF1bHQtcHJldmlvdXMtdGVzdC1rZWstMzI="; // "naive-vault-previous-test-kek-32"
 
 const pem = (label: string, der: ArrayBuffer | Uint8Array): string => {
   const bytes = der instanceof Uint8Array ? der : new Uint8Array(der);

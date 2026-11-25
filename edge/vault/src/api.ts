@@ -196,7 +196,7 @@ export interface GithubRepoView {
   readonly accounts?: readonly string[];
 }
 
-/** One installation of the Zeron GitHub App: repository access, a record of
+/** One installation of the Naive GitHub App: repository access, a record of
  * its own. It sits on an account or organization (`target`), and any number of
  * connected logins may reach it (`reachedBy`). */
 export interface GithubInstallationView {
@@ -244,7 +244,7 @@ export interface VaultStatusView {
  *   scopes, subscriptionType? }`, refreshable) — or `{ oauthToken, expiresAt? }`, a
  *   long-lived token from `claude setup-token` (not refreshable; default expiry one year).
  *   Running Claude Code on the user's own Cloud device with their subscription is
- *   permitted for Zeron under its arrangement with Anthropic; grants go only to the
+ *   permitted for Naive under its arrangement with Anthropic; grants go only to the
  *   unmodified Claude Code CLI on the user's own devices.
  * - `*-key`: `{ key }` — the user's own API key. `cursor-key` may add
  *   `expiresAt` (Unix ms): a key Cursor's browser sign-in minted expires.
@@ -313,7 +313,7 @@ export interface EnrollDeviceRequest {
 
 /**
  * `sig` = base64url Ed25519 signature by the device key over the UTF-8 bytes of
- * `zeron-vault-grant\n{userId}\n{deviceId}\n{provider}\n{ts}`. `ts` is Unix ms,
+ * `naive-vault-grant\n{userId}\n{deviceId}\n{provider}\n{ts}`. `ts` is Unix ms,
  * accepted within ±120 s and strictly greater than the device's last accepted
  * grant `ts` (replay fence).
  */

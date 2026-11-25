@@ -1,23 +1,23 @@
 # Windows development
 
 Windows supports native x64 and ARM64 source builds, a per-user installer,
-and portable release ZIPs. The installer (`dist/windows/zeron.iss`, Inno
-Setup 6) installs into `%LOCALAPPDATA%\Programs\Zeron` without elevation,
-registers the Start menu entry, the `zeron://` link handler, and the Settings →
-Apps uninstall entry. Both release packages carry `zeron-update.json` beside
-`zeron.exe`, which lets the app replace its executable in place from GitHub
+and portable release ZIPs. The installer (`dist/windows/naive.iss`, Inno
+Setup 6) installs into `%LOCALAPPDATA%\Programs\Naive` without elevation,
+registers the Start menu entry, the `naive://` link handler, and the Settings →
+Apps uninstall entry. Both release packages carry `naive-update.json` beside
+`naive.exe`, which lets the app replace its executable in place from GitHub
 releases; keep it there for portable copies. Artifact names use Rust's
 architecture token (`x86_64` or `aarch64`) so the updater can find the matching
 executable; published releases currently include x64 only. Background services
 are not supported yet.
 
 `scripts/package-windows.ps1` builds the portable ZIP, the standalone updater
-payload `.exe`, and `zeron-<version>-windows-<arch>-setup.exe` (Inno Setup 6
+payload `.exe`, and `naive-<version>-windows-<arch>-setup.exe` (Inno Setup 6
 required: `winget install JRSoftware.InnoSetup`). Pass `-ZgxVersion <version>`
-and `-ZgxEngine <path-to-engine-zeron.exe>` (as `.github/workflows/zgx-build.yml`
+and `-ZgxEngine <path-to-engine-naive.exe>` (as `.github/workflows/zgx-build.yml`
 does) to package the shipping **zgx** app (`apps/zgx` with `--features beta`,
-plus `beta\<version>\{ui,plugins-builtin,engine\zeron.exe}`); omitting them
-packages the standalone `apps/zeron` CLI/engine binary (exercised by Windows
+plus `beta\<version>\{ui,plugins-builtin,engine\naive.exe}`); omitting them
+packages the standalone `apps/naive` CLI/engine binary (exercised by Windows
 CI). `scripts/test-windows-installer.ps1` installs, inspects, and uninstalls
 the setup silently; it touches the current user's registration, so it only runs
 in CI or with `-Force`.
@@ -34,7 +34,7 @@ alone is not enough.
 Build the engine from the repository root, then run `apps/zgx`:
 
 ```powershell
-cargo build -p zeron --bin zeron-engine
+cargo build -p naive --bin naive-engine
 cd apps/zgx
 cargo run --release              # intro / onboarding / main window (staging by default)
 cargo run --release -- gallery   # design-system workbench
@@ -44,22 +44,22 @@ For a release-style build of the ZGX binary (production identity, no staging
 endpoints): `cargo build --release --locked --features beta` inside `apps/zgx`.
 Close the app before rebuilding.
 
-### Engine / headless CLI (`apps/zeron`)
+### Engine / headless CLI (`apps/naive`)
 
 ```powershell
-cargo run --locked -p zeron -- headless
+cargo run --locked -p naive -- headless
 ```
 
 For release engine builds (required by `scripts/package-windows.ps1`), set
-`$env:LUAU_CXXFLAGS = '-DNDEBUG'` and run `cargo build --release --locked -p zeron`.
+`$env:LUAU_CXXFLAGS = '-DNDEBUG'` and run `cargo build --release --locked -p naive`.
 
 ## Configuration and agent support
 
 | Setting | Behavior |
 | --- | --- |
-| Application data | `%LOCALAPPDATA%\Zeron`, falling back to `%USERPROFILE%\AppData\Local\Zeron`. Override with `ZERON_DATA_DIR`. |
-| Managed adapters | `ZERON_ADAPTERS_DIR`, then `ZERON_DATA_DIR/adapters`, then the default application's `adapters` directory. |
-| Provider credentials | Keep their provider-owned locations; changing Zeron's data root does not migrate them. |
+| Application data | `%LOCALAPPDATA%\Naive`, falling back to `%USERPROFILE%\AppData\Local\Naive`. Override with `NAIVE_DATA_DIR`. |
+| Managed adapters | `NAIVE_ADAPTERS_DIR`, then `NAIVE_DATA_DIR/adapters`, then the default application's `adapters` directory. |
+| Provider credentials | Keep their provider-owned locations; changing Naive's data root does not migrate them. |
 | `CODEX_EXECUTABLE` | Executable override. `.exe` (and `.com`) launch directly; `.cmd`/`.bat` shims launch through a wrapped `cmd.exe` with literal, individually escaped arguments. The override must exist on disk. |
 
 ACP, Claude, Codex, and opencode search PATH and known native installation
@@ -93,13 +93,13 @@ Window translucency respects Windows **Settings > Personalization > Colors >
 Transparency effects**, watched from the registry by
 `apps/zgx/src/transparency.rs`.
 
-When Windows disables **Animation effects**, Zeron's **Reduce motion: System**
+When Windows disables **Animation effects**, Naive's **Reduce motion: System**
 setting skips transitions and softens activity indicators.
 
 ## Verification
 
 [Windows CI](../../.github/workflows/windows.yml) runs the Windows harness,
-CLI, updater, engine, and voice-media suites, builds the release `zeron`
+CLI, updater, engine, and voice-media suites, builds the release `naive`
 binary, verifies portable ZIP and Inno Setup installer packaging
 (`scripts/package-windows.ps1` and `scripts/test-windows-installer.ps1`), and
 checks isolated CLI startup without `HOME`. Shared Rust regressions run on
@@ -109,9 +109,9 @@ Linux and macOS, and Windows ZGX desktop builds run in
 To run the engine and harness checks locally:
 
 ```powershell
-cargo test --locked -p zeron-engine -p zeron-harness --lib
-cargo test --locked -p zeron-harness --features native-fixture --test codex_availability --test windows_native
-cargo test --locked -p zeron-engine --test codex_catalog --test codex_login_resolution --test auth
+cargo test --locked -p naive-engine -p naive-harness --lib
+cargo test --locked -p naive-harness --features native-fixture --test codex_availability --test windows_native
+cargo test --locked -p naive-engine --test codex_catalog --test codex_login_resolution --test auth
 ```
 
 Fixtures use synthetic agents, so these tests do not establish authenticated

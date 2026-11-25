@@ -14,7 +14,7 @@ use zgx::scene::Rect;
 use zgx_script::{ScriptHost, Value, testing::TestApp};
 
 fn ui_dir() -> PathBuf {
-    std::env::var_os("ZERON_ZGX_TEST_UI")
+    std::env::var_os("NAIVE_ZGX_TEST_UI")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui"))
 }
@@ -97,7 +97,7 @@ fn diagonal_pointer_path_keeps_open_submenu_alive_and_keeps_gap() {
     let search_branches = bounds_of(&mut app, "\"Search branches…\"");
     let parent_panel = bounds_of(&mut app, ".dropdown-panel[1]");
 
-    // Verify stacked submenu trigger rows keep $zeron.list.gap (~2px) so
+    // Verify stacked submenu trigger rows keep $naive.list.gap (~2px) so
     // active and hover washes never touch.
     let device_project_gap = project.y - (device.y + device.height);
     let project_checkout_gap = checkout.y - (project.y + project.height);

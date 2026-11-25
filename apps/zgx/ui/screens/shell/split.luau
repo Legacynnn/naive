@@ -44,8 +44,8 @@ local motion = require("@ds/motion")
 local M = {}
 
 M.MAX = 6
--- The window's gap between the chats (`zeron.inset.gap`, ds/tokens).
-M.GAP = (ui.theme.get("zeron.inset.gap") :: number?) or 4
+-- The window's gap between the chats (`naive.inset.gap`, ds/tokens).
+M.GAP = (ui.theme.get("naive.inset.gap") :: number?) or 4
 
 -- (`shares`: how a row or a column divides among its parts, a share each, summing
 -- to 1; none: equally. A divider dragged sets them.)
@@ -57,7 +57,7 @@ export type Box = { left: Edge, right: Edge, top: Edge, bottom: Edge }
 -- Every tab of chats, in the top bar's order, kept across launches: each a tree
 -- of its panes (a chat alone, a leaf), and a chat is in one tab at a time. `key`,
 -- a tab's own: without one, its first chat's. (Its key is the one the Inset template
--- kept splits under before this was Zeron's, so the splits of anyone who used it are
+-- kept splits under before this was Naive's, so the splits of anyone who used it are
 -- still theirs, with it or without.)
 local trees = ui.persist("inset_split_trees", {} :: { Node })
 -- (A tab closed used to be kept, to come back with its chats: those are gone.)

@@ -1,10 +1,10 @@
-//! A plugin's GitHub, lent by proxy ("github"): Zeron's own sign-in does the
+//! A plugin's GitHub, lent by proxy ("github"): Naive's own sign-in does the
 //! asking, through the engine's GitHub calls (which resolve on the device
 //! where a session's checkout lives), and the plugin hears only what comes
 //! back. No token ever reaches a plugin's scripts, so none can be kept or
 //! sent elsewhere.
 //!
-//! A plugin names the sessions it shows (`zeron.github.watch_pr`); the host
+//! A plugin names the sessions it shows (`naive.github.watch_pr`); the host
 //! keeps one watch of each one's pull request (`WatchCheckoutChangeRequest`,
 //! pushed by the engine as it changes, never polled by the plugin) and
 //! writes what it hears to `plugin.<id>.github`: `{ [session] = pr | false }`.
@@ -293,7 +293,7 @@ impl<W> Watches<W> {
     }
 }
 
-/// What a plugin asked of GitHub (`zeron.github.pr(url)`, `.diff(url)`), as
+/// What a plugin asked of GitHub (`naive.github.pr(url)`, `.diff(url)`), as
 /// the engine's call that answers it, or why it may not: reading needs
 /// "github"; and only a pull request's own address on GitHub is asked about.
 pub fn call(asked: &Json, may: impl Fn(&str) -> bool) -> Result<(&'static str, Json), String> {
@@ -377,7 +377,7 @@ pub fn call(asked: &Json, may: impl Fn(&str) -> bool) -> Result<(&'static str, J
     if asked["refresh"].as_bool() == Some(true) {
         params["refresh"] = json!(true);
     }
-    // The diff at the revisions the plugin shows (Zeron's viewer asks so),
+    // The diff at the revisions the plugin shows (Naive's viewer asks so),
     // when both are commit ids.
     let oid = |v: &Json| v.as_str().filter(|s| s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit())).map(str::to_string);
     if method == "GetChangeRequestDiff"
@@ -464,8 +464,8 @@ mod tests {
     fn the_branch_its_latest_run_started_on_wins_over_the_one_it_was_made_on() {
         // Made on main; the agent branched off and its next run was stamped
         // on the new branch: that branch's pull request is the chat's.
-        let s = json!({ "cwd": "/w/atlas", "branch": "main", "source_branch": "zeron/readme-pr", "device": "mac" });
-        assert_eq!(watch_params(&s).unwrap()["branch"], json!("zeron/readme-pr"));
+        let s = json!({ "cwd": "/w/atlas", "branch": "main", "source_branch": "naive/readme-pr", "device": "mac" });
+        assert_eq!(watch_params(&s).unwrap()["branch"], json!("naive/readme-pr"));
         // Not stamped yet: the one it was made on.
         let s = json!({ "cwd": "/w/atlas", "branch": "main", "device": "mac" });
         assert_eq!(watch_params(&s).unwrap()["branch"], json!("main"));

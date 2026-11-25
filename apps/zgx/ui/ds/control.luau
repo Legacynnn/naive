@@ -11,7 +11,7 @@ export type Size = "sm" | "md" | "lg"
 M.H = { sm = 28, md = 32, lg = 40 } :: { [Size]: number }
 M.RADIUS = { sm = "$radius.md", md = "$radius.lg", lg = "$radius.lg" } :: { [Size]: string }
 M.TEXT = { sm = "$font.size.sm", md = "$font.size.md", lg = "$font.size.lg" } :: { [Size]: string }
-M.PAD = { sm = "$space.2", md = "$zeron.space.snug", lg = "$space.3" } :: { [Size]: string }
+M.PAD = { sm = "$space.2", md = "$naive.space.snug", lg = "$space.3" } :: { [Size]: string }
 -- The same in points, where a token can't go (an absolute node's insets).
 M.PAD_PT = { sm = 8, md = 10, lg = 12 } :: { [Size]: number }
 -- An icon beside a control's text, at each size.
@@ -56,7 +56,7 @@ function M.contain(props: { [any]: any }, box: { radius: any, inset: any, border
 	props.p = box.inset
 	props.theme = {
 		radius = { sm = inner, md = inner, lg = inner, xl = inner },
-		zeron = { icon_button = { radius = inner } },
+		naive = { icon_button = { radius = inner } },
 	}
 	return props
 end
@@ -65,9 +65,9 @@ end
 -- never moves what is inside. Keyboard focus only (zgx's `focus` is
 -- `:focus-visible`).
 M.ring = {
-	outline = "$zeron.focus.width",
-	outline_color = "$zeron.focus.ring",
-	outline_offset = "$zeron.focus.offset",
+	outline = "$naive.focus.width",
+	outline_color = "$naive.focus.ring",
+	outline_offset = "$naive.focus.offset",
 	border = 0,
 } :: Styles
 
@@ -76,11 +76,11 @@ M.ring = {
 function M.ring_when(on: () -> boolean, invalid: (() -> boolean)?): { [string]: any }
 	return {
 		outline = function()
-			return if on() then "$zeron.focus.width" else 0
+			return if on() then "$naive.focus.width" else 0
 		end,
-		outline_offset = "$zeron.focus.offset",
+		outline_offset = "$naive.focus.offset",
 		outline_color = function()
-			return if invalid and invalid() then "$zeron.focus.error" else "$zeron.focus.ring"
+			return if invalid and invalid() then "$naive.focus.error" else "$naive.focus.ring"
 		end,
 	}
 end
@@ -116,9 +116,9 @@ end
 -- A control's `dim`: whether it looks disabled, by its own `disabled` (a
 -- value, a state or a function) alone. Inside a disabled container a
 -- control is disabled too, to input and assistive technology, and would
--- dim as if disabled itself; Zeron's containers that disable what they
+-- dim as if disabled itself; Naive's containers that disable what they
 -- hold (a field's frame, a settings row out of reach) dim themselves
--- (`$zeron.disabled`), so what they hold isn't dimmed again.
+-- (`$naive.disabled`), so what they hold isn't dimmed again.
 function M.dim(disabled: unknown): boolean | () -> boolean
 	if disabled == nil or disabled == false then
 		return false

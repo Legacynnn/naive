@@ -1,5 +1,5 @@
 -- What the chat page's parts share: the one composer's draft, what it
--- carries and the passages quoted into it, each chat's own (as Zeron's
+-- carries and the passages quoted into it, each chat's own (as Naive's
 -- composer keeps them, crates/ui composer.rs `drafts` and `attachments`:
 -- per chat, a new chat's under its own key, kept for the run, not saved
 -- across launches); how tall the docked composer is (the transcript
@@ -241,7 +241,7 @@ ui.effect(function()
 		ui.after(wait, save_new)
 	end
 end)
--- The window closing (the app quitting, or the window closed): Zeron's
+-- The window closing (the app quitting, or the window closed): Naive's
 -- window sets `app.closing` (src/main.rs) before it writes what the scripts
 -- saved, and a save still waiting its turn goes now. (A timer never fires
 -- once the window has closed, and the last keystrokes were lost with it.)
@@ -254,7 +254,7 @@ end)
 
 -- Whether a file's name is a picture the window can draw. (zgx decodes
 -- no GIF or HEIC yet: those are file chips, so a thumbnail never fails.)
--- A project's file or folder as Zeron mentions it in a prompt, and back
+-- A project's file or folder as Naive mentions it in a prompt, and back
 -- (screens/chat/file_links).
 local FileLinks = require("@app/screens/chat/file_links")
 M.file_link = FileLinks.link
@@ -337,7 +337,7 @@ function M.take(): (string, { any }, string, { ComposerAtoms.AtomEntry })
 end
 
 -- The draft shown, lifted out whole to be put back later (a plugin's
--- `zeron.take_draft`): its words as typed, its chips and the passages
+-- `naive.take_draft`): its words as typed, its chips and the passages
 -- quoted in it, the composer cleared. Nil when there's nothing to lift.
 function M.lift(): { text: string, atoms: { ComposerAtoms.AtomEntry }, cargo: { any }, quotes: { [string]: string } }?
 	local text, atoms, cargo, quotes = M.text:peek(), ComposerAtoms.live(M.atoms), M.cargo:peek(), M.quotes:peek()
@@ -353,7 +353,7 @@ function M.lift(): { text: string, atoms: { ComposerAtoms.AtomEntry }, cargo: { 
 	return { text = text, atoms = atoms, cargo = cargo, quotes = quotes }
 end
 
--- A lifted draft put back on the draft shown (`zeron.put_draft`). Onto an
+-- A lifted draft put back on the draft shown (`naive.put_draft`). Onto an
 -- empty composer it's as it was; onto words already there, its words follow
 -- them after a blank line and its chips follow theirs, its files numbered
 -- after those there.
@@ -804,7 +804,7 @@ function M.pointer_back()
 end
 
 -- Another chat mentioned (a sidebar session dropped on the chat): a chip,
--- sent as Zeron's chat mention (screens/chat/chat_links). Once each.
+-- sent as Naive's chat mention (screens/chat/chat_links). Once each.
 function M.mention_chat(id: string, key: string?)
 	if not ChatLinks.valid(id) then
 		return
@@ -975,7 +975,7 @@ end
 -- cargo it's an item of kind "comment" with `file`, `line`, `body` (and,
 -- from the files pane, its `path` and the project's `root` too: given as
 -- `{ path, line, body, root }`, `file` is the path within the root).
--- On a diff (a plugin's, `zeron.compose_comment`): `side` ("L" or "R"), a
+-- On a diff (a plugin's, `naive.compose_comment`): `side` ("L" or "R"), a
 -- range's last line `to`, the code it's on `snippet`; `plugin` and `key`
 -- say whose it is (published back to it: screens/plugins), and `session`
 -- the chat whose draft takes it (the one shown, else its draft kept).
@@ -1187,7 +1187,7 @@ function M.draft_size_of(key: string): number
 end
 
 -- Chat `key`'s draft's words as they are, read without following them
--- (`draft_of` follows them): what a plugin's `zeron.compose` adds to.
+-- (`draft_of` follows them): what a plugin's `naive.compose` adds to.
 function M.peek_text_of(key: string): string
 	if here:peek() == key then
 		return M.text:peek()
@@ -1308,7 +1308,7 @@ local function cursor_pool(model: string): string
 end
 
 -- Antigravity's limits are its group of models' ("Gemini Session",
--- "Claude & GPT Week": zeron_proto's ANTIGRAVITY_USAGE_*): the model's.
+-- "Claude & GPT Week": naive_proto's ANTIGRAVITY_USAGE_*): the model's.
 local function antigravity_group(model: string): string
 	local id = string.lower(string.match(model, "^[^/]+/(.+)$") or model)
 	return if string.find(id, "gemini", 1, true) then "Gemini" else "Claude & GPT"
@@ -1386,7 +1386,7 @@ local function account_detail(account: any, harness: string, model: string): str
 end
 
 -- Whether `harness` keeps a login per model provider (Pi, OpenCode,
--- Hermes): Zeron signs in to its providers one by one, or its accounts say
+-- Hermes): Naive signs in to its providers one by one, or its accounts say
 -- their provider.
 local function per_provider(harness: string, list: { any }?): boolean
 	if agents.logins:get()[harness] ~= nil then

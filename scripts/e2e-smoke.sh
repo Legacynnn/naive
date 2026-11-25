@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
 # Two-device e2e smoke: real edge (wrangler dev), two headless engines, and the
-# zeron-rpc e2e_driver example proving the doc-queued cross-device command path:
+# naive-rpc e2e_driver example proving the doc-queued cross-device command path:
 #
 #   B queues a Run into the chat doc -> nudge -> A (host) executes via the mock
 #   harness -> transcript + session status sync A -> edge -> B.
 #
-# Both engines run as the SAME user (alice@org1) on different devices — zeron's
+# Both engines run as the SAME user (alice@org1) on different devices — naive's
 # one-user-many-devices model; chat/device rooms are claim-on-first-join per user.
 #
 # Usage: scripts/e2e-smoke.sh
-# Env:   ZERON_E2E_EDGE_PORT (default 27640), ZERON_E2E_KEEP_LOGS=1 to keep logs.
-#        ZERON_E2E_RELAY_A=1 / ZERON_E2E_RELAY_B=1 turn the relay layer on in that
+# Env:   NAIVE_E2E_EDGE_PORT (default 27640), NAIVE_E2E_KEEP_LOGS=1 to keep logs.
+#        NAIVE_E2E_RELAY_A=1 / NAIVE_E2E_RELAY_B=1 turn the relay layer on in that
 #        engine (docs/design/relay-layer.md), and on the edge if this script starts it.
-#        With both on, the driver also proves generation 3. ZERON_E2E_OLD_RETURNS=1
+#        With both on, the driver also proves generation 3. NAIVE_E2E_OLD_RETURNS=1
 #        then brings B back without the layer, as an old client would;
-#        ZERON_E2E_OLD_BIN=<zeron> makes that a real shipped build.
-#        ZERON_E2E_EDGE_OFF=1 leaves the edge's switch off, which every new engine
+#        NAIVE_E2E_OLD_BIN=<naive> makes that a real shipped build.
+#        NAIVE_E2E_EDGE_OFF=1 leaves the edge's switch off, which every new engine
 #        must follow exactly as it does today.
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 command -v cargo >/dev/null 2>&1 || PATH="$HOME/.cargo/bin:$PATH"
-EDGE_PORT="${ZERON_E2E_EDGE_PORT:-27640}"
+EDGE_PORT="${NAIVE_E2E_EDGE_PORT:-27640}"
 EDGE_URL="http://localhost:${EDGE_PORT}"
-TOKEN="${ZERON_E2E_USER:-alice}@org1"
+TOKEN="${NAIVE_E2E_USER:-alice}@org1"
 ORG="org1"
 A_PORT=27801
 B_PORT=27802
 A_DIR=/tmp/e2e-a
 B_DIR=/tmp/e2e-b
-LOG_DIR="$(mktemp -d /tmp/zeron-e2e-logs.XXXXXX)"
+LOG_DIR="$(mktemp -d /tmp/naive-e2e-logs.XXXXXX)"
 
 EDGE_PID=""
 A_PID=""
@@ -59,7 +59,7 @@ cleanup() {
     echo "--- engine B log (tail) ---"; tail -n 40 "$LOG_DIR/engine-b.log" 2>/dev/null || true
     echo "--- edge log (tail) ---"; tail -n 40 "$LOG_DIR/edge.log" 2>/dev/null || true
   fi
-  if [[ "${ZERON_E2E_KEEP_LOGS:-0}" != "1" ]]; then
+  if [[ "${NAIVE_E2E_KEEP_LOGS:-0}" != "1" ]]; then
     rm -rf "$LOG_DIR"
   else
     echo "logs kept in $LOG_DIR"
@@ -89,7 +89,7 @@ else
   # and Linux, without depending on the Linux-only `setsid` utility.
   set -m
   EDGE_VARS="--var AUTH_MODE:dev"
-  if [[ -n "${ZERON_E2E_RELAY_A:-}${ZERON_E2E_RELAY_B:-}" && -z "${ZERON_E2E_EDGE_OFF:-}" ]]; then
+  if [[ -n "${NAIVE_E2E_RELAY_A:-}${NAIVE_E2E_RELAY_B:-}" && -z "${NAIVE_E2E_EDGE_OFF:-}" ]]; then
     EDGE_VARS="$EDGE_VARS --var CHAT_RELAY_LAYER:1"
   fi
   bash -c "cd '$ROOT/edge' && exec npx wrangler dev --port '$EDGE_PORT' $EDGE_VARS" \
@@ -100,60 +100,60 @@ else
 fi
 
 # ── 2. Build the binaries (workspace target is warm in CI/dev) ─────────────────
-echo "build: zeron + e2e_driver"
+echo "build: naive + e2e_driver"
 # Two invocations: a single one with `--example` builds ONLY the example
-# (the target filter applies across every -p), silently skipping the zeron
+# (the target filter applies across every -p), silently skipping the naive
 # bin — the smoke then dies on "No such file or directory".
-(cd "$ROOT" && cargo build -q -p zeron)
-(cd "$ROOT" && cargo build -q -p zeron-rpc --example e2e_driver)
-ZERON="$ROOT/target/debug/zeron"
+(cd "$ROOT" && cargo build -q -p naive)
+(cd "$ROOT" && cargo build -q -p naive-rpc --example e2e_driver)
+NAIVE="$ROOT/target/debug/naive"
 DRIVER="$ROOT/target/debug/examples/e2e_driver"
 
 # ── 3. Two headless engines, one user, two devices ─────────────────────────────
 rm -rf "$A_DIR" "$B_DIR"
 mkdir -p "$A_DIR" "$B_DIR"
 
-# A debug build takes ZERON_RELAY_SNAPSHOT_LIMIT, so a small chat can stand in for one
+# A debug build takes NAIVE_RELAY_SNAPSHOT_LIMIT, so a small chat can stand in for one
 # too big to relay (the driver's whale check).
 start_engine() { # start_engine <data_dir> <ipc_port> <name> <log> <relay layer>
-  ZERON_DATA_DIR="$1" ZERON_IPC_PORT="$2" ZERON_DEVICE_NAME="$3" \
-    ZERON_EDGE_URL="$EDGE_URL" ZERON_EDGE_TOKEN="$TOKEN" ZERON_ORG_ID="$ORG" \
-    ZERON_HARNESS=mock RUST_LOG=info,zeron_engine::doc_host::relay=debug ZERON_RELAY_LAYER="$5" ZERON_RELAY_SNAPSHOT_LIMIT=65536 \
-    ZERON_RELAY_LEGACY_HOLD_SECS="${ZERON_E2E_LEGACY_HOLD_SECS:-}" \
-    "$ZERON" headless >>"$4" 2>&1 &
+  NAIVE_DATA_DIR="$1" NAIVE_IPC_PORT="$2" NAIVE_DEVICE_NAME="$3" \
+    NAIVE_EDGE_URL="$EDGE_URL" NAIVE_EDGE_TOKEN="$TOKEN" NAIVE_ORG_ID="$ORG" \
+    NAIVE_HARNESS=mock RUST_LOG=info,naive_engine::doc_host::relay=debug NAIVE_RELAY_LAYER="$5" NAIVE_RELAY_SNAPSHOT_LIMIT=65536 \
+    NAIVE_RELAY_LEGACY_HOLD_SECS="${NAIVE_E2E_LEGACY_HOLD_SECS:-}" \
+    "$NAIVE" headless >>"$4" 2>&1 &
 }
 
-start_engine "$A_DIR" "$A_PORT" "e2e-device-a" "$LOG_DIR/engine-a.log" "${ZERON_E2E_RELAY_A:-}"; A_PID=$!
-start_engine "$B_DIR" "$B_PORT" "e2e-device-b" "$LOG_DIR/engine-b.log" "${ZERON_E2E_RELAY_B:-}"; B_PID=$!
+start_engine "$A_DIR" "$A_PORT" "e2e-device-a" "$LOG_DIR/engine-a.log" "${NAIVE_E2E_RELAY_A:-}"; A_PID=$!
+start_engine "$B_DIR" "$B_PORT" "e2e-device-b" "$LOG_DIR/engine-b.log" "${NAIVE_E2E_RELAY_B:-}"; B_PID=$!
 
 wait_for "engine A ipc :$A_PORT" 60 bash -c "exec 3<>/dev/tcp/127.0.0.1/$A_PORT"
 wait_for "engine B ipc :$B_PORT" 60 bash -c "exec 3<>/dev/tcp/127.0.0.1/$B_PORT"
 echo "engines: A pid=$A_PID ipc=:$A_PORT  B pid=$B_PID ipc=:$B_PORT"
 
-if [[ "${ZERON_E2E_RELAY_A:-}" == "1" && "${ZERON_E2E_RELAY_B:-}" == "1" && -z "${ZERON_E2E_EDGE_OFF:-}" ]]; then
-  export ZERON_E2E_RELAY=1 ZERON_E2E_EDGE_URL="$EDGE_URL" ZERON_E2E_TOKEN="$TOKEN"
+if [[ "${NAIVE_E2E_RELAY_A:-}" == "1" && "${NAIVE_E2E_RELAY_B:-}" == "1" && -z "${NAIVE_E2E_EDGE_OFF:-}" ]]; then
+  export NAIVE_E2E_RELAY=1 NAIVE_E2E_EDGE_URL="$EDGE_URL" NAIVE_E2E_TOKEN="$TOKEN"
   echo "$A_PID" > "$LOG_DIR/a.pid"
-  export ZERON_E2E_RESTART_A="$LOG_DIR/restart-a.sh"
-  cat > "$ZERON_E2E_RESTART_A" <<RESTART
+  export NAIVE_E2E_RESTART_A="$LOG_DIR/restart-a.sh"
+  cat > "$NAIVE_E2E_RESTART_A" <<RESTART
 kill "\$(cat '$LOG_DIR/a.pid')"
 while kill -0 "\$(cat '$LOG_DIR/a.pid')" 2>/dev/null; do sleep 0.2; done
 $(declare -f start_engine)
-EDGE_URL='$EDGE_URL' TOKEN='$TOKEN' ORG='$ORG' ZERON='$ZERON'
+EDGE_URL='$EDGE_URL' TOKEN='$TOKEN' ORG='$ORG' NAIVE='$NAIVE'
 start_engine '$A_DIR' '$A_PORT' e2e-device-a '$LOG_DIR/engine-a.log' 1
 echo \$! > '$LOG_DIR/a.pid'
 RESTART
-  if [[ "${ZERON_E2E_OLD_RETURNS:-}" == "1" ]]; then
+  if [[ "${NAIVE_E2E_OLD_RETURNS:-}" == "1" ]]; then
     echo "$B_PID" > "$LOG_DIR/b.pid"
-    export ZERON_E2E_RESTART_B="$LOG_DIR/restart-b.sh"
-    cat > "$ZERON_E2E_RESTART_B" <<RESTART
+    export NAIVE_E2E_RESTART_B="$LOG_DIR/restart-b.sh"
+    cat > "$NAIVE_E2E_RESTART_B" <<RESTART
 if [[ "\$1" == stop ]]; then
   kill "\$(cat '$LOG_DIR/b.pid')"
   while kill -0 "\$(cat '$LOG_DIR/b.pid')" 2>/dev/null; do sleep 0.2; done
 else
-  ZERON_DATA_DIR='$B_DIR' ZERON_IPC_PORT='$B_PORT' ZERON_DEVICE_NAME=e2e-device-b \\
-    ZERON_EDGE_URL='$EDGE_URL' ZERON_EDGE_TOKEN='$TOKEN' ZERON_ORG_ID='$ORG' \\
-    ZERON_HARNESS=mock RUST_LOG=info ZERON_RELAY_LAYER= \\
-    '${ZERON_E2E_OLD_BIN:-$ZERON}' headless >>'$LOG_DIR/engine-b.log' 2>&1 &
+  NAIVE_DATA_DIR='$B_DIR' NAIVE_IPC_PORT='$B_PORT' NAIVE_DEVICE_NAME=e2e-device-b \\
+    NAIVE_EDGE_URL='$EDGE_URL' NAIVE_EDGE_TOKEN='$TOKEN' NAIVE_ORG_ID='$ORG' \\
+    NAIVE_HARNESS=mock RUST_LOG=info NAIVE_RELAY_LAYER= \\
+    '${NAIVE_E2E_OLD_BIN:-$NAIVE}' headless >>'$LOG_DIR/engine-b.log' 2>&1 &
   echo \$! > '$LOG_DIR/b.pid'
 fi
 RESTART

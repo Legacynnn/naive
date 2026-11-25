@@ -42,7 +42,7 @@ local locale = require("@self/locale")
 
 local M = {}
 
--- (`mark`: ds.Mark's name for an agent Zeron drives itself; `icon`: an
+-- (`mark`: ds.Mark's name for an agent Naive drives itself; `icon`: an
 -- agent from the ACP registry's one-ink SVG, in its place.)
 export type Provider = { id: string, name: string, mark: string?, icon: string?, version: string?, latest: string? }
 -- A reset Codex banked for an account: what it's called, what it starts
@@ -82,7 +82,7 @@ export type Account = {
 
 -- One model provider's accounts of an agent that keeps a login per
 -- provider (Pi, OpenCode, Hermes): the provider (`name`), its accounts (one
--- in use: its `active`), who Zeron signs you in to for it (`login`) and who
+-- in use: its `active`), who Naive signs you in to for it (`login`) and who
 -- issues the API key it adds (`key`) — neither: `hint` says how the agent
 -- adds one — and whether its accounts are the agent's own to choose
 -- (`read_only`, Hermes' pool).
@@ -118,7 +118,7 @@ function M.when_words(at: number?, now: number?): string?
 end
 
 -- How far along a plan's window is: the accent until it nears its limit,
--- amber past four fifths, red at the limit (Zeron's thresholds).
+-- amber past four fifths, red at the limit (Naive's thresholds).
 local function level(fraction: number): string
 	return if fraction >= 0.95 then "danger" elseif fraction >= 0.8 then "warning" else "accent"
 end
@@ -160,7 +160,7 @@ local function meter(label: string, fraction: () -> number): Node
 			line_height = "$font.line.xs",
 			color = function()
 				local t = tone()
-				return if t == "accent" then "$text.tertiary" else `$zeron.tone.{t}.ink`
+				return if t == "accent" then "$text.tertiary" else `$naive.tone.{t}.ink`
 			end,
 		},
 	}
@@ -176,8 +176,8 @@ function M.disc(inside: Node, tone: string?): Node
 		items = "center",
 		justify = "center",
 		rounded = "$radius.full",
-		bg = if tone then `$zeron.tone.{tone}.wash` else "$zeron.secondary.bg",
-		color = if tone then `$zeron.tone.{tone}.ink` else "$text.secondary",
+		bg = if tone then `$naive.tone.{tone}.wash` else "$naive.secondary.bg",
+		color = if tone then `$naive.tone.{tone}.ink` else "$text.secondary",
 		inside,
 	}
 end
@@ -243,7 +243,7 @@ export type CardProps = {
 	on_reset: ((a: Account) -> ())?,
 	on_dismiss_reset: ((a: Account) -> ())?,
 	on_remove: ((a: Account) -> ())?,
-	-- An agent that signs in on its own and keeps no accounts Zeron can
+	-- An agent that signs in on its own and keeps no accounts Naive can
 	-- list (one from the ACP registry): its foot is a sign-in, not "Connect
 	-- an account".
 	sign_in_only: boolean?,
@@ -363,7 +363,7 @@ local Actions = ui.component(function(p: { card: CardProps, account: State<Accou
 			ui.column {
 				w_full = true,
 				p = "$space.1",
-				gap = "$zeron.list.gap",
+				gap = "$naive.list.gap",
 				-- (An API key goes by a name it's given: changed here.)
 				ui.show(function(): boolean
 					return p.rename ~= nil and account:get().key == true
@@ -505,7 +505,7 @@ local function account(c: CardProps, row: State<Account>, group: { read_only: bo
 			ui.show(function(): boolean
 				return row:get().key ~= true
 			end, ui.column {
-				gap = "$zeron.space.hair",
+				gap = "$naive.space.hair",
 				-- (Labels alone where no reset is known, as the shipping app.)
 				tooltip = Tooltip {
 					function(): string
@@ -639,7 +639,7 @@ end
 -- A rule between rows, as Settings.Group draws one: an account row brings
 -- its own, so the rows a list adds and takes away keep theirs.
 local function rule(): Node
-	return ui.div { h = 1, w_full = true, shrink = 0, bg = "$zeron.settings.rule", aria_hidden = true }
+	return ui.div { h = 1, w_full = true, shrink = 0, bg = "$naive.settings.rule", aria_hidden = true }
 end
 
 -- A key an agent reads from its environment, pasted: kept in its
@@ -781,7 +781,7 @@ local function method_rows(provider: Provider, c: CardProps, first: Node): Node
 	end)
 end
 
--- The card's foot: connect the first account, or add another (Zeron's
+-- The card's foot: connect the first account, or add another (Naive's
 -- labels), leading into the sign-in.
 local function add(provider: Provider, empty: () -> boolean, on_add: (() -> ())?, sign_in_only: boolean?, c: CardProps?): Node
 	if sign_in_only then
@@ -1019,7 +1019,7 @@ end
 -- and the foot differ: a provider's accounts stand together (the plan line
 -- says whose each is: "ChatGPT Plus", "Claude Max", "OpenRouter API key"),
 -- each provider with its own one in use; and the foot has an add row per
--- provider Zeron signs in to ("Add ChatGPT account", "Add Claude account")
+-- provider Naive signs in to ("Add ChatGPT account", "Add Claude account")
 -- and one "Add API key" (its menu says for which provider, where there's a
 -- choice). A sign-in under way, or a key being pasted, takes its add row's
 -- place, as Claude Code's does.
@@ -1574,9 +1574,9 @@ function M.Card(c: CardProps): Node
 	}
 end
 
--- An agent not on the device: its mark and name, and Install (Zeron's
+-- An agent not on the device: its mark and name, and Install (Naive's
 -- own installer), or, while `installing` says so, the install under way in
--- the button's place; one Zeron can't install (`manual`) says so instead.
+-- the button's place; one Naive can't install (`manual`) says so instead.
 function M.InstallRow(p: { name: string, mark: string, manual: boolean? }, installing: (() -> boolean)?, on_install: (() -> ())?): Node
 	local function busy(): boolean
 		return installing ~= nil and installing()

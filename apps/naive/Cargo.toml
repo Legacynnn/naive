@@ -1,0 +1,53 @@
+[package]
+name = "naive"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# Shared by both binaries.
+[lib]
+name = "naive_app"
+path = "src/lib.rs"
+
+[[bin]]
+name = "naive"
+path = "src/main.rs"
+
+[[bin]]
+name = "naive-engine"
+path = "src/bin/naive-engine.rs"
+
+[dependencies]
+naive-engine.workspace = true
+naive-rpc.workspace = true
+naive-update.workspace = true
+naive-cli.workspace = true
+naive-mcp.workspace = true
+naive-notify.workspace = true
+naive-sync.workspace = true
+tokio.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+libc.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# The custom allocator is macOS-only (see main.rs): glibc measured flat on the
+# same streaming/scroll workloads, so Linux keeps the system allocator.
+[target.'cfg(target_os = "macos")'.dependencies]
+mimalloc.workspace = true
+# mimalloc's options (`mi_option_set`): the heap's VM tag (src/allocator.rs).
+# The same libmimalloc-sys mimalloc links (v2 comes from the workspace's
+# mimalloc feature).
+libmimalloc-sys = { version = "0.1.49", features = ["extended"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Console"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[build-dependencies]
+embed-resource = "3.0.11"

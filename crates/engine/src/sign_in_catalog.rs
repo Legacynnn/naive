@@ -6,9 +6,9 @@
 //! kept as that account's (`POST /cloud/{orgId}/models`). A machine's own
 //! discovery replaces it once one runs the agent.
 //!
-//! Discovery runs in a process of its own (`zeron-engine discover-models
+//! Discovery runs in a process of its own (`naive-engine discover-models
 //! <agent>`), its environment pointing the agent at the sign-in's home: this
-//! engine's discovery environment (`zeron_harness::catalog_env`) and its
+//! engine's discovery environment (`naive_harness::catalog_env`) and its
 //! catalogs stay this computer's own logins'.
 
 use std::ffi::OsString;
@@ -17,8 +17,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures::future::BoxFuture;
-use zeron_proto::providers::cloud_credentials;
-use zeron_proto::{HarnessId, Model};
+use naive_proto::providers::cloud_credentials;
+use naive_proto::{HarnessId, Model};
 
 /// How long one discovery may take: an agent's first start can install or
 /// update itself (Antigravity's server, Devin's CLI).
@@ -122,7 +122,7 @@ pub fn discover_then_publish<H: Send + 'static>(
     });
 }
 
-/// `zeron-engine discover-models <agent>`: the agent's models discovered now,
+/// `naive-engine discover-models <agent>`: the agent's models discovered now,
 /// live, as JSON on stdout. Its credentials are wherever this process's
 /// environment points the agent. Fails with no live list.
 pub async fn print_discovered(harness: &str) -> anyhow::Result<()> {
@@ -146,7 +146,7 @@ pub fn home_env(harness: HarnessId, home: &Path) -> Vec<(String, OsString)> {
             ("AGY_ACP_FORCE_FILE_STORAGE".into(), "1".into()),
             (
                 "SSH_CONNECTION".into(),
-                zeron_harness::acp::ANTIGRAVITY_SSH_FILE_STORAGE_VALUE.into(),
+                naive_harness::acp::ANTIGRAVITY_SSH_FILE_STORAGE_VALUE.into(),
             ),
         ],
         HarnessId::Grok => vec![("GROK_HOME".into(), at(home.to_path_buf()))],

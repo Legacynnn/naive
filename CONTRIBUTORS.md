@@ -1,6 +1,6 @@
-# Contributing to Zeron
+# Contributing to Naive
 
-Thanks for helping build Zeron. This guide covers how to set up, what a good
+Thanks for helping build Naive. This guide covers how to set up, what a good
 pull request looks like, and the handful of rules that keep a local-first,
 multi-device app working across versions.
 
@@ -38,10 +38,10 @@ Ghostty for the panel's terminals in `apps/zgx`; cached in
 ### Running the desktop app (`apps/zgx`)
 
 The shipping desktop app lives in [`apps/zgx`](apps/zgx/README.md) (its own
-Cargo workspace) and talks to `zeron-engine` built from the root workspace:
+Cargo workspace) and talks to `naive-engine` built from the root workspace:
 
 ```sh
-cargo build -p zeron --bin zeron-engine
+cargo build -p naive --bin naive-engine
 cd apps/zgx
 cargo run --release              # intro / onboarding / main window
 cargo run --release -- main      # straight to the main window
@@ -49,33 +49,33 @@ cargo run --release -- gallery   # design-system workbench (light + dark)
 ```
 
 Edits under `apps/zgx/ui/` hot-reload in place without rebuilding Rust.
-Dev builds default to the staging engine (`~/.zeron-staging`, port `27871`) and
+Dev builds default to the staging engine (`~/.naive-staging`, port `27871`) and
 refuse the production data dir and port so they never touch your installed
-Zeron. Override with `ZERON_ZGX_ENGINE_PORT`, `ZERON_ZGX_ENGINE_DATA`, and
-`ZERON_ZGX_ENGINE_HOME` for a throwaway engine (see
+Naive. Override with `NAIVE_ZGX_ENGINE_PORT`, `NAIVE_ZGX_ENGINE_DATA`, and
+`NAIVE_ZGX_ENGINE_HOME` for a throwaway engine (see
 [`apps/zgx/README.md`](apps/zgx/README.md)).
 
-### Running the engine or headless CLI (`apps/zeron`)
+### Running the engine or headless CLI (`apps/naive`)
 
 An installed daemon holds the default data directory and IPC port. Give a
 standalone engine or headless CLI run its own so the two never share state:
 
 ```sh
-ZERON_DATA_DIR=~/.zeron-dev ZERON_IPC_PORT=27700 cargo run -p zeron --bin zeron-engine
-# Or via the CLI binary (`apps/zeron` opens no window; use `apps/zgx` for desktop):
-ZERON_DATA_DIR=~/.zeron-dev ZERON_IPC_PORT=27700 cargo run -p zeron -- headless
+NAIVE_DATA_DIR=~/.naive-dev NAIVE_IPC_PORT=27700 cargo run -p naive --bin naive-engine
+# Or via the CLI binary (`apps/naive` opens no window; use `apps/zgx` for desktop):
+NAIVE_DATA_DIR=~/.naive-dev NAIVE_IPC_PORT=27700 cargo run -p naive -- headless
 ```
 
 Useful knobs for exercising the UI without a real agent or account:
 
 | Variable | Effect |
 | --- | --- |
-| `ZERON_ZGX_MOCK=1` | Offers the engine's mock agent in `apps/zgx`'s model picker |
-| `ZERON_HARNESS=mock` | Offers the mock harness on the engine, streaming canned turns |
-| `ZERON_MOCK_SUBAGENT=1` | Mock turns spawn subagents |
-| `ZERON_MOCK_THINKING=1` | Mock turns include markdown-heavy thinking |
-| `ZERON_MOCK_TODO=1` | Mock turns work through an 8-item checklist (pair with `ZERON_MOCK_DELAY_MS=900` to watch the todo panel) |
-| `ZERON_MOCK_BACKGROUND=1` | Mock turns leave three background processes running (printing output, stoppable from the composer's background tray) |
+| `NAIVE_ZGX_MOCK=1` | Offers the engine's mock agent in `apps/zgx`'s model picker |
+| `NAIVE_HARNESS=mock` | Offers the mock harness on the engine, streaming canned turns |
+| `NAIVE_MOCK_SUBAGENT=1` | Mock turns spawn subagents |
+| `NAIVE_MOCK_THINKING=1` | Mock turns include markdown-heavy thinking |
+| `NAIVE_MOCK_TODO=1` | Mock turns work through an 8-item checklist (pair with `NAIVE_MOCK_DELAY_MS=900` to watch the todo panel) |
+| `NAIVE_MOCK_BACKGROUND=1` | Mock turns leave three background processes running (printing output, stoppable from the composer's background tray) |
 
 ## Tests
 
@@ -88,10 +88,10 @@ scripts/ci/test-zgx.sh tests
 scripts/ci/test-zgx.sh ui        # requires `zgx` CLI; see apps/zgx/README.md
 
 # Root workspace crates:
-cargo test --locked -p zeron-engine --lib
-cargo test --locked -p zeron-harness            # includes tests/ fixtures, not just --lib
-cargo test --locked -p zeron-sync --lib
-cargo test --locked -p zeron-preview
+cargo test --locked -p naive-engine --lib
+cargo test --locked -p naive-harness            # includes tests/ fixtures, not just --lib
+cargo test --locked -p naive-sync --lib
+cargo test --locked -p naive-preview
 ```
 
 - CI does not cover every crate on every platform. For engine, harness, and sync
@@ -120,15 +120,15 @@ cargo test --locked -p zeron-preview
 
 ### Compatibility across versions
 
-Zeron runs on several devices at once, and they update independently. A UI may
+Naive runs on several devices at once, and they update independently. A UI may
 talk to an older local daemon, and a chat may be hosted on a remote device
 running an older engine. So:
 
-- New fields on wire and document types (`zeron-proto`, `zeron-doc`) must be
+- New fields on wire and document types (`naive-proto`, `naive-doc`) must be
   optional or `#[serde(default)]`. Older peers must still parse newer frames,
   and newer code must accept frames without the field.
 - New behavior that needs the other side's cooperation is gated on a
-  capability (`zeron_proto::capabilities`) or a device version check. Features
+  capability (`naive_proto::capabilities`) or a device version check. Features
   degrade when a peer lacks them; they don't fail.
 - Never rename or repurpose persisted keys, RPC method names, or document
   fields. Add new ones instead.
@@ -206,5 +206,5 @@ running an older engine. So:
 
 ## License
 
-Zeron is [MIT licensed](LICENSE). By contributing, you agree that your
+Naive is [MIT licensed](LICENSE). By contributing, you agree that your
 contributions are licensed under the same terms.

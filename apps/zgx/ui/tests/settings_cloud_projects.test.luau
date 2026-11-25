@@ -54,7 +54,7 @@ local function headings(app: any): { string }
 end
 
 local function cloud_menu(app: any)
-	app:click(`{CLOUD} >> role:button "More for zeron"`)
+	app:click(`{CLOUD} >> role:button "More for naive"`)
 	expect(app:wait('role:menu >> role:button "Rename"', { timeout_ms = 15000 })).to_be(true)
 	app:wait('"nothing"', { timeout_ms = 400 })
 end
@@ -81,8 +81,8 @@ test("your computers' groups and rows are as they were", function()
 	expect(page).to_contain("4 sessions · /work/atlas")
 	expect(page).to_contain("2 sessions · /srv/borealis")
 	-- (This Mac's clone of zeronsh/zeron: its own row, its folder.)
-	expect(page).to_contain("No sessions · /work/zeron")
-	expect(app:tree(CLOUD)).never.to_contain("/work/zeron")
+	expect(page).to_contain("No sessions · /work/naive")
+	expect(app:tree(CLOUD)).never.to_contain("/work/naive")
 end)
 
 test("the search finds Cloud's row by its name or its repository", function()
@@ -91,10 +91,10 @@ test("the search finds Cloud's row by its name or its repository", function()
 	app:frames(20)
 	expect(app:tree(PAGE)).to_contain("acme/app")
 	expect(app:tree(PAGE)).never.to_contain("zeronsh/zeron")
-	app:fill(`{PAGE} >> "Find a project"`, "zeron")
+	app:fill(`{PAGE} >> "Find a project"`, "naive")
 	app:frames(20)
 	expect(count(app:tree(CLOUD), "zeronsh/zeron")).to_be(1)
-	expect(app:tree(PAGE)).to_contain("/work/zeron")
+	expect(app:tree(PAGE)).to_contain("/work/naive")
 end)
 
 test("renaming Cloud's row renames every copy, and none of your computers'", function()
@@ -102,16 +102,16 @@ test("renaming Cloud's row renames every copy, and none of your computers'", fun
 	cloud_menu(app)
 	app:click('role:menu >> role:button "Rename"')
 	app:frames(10)
-	app:fill(`{CLOUD} >> "Name for zeron"`, "Zeron app")
+	app:fill(`{CLOUD} >> "Name for naive"`, "Naive app")
 	app:key("Enter")
 	app:frames(20)
 	local calls = said(app)
 	for _, id in { "zc1", "zc2", "zc3" } do
-		expect(calls).to_contain(`rename_project:{id}:Zeron app`)
+		expect(calls).to_contain(`rename_project:{id}:Naive app`)
 	end
 	expect(calls).never.to_contain("rename_project:zmac")
 	expect(calls).never.to_contain("rename_project:app1")
-	expect(app:tree(CLOUD)).to_contain("Zeron app")
+	expect(app:tree(CLOUD)).to_contain("Naive app")
 end)
 
 test("changing Cloud's row's icon changes every copy's", function()
@@ -142,7 +142,7 @@ test("removing Cloud's row counts every copy's sessions, stops the running one, 
 	cloud_menu(app)
 	app:click('role:menu >> role:button "Remove…"')
 	app:frames(20)
-	local dialog = 'role:dialog "Remove “zeron”?"'
+	local dialog = 'role:dialog "Remove “naive”?"'
 	expect(app:has(dialog)).to_be(true)
 	expect(app:has(`{dialog} >> ~"Its 3 sessions are deleted for good, on every device."`)).to_be(true)
 	expect(app:has(`{dialog} >> ~"One of them is running now and is stopped first."`)).to_be(true)
@@ -159,7 +159,7 @@ test("removing Cloud's row counts every copy's sessions, stops the running one, 
 	expect(app:state("settings_project_removing_open")).to_be(false)
 	expect(app:tree(PAGE)).never.to_contain("zeronsh/zeron")
 	expect(app:tree(CLOUD)).to_contain("acme/app")
-	expect(app:tree(PAGE)).to_contain("/work/zeron")
+	expect(app:tree(PAGE)).to_contain("/work/naive")
 end)
 
 -- A new chat's project, on Cloud ────────────────────────────────────────────

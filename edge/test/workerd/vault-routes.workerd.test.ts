@@ -108,7 +108,7 @@ describe("/vault routes → VAULT service binding", () => {
       );
     // A client from before the header: the original five only.
     expect(await providers()).toEqual(["codex"]);
-    expect(await providers({ "x-zeron-vault-providers": "codex, grok,openrouter-key,some-later-key" })).toEqual([
+    expect(await providers({ "x-naive-vault-providers": "codex, grok,openrouter-key,some-later-key" })).toEqual([
       "codex",
       "grok",
       "openrouter-key"

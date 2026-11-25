@@ -13,12 +13,12 @@ use futures::StreamExt;
 use futures::stream::BoxStream;
 use tokio::sync::mpsc;
 
-use zeron_engine::doc_host::{
+use naive_engine::doc_host::{
     BeginQueueEditOutcome, FinishQueueEditAction, FinishQueueEditOutcome,
 };
-use zeron_engine::{EngineCore, HarnessRegistry};
-use zeron_harness::{Harness, HarnessError, RunControls};
-use zeron_proto::{
+use naive_engine::{EngineCore, HarnessRegistry};
+use naive_harness::{Harness, HarnessError, RunControls};
+use naive_proto::{
     AgentEvent, DoneStatus, HarnessId, Model, ReasoningLevel, RunRequest, SandboxLevel,
     SessionStatus, SteeringMode,
 };
@@ -357,10 +357,10 @@ async fn files_with_no_words_queue_and_reach_the_agent() {
     let rig = rig();
     running(&rig).await;
     let files = files(&rig);
-    let client = zeron_rpc::memory_client(rig.core.rpc_service());
+    let client = naive_rpc::memory_client(rig.core.rpc_service());
     client
         .call(
-            zeron_rpc::methods::QUEUE_MESSAGE,
+            naive_rpc::methods::QUEUE_MESSAGE,
             serde_json::json!({
                 "chatId": CHAT,
                 "text": "",
@@ -472,14 +472,14 @@ async fn clearing_the_words_of_a_row_with_files_keeps_it() {
 /// Another Windows user's (or device's) path for an upload this device also
 /// holds: what reached the agent on 2026-11-07 as `C:\Users\ADMIN\…`, from a
 /// chat running as `HP MEDIA`.
-const THEIRS: &str = r"C:\Users\ADMIN\AppData\Local\Zeron\uploads\2fbd2b3b-image.png";
+const THEIRS: &str = r"C:\Users\ADMIN\AppData\Local\Naive\uploads\2fbd2b3b-image.png";
 
 /// The same upload committed on this device: its path here.
 async fn committed_here(rig: &Rig) -> String {
-    let client = zeron_rpc::memory_client(rig.core.rpc_service());
+    let client = naive_rpc::memory_client(rig.core.rpc_service());
     client
         .call(
-            zeron_rpc::methods::UPLOAD_CHUNK,
+            naive_rpc::methods::UPLOAD_CHUNK,
             serde_json::json!({
                 "uploadId": "2fbd2b3b-9c1e",
                 "seq": 0,
@@ -490,7 +490,7 @@ async fn committed_here(rig: &Rig) -> String {
         .unwrap();
     let reply = client
         .call(
-            zeron_rpc::methods::UPLOAD_COMMIT,
+            naive_rpc::methods::UPLOAD_COMMIT,
             serde_json::json!({ "uploadId": "2fbd2b3b-9c1e", "fileName": "image.png" }),
         )
         .await

@@ -334,7 +334,7 @@ local function tile(id: string): Node
 			-- (Solid under its wash, so what's behind it doesn't show through; the
 			-- one in front's shadow falls on those behind.)
 			bg = function(): string
-				return if stacked() then "$zeron.menu.solid" else "#00000000"
+				return if stacked() then "$naive.menu.solid" else "#00000000"
 			end,
 			shadow = function(): any
 				return if stacked() and at == 1 then "$shadow.sm" else false
@@ -381,7 +381,7 @@ local function still_face(key: string): Node
 			h = TILE,
 			rounded = "$radius.sm",
 			rotate = if count >= 2 then fan.turn else 0,
-			bg = if count >= 2 then "$zeron.menu.solid" else "#00000000",
+			bg = if count >= 2 then "$naive.menu.solid" else "#00000000",
 			shadow = if count >= 2 and at == 1 then "$shadow.sm" else false,
 			pane_tile(key, at),
 		})
@@ -392,7 +392,7 @@ local function still_face(key: string): Node
 		h_full = true,
 		pl = ui.raw(4, "as far in as the tile is from its top"),
 		pr = ui.raw(4, "the tab's inset"),
-		gap = "$zeron.space.tight",
+		gap = "$naive.space.tight",
 		items = "center",
 		ui.div(places),
 		ds.FadeText { title(key), max_w = LABEL_MAX, min_w = 0, grow = 1, text_size = "$font.size.sm", weight = "$font.weight.medium" },
@@ -451,7 +451,7 @@ local Tab = ui.component(function(props: { chat: string, strip: any }): Node
 			shrink = 0,
 			pl = ui.raw(4, "as far in as the tile is from its top"),
 			pr = ui.raw(4, "the tab's inset"),
-			gap = "$zeron.space.tight",
+			gap = "$naive.space.tight",
 			items = "center",
 			rounded = "$radius.lg",
 			cursor = "pointer",
@@ -770,7 +770,7 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 		end
 		local left = 0
 		-- (The tabs' own gap, the strip's hair.)
-		local gap = (ui.theme.get("zeron.space.hair") :: number?) or 2
+		local gap = (ui.theme.get("naive.space.hair") :: number?) or 2
 		for _, id in list do
 			local w = tab_refs[id].width
 			if splits.current_key() == id then
@@ -848,7 +848,7 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 				ui.row {
 					ref = content,
 					relative = true,
-					gap = "$zeron.space.hair",
+					gap = "$naive.space.hair",
 					items = "center",
 					strip.Highlight(),
 					ui.each(strip.order, function(id: string): Node
@@ -858,7 +858,7 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 							return id
 						end,
 						direction = "row",
-						gap = "$zeron.space.hair",
+						gap = "$naive.space.hair",
 						animate = motion.tab_slide(),
 					}),
 				},
@@ -876,16 +876,16 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 				end,
 				h = TAB_H,
 				shrink = 0,
-				ml = "$zeron.space.hair",
+				ml = "$naive.space.hair",
 				pl = ui.raw(4, "as far in as the tile is from its top"),
 				pr = ui.raw(4, "the tab's inset"),
-				gap = "$zeron.space.tight",
+				gap = "$naive.space.tight",
 				items = "center",
 				rounded = "$radius.lg",
 				cursor = "pointer",
 				pointer_events = "auto",
 				bg = function(): string
-					return if route.chat:get().name == "home" then "$zeron.selected.flat.bg" else "#00000000"
+					return if route.chat:get().name == "home" then "$naive.selected.flat.bg" else "#00000000"
 				end,
 				hover = { bg = "$hover" },
 				color = function(): string
@@ -929,7 +929,7 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 				shrink = 0,
 				w = TAB_H,
 				h = TAB_H,
-				ml = "$zeron.space.hair",
+				ml = "$naive.space.hair",
 				items = "center",
 				justify = "center",
 				rounded = "$radius.lg",
@@ -958,7 +958,7 @@ function M.Strip(props: { window_x: () -> number, width: () -> number, start: ()
 				shrink = 0,
 				w = TAB_H,
 				h = TAB_H,
-				ml = "$zeron.space.hair",
+				ml = "$naive.space.hair",
 				items = "center",
 				justify = "center",
 				rounded = "$radius.lg",

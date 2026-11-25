@@ -18,7 +18,7 @@ export type Worktree = {
 }
 
 M.enabled = ui.persist("shell_sidebar_worktrees", true)
--- Only a layout with the header's tabs (Zeron v3) can reach a worktree's other chats.
+-- Only a layout with the header's tabs (Naive v3) can reach a worktree's other chats.
 M.capable = ui.shared("shell.session_tabs", false)
 M.off = ui.shared("shell.worktrees_off", false)
 M.on = ui.computed(function(): boolean
@@ -48,7 +48,7 @@ local function is_linked(cwd: string?, project: sessions.Project?): boolean
 	if not cwd then
 		return false
 	end
-	if string.find(cwd, "/.zeron/worktrees/", 1, true) then
+	if string.find(cwd, "/.naive/worktrees/", 1, true) then
 		return true
 	end
 	local root = if project then trimmed(project.path) else nil

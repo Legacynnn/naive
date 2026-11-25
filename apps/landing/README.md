@@ -1,11 +1,11 @@
-# zeron.sh
+# naive.sh
 
 The landing page, as an [Astro](https://astro.build) site. It is prerendered
 to static files and deployed as an assets-only Cloudflare Worker
 (`wrangler.jsonc`). `npx wrangler deploy` installs, type checks, builds and
 tests before it uploads; `.github/workflows/deploy.yml` runs it on every push
 to `main` that touches this folder. `-c wrangler.staging.jsonc` deploys the
-same build to https://site-staging.zeron.sh.
+same build to https://site-staging.naive.sh.
 
 ```sh
 npm install
@@ -36,7 +36,7 @@ tools/
 ```
 
 The site wears the app's design: `src/styles/global.css` copies its colours,
-radii and control sizes from `apps/zgx/ui/ds/themes/zeron-dark.json`, and the
+radii and control sizes from `apps/zgx/ui/ds/themes/naive-dark.json`, and the
 fonts are the app's (Geist, Geist Mono). Change a token there first.
 
 It is static today. When a route needs a server (sign-in, the plugin store),
@@ -63,7 +63,7 @@ captures.
   `zw.css` are outputs. Change the tools, not the files.
 - **The machine picker and the chart reply** (`WorkIn.astro`,
   `ChartReply.astro`): HTML written by hand from the numbers of the canvas
-  drawing on the `zeron/landing-newchat-hero` branch
+  drawing on the `naive/landing-newchat-hero` branch
   (`public/hero/chrome.js`), which that branch's rig checked against the
   app. They are transcriptions of that code, not diffed again.
 
@@ -89,7 +89,7 @@ python3 check.py dark   # render at 2x and diff against that theme's capture
 python3 tune.py         # move each node by what the diff finds; repeat gen + check
 
 # the themes window
-export THEMES=zeron-dark,tokyo-night,catppuccin,dracula,gruvbox,github-light NAME=themes GLASS=1
+export THEMES=naive-dark,tokyo-night,catppuccin,dracula,gruvbox,github-light NAME=themes GLASS=1
 ```
 
 What each does: boxes come from the tree; fills, edges, corner radii and

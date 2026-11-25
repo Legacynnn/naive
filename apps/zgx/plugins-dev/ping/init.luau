@@ -3,17 +3,17 @@
 -- from a button placed after the title bar's actions ("ui.add"). Each device
 -- answers a ping with a pong carrying the ping's time back.
 
-local zeron = require("./zeron")("ping")
+local naive = require("./naive")("ping")
 
 local said = ui.state("said", "Ping")
 
-zeron.on_message(function(message: any)
+naive.on_message(function(message: any)
 	local data = message.data
 	if type(data) ~= "table" then
 		return
 	end
 	if data.kind == "ping" then
-		zeron.send(message.from.id, { kind = "pong", sent = data.sent })
+		naive.send(message.from.id, { kind = "pong", sent = data.sent })
 	elseif data.kind == "pong" and type(data.sent) == "number" then
 		local ms = math.max(0, math.floor(ui.now() - data.sent + 0.5))
 		said:set(`{message.from.name} · {ms} ms`)
@@ -22,7 +22,7 @@ end)
 
 local function ping()
 	said:set("Pinging…")
-	zeron.send("*", { kind = "ping", sent = ui.now() }):after(function(results: any)
+	naive.send("*", { kind = "ping", sent = ui.now() }):after(function(results: any)
 		-- No answer will come from devices it didn't reach: say so.
 		local reached = false
 		for _, outcome in results or {} do
@@ -38,13 +38,13 @@ local function ping()
 	end)
 end
 
-zeron.place {
+naive.place {
 	at = "#titlebar-actions",
 	after = function(): Node
 		return ui.button {
 			id = "ping-button",
 			label = "Ping your devices",
-			h = "$zeron.island.control",
+			h = "$naive.island.control",
 			px = "$space.2",
 			rounded = "$radius.full",
 			cursor = "pointer",

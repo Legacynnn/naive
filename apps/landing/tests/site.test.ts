@@ -11,7 +11,7 @@ const home = page("index.html");
 describe("the landing page, built", () => {
   test("links every desktop build at the fallback version without script", () => {
     for (const [id, build] of Object.entries(DESKTOP_BUILDS)) {
-      const href = `${RELEASES_URL}zeron-${FALLBACK_VERSION}-${build.file}`;
+      const href = `${RELEASES_URL}naive-${FALLBACK_VERSION}-${build.file}`;
       expect(home, id).toContain(`href="${href}"`);
       expect(home, id).toContain(`data-build="${id}"`);
     }

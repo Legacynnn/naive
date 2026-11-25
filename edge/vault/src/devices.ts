@@ -4,7 +4,7 @@
  * switch, and an append-only audit log.
  *
  * A grant request is a statement signed by a device key:
- *   Ed25519("zeron-vault-grant\n{userId}\n{deviceId}\n{provider}\n{ts}")
+ *   Ed25519("naive-vault-grant\n{userId}\n{deviceId}\n{provider}\n{ts}")
  * accepted only while `ts` is within ±120 s of now AND strictly greater than
  * that device's last accepted `ts`. The window bounds how long a captured
  * request is useful; the fence makes it single-use even inside the window.
@@ -33,7 +33,7 @@ const AUDIT_RETAIN_MS = 400 * 24 * 60 * 60_000;
 /** What a device signs to draw grants. `subject` is the provider, or for a
  * batch (`grantMany`) the sorted, distinct providers joined by ",". */
 export const grantMessage = (userId: string, deviceId: string, subject: string, ts: number): string =>
-  `zeron-vault-grant\n${userId}\n${deviceId}\n${subject}\n${ts}`;
+  `naive-vault-grant\n${userId}\n${deviceId}\n${subject}\n${ts}`;
 
 /** A grant request as the device fence checks it: one provider, or a batch
  * whose `subject` is what was signed. */

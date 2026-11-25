@@ -134,7 +134,7 @@ function M.Page(props: PageProps): Node
 	return ui.column {
 		w_full = true,
 		-- (A theme number, read as it is built: max_w takes points.)
-		max_w = ui.theme.get("zeron.settings.measure") :: number?,
+		max_w = ui.theme.get("naive.settings.measure") :: number?,
 		gap = "$space.6",
 		ui.row {
 			-- Inset to the rows' text, as a section's title is: the page's
@@ -215,7 +215,7 @@ function M.Rule(): Node
 		h = 1,
 		w_full = true,
 		shrink = 0,
-		bg = "$zeron.settings.rule",
+		bg = "$naive.settings.rule",
 		aria_hidden = true,
 	}
 end
@@ -237,9 +237,9 @@ function M.Group(props: GroupProps): Node
 	return ui.column {
 		w_full = true,
 		rounded = "$radius.xl",
-		bg = material.pick("$zeron.settings.tint", "$zeron.settings.card"),
+		bg = material.pick("$naive.settings.tint", "$naive.settings.card"),
 		border = 1,
-		border_color = "$zeron.settings.edge",
+		border_color = "$naive.settings.edge",
 		overflow = "hidden",
 		table.unpack(items),
 	}
@@ -290,9 +290,9 @@ function M.Each(list: State<{ any }>, row: (item: any, i: number, now: State<any
 		ui.column {
 			w_full = true,
 			rounded = "$radius.xl",
-			bg = material.pick("$zeron.settings.tint", "$zeron.settings.card"),
+			bg = material.pick("$naive.settings.tint", "$naive.settings.card"),
 			border = 1,
-			border_color = "$zeron.settings.edge",
+			border_color = "$naive.settings.edge",
 			overflow = "hidden",
 			ui.each(list, function(item: any, i: number, now: State<any>): Node
 				return ui.column {
@@ -334,9 +334,9 @@ function M.EachList(list: State<{ any }>, row: (item: any, i: State<number>, now
 		ui.column {
 			w_full = true,
 			rounded = "$radius.xl",
-			bg = "$zeron.settings.card",
+			bg = "$naive.settings.card",
 			border = 1,
-			border_color = "$zeron.settings.edge",
+			border_color = "$naive.settings.edge",
 			overflow = "hidden",
 			ui.list {
 				data = list,
@@ -382,8 +382,8 @@ function M.truncated_row_h(lead: number?): number
 	local function token(name: string, default: number): number
 		return scaled[name] or (ui.theme.get(name) :: number?) or default
 	end
-	local words = token("font.line.md", 18) + token("zeron.space.hair", 2) + token("font.line.sm", 16)
-	return math.max(token("zeron.settings.row", 52), 2 * token("space.3", 12) + math.max(words, lead or 0))
+	local words = token("font.line.md", 18) + token("naive.space.hair", 2) + token("font.line.sm", 16)
+	return math.max(token("naive.settings.row", 52), 2 * token("space.3", 12) + math.max(words, lead or 0))
 end
 
 export type RowProps = {
@@ -431,7 +431,7 @@ function M.Row(props: RowProps): Node
 	local text = ui.column {
 		grow = 1,
 		min_w = 0,
-		gap = "$zeron.space.hair",
+		gap = "$naive.space.hair",
 		ui.row {
 			gap = "$space.2",
 			items = "center",
@@ -444,7 +444,7 @@ function M.Row(props: RowProps): Node
 					text_size = "$font.size.md",
 					line_height = "$font.line.md",
 					weight = "$font.weight.medium",
-					color = if props.danger then "$zeron.tone.danger.ink" else "$text.primary",
+					color = if props.danger then "$naive.tone.danger.ink" else "$text.primary",
 				}
 				elseif props.truncate
 				then FadeText {
@@ -457,14 +457,14 @@ function M.Row(props: RowProps): Node
 					text_size = "$font.size.md",
 					line_height = "$font.line.md",
 					weight = "$font.weight.medium",
-					color = if props.danger then "$zeron.tone.danger.ink" else "$text.primary",
+					color = if props.danger then "$naive.tone.danger.ink" else "$text.primary",
 				}
 				else ui.text {
 					props.label,
 					text_size = "$font.size.md",
 					line_height = "$font.line.md",
 					weight = "$font.weight.medium",
-					color = if props.danger then "$zeron.tone.danger.ink" else "$text.primary",
+					color = if props.danger then "$naive.tone.danger.ink" else "$text.primary",
 					wrap = true,
 				},
 			props.badge,
@@ -519,7 +519,7 @@ function M.Row(props: RowProps): Node
 			items = "center",
 			justify = "center",
 			rounded = "$radius.lg",
-			bg = "$zeron.secondary.bg",
+			bg = "$naive.secondary.bg",
 			color = "$text.secondary",
 			Icon { name = props.icon, size = 16 },
 		}
@@ -544,7 +544,7 @@ function M.Row(props: RowProps): Node
 	local row: { [any]: any } = {
 		w_full = true,
 		-- (No `min_h`: a row is its content's height, 42 for one line, as it
-		-- has always drawn; `"$zeron.settings.row"` here, which zgx once
+		-- has always drawn; `"$naive.settings.row"` here, which zgx once
 		-- ignored, would hold it at 52.)
 		px = "$space.4",
 		py = "$space.3",
@@ -552,7 +552,7 @@ function M.Row(props: RowProps): Node
 		disabled = props.disabled,
 		opacity = if props.disabled
 			then function(): any
-				return if disabled() then "$zeron.disabled" else nil
+				return if disabled() then "$naive.disabled" else nil
 			end
 			else nil,
 	}
@@ -573,7 +573,7 @@ function M.Row(props: RowProps): Node
 		row.hover = { bg = "$hover" }
 		row.active = { bg = "$pressed" }
 		-- Inside the card's clip, the ring sits over the row's edge.
-		row.focus = { outline = "$zeron.focus.width", outline_color = "$zeron.focus.ring", outline_offset = -2 }
+		row.focus = { outline = "$naive.focus.width", outline_color = "$naive.focus.ring", outline_offset = -2 }
 	end
 	if props.stacked then
 		row.direction = "column"
@@ -606,7 +606,7 @@ function M.Row(props: RowProps): Node
 		})
 		if trail then
 			-- (A theme number, read as it is built: max_w takes points.)
-			table.insert(row, ui.row { shrink = 0, max_w = ui.theme.get("zeron.settings.control") :: number?, items = "center", justify = "end", trail })
+			table.insert(row, ui.row { shrink = 0, max_w = ui.theme.get("naive.settings.control") :: number?, items = "center", justify = "end", trail })
 		end
 	end
 	return ui.row(row)
@@ -657,7 +657,7 @@ function M.Nav(props: NavProps): Node
 	local function row(item: NavItem, lead_row: boolean): Node
 		if item.heading then
 			return ui.row {
-				h = "$zeron.menu.heading",
+				h = "$naive.menu.heading",
 				px = "$space.2",
 				pt = "$space.2",
 				items = "center",
@@ -677,19 +677,19 @@ function M.Nav(props: NavProps): Node
 				focusable = true,
 				cursor = "pointer",
 				w_full = true,
-				h = "$zeron.menu.row",
+				h = "$naive.menu.row",
 				px = "$space.2",
 				gap = "$space.2",
 				items = "center",
 				rounded = "$radius.md",
 				bg = function()
-					return if on() then "$zeron.selected.flat.bg" else "#00000000"
+					return if on() then "$naive.selected.flat.bg" else "#00000000"
 				end,
 				color = function()
 					return if on() then "$text.primary" else "$text.secondary"
 				end,
 				hover = { color = "$text.primary" },
-				focus = { outline = "$zeron.focus.width", outline_color = "$zeron.focus.ring", outline_offset = -2 },
+				focus = { outline = "$naive.focus.width", outline_color = "$naive.focus.ring", outline_offset = -2 },
 				on_click = function()
 					if props.on_choose then
 						props.on_choose(item.value)
@@ -735,7 +735,7 @@ function M.Nav(props: NavProps): Node
 					return item.value or `heading:{item.heading}`
 				end,
 				w_full = true,
-				gap = "$zeron.list.gap",
+				gap = "$naive.list.gap",
 			})
 		)
 	end
@@ -743,7 +743,7 @@ function M.Nav(props: NavProps): Node
 	local function pages(): Node
 		return ui.column {
 			w_full = true,
-			gap = "$zeron.list.gap",
+			gap = "$naive.list.gap",
 			role = "tablist",
 			label = locale.t("ds.settings.nav.pages"),
 			focus_group = "vertical",
@@ -783,7 +783,7 @@ function M.Nav(props: NavProps): Node
 		pb = "$space.2",
 		-- Under the strip, the rows keep their usual inset from it.
 		pt = if props.top then ui.raw(props.top + (ui.theme.get("space.2") :: number), "the title bar's strip over the rows, then the list's own inset") else "$space.2",
-		gap = "$zeron.list.gap",
+		gap = "$naive.list.gap",
 		-- (Its hairline down its right is drawn over its edge, as the main
 		-- sidebar's is, taking no width: the two lists' rows and feet stand
 		-- at the same places, nothing shifting between them.)
@@ -801,7 +801,7 @@ function M.Nav(props: NavProps): Node
 				return if props.card then "#00000000" else "$border.subtle"
 			end,
 		},
-		if #leads > 0 then ui.column { w_full = true, gap = "$zeron.list.gap", table.unpack(leads) } else nil,
+		if #leads > 0 then ui.column { w_full = true, gap = "$naive.list.gap", table.unpack(leads) } else nil,
 		props.head,
 		-- (While a search's results stand in the pages' place, an empty space
 		-- grows in theirs, so what's under them, you and settings, keeps to
@@ -1010,9 +1010,9 @@ function M.Catalog(props: CatalogProps): Node
 			id = "catalog-card",
 			w_full = true,
 			rounded = "$radius.xl",
-			bg = material.pick("$zeron.settings.tint", "$zeron.settings.card"),
+			bg = material.pick("$naive.settings.tint", "$naive.settings.card"),
 			border = 1,
-			border_color = "$zeron.settings.edge",
+			border_color = "$naive.settings.edge",
 			overflow = "hidden",
 			search,
 			M.Rule(),

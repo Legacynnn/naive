@@ -17,20 +17,20 @@ describe("REPAIR_ENGINE_SCRIPT and `current`", () => {
 
   const version = (app: string, v: string) => {
     mkdirSync(join(app, v), { recursive: true });
-    for (const bin of ["zeron", "zeron-engine"]) {
+    for (const bin of ["naive", "naive-engine"]) {
       writeFileSync(join(app, v, bin), "#!/bin/sh\n");
       chmodSync(join(app, v, bin), 0o755);
     }
   };
   const repair = (home: string) =>
     execFileSync("sh", ["-c", REPAIR_ENGINE_SCRIPT], {
-      env: { PATH: "/usr/bin:/bin", ZERON_CLOUD_HOME: home },
+      env: { PATH: "/usr/bin:/bin", NAIVE_CLOUD_HOME: home },
       encoding: "utf8"
     });
 
   it("points a `current` naming a removed version at the newest installed", () => {
-    root = mkdtempSync(join(tmpdir(), "zeron-repair-current-"));
-    const app = join(root, ".zeron", "app");
+    root = mkdtempSync(join(tmpdir(), "naive-repair-current-"));
+    const app = join(root, ".naive", "app");
     version(app, "0.3.9");
     version(app, "0.3.15");
     symlinkSync(join(app, "0.3.14"), join(app, "current"));
@@ -39,8 +39,8 @@ describe("REPAIR_ENGINE_SCRIPT and `current`", () => {
   });
 
   it("leaves a `current` that runs alone, even when a newer version is there", () => {
-    root = mkdtempSync(join(tmpdir(), "zeron-repair-current-"));
-    const app = join(root, ".zeron", "app");
+    root = mkdtempSync(join(tmpdir(), "naive-repair-current-"));
+    const app = join(root, ".naive", "app");
     version(app, "0.3.14");
     version(app, "0.3.15");
     symlinkSync(join(app, "0.3.14"), join(app, "current"));
@@ -49,8 +49,8 @@ describe("REPAIR_ENGINE_SCRIPT and `current`", () => {
   });
 
   it("does nothing when no version is installed", () => {
-    root = mkdtempSync(join(tmpdir(), "zeron-repair-current-"));
-    const app = join(root, ".zeron", "app");
+    root = mkdtempSync(join(tmpdir(), "naive-repair-current-"));
+    const app = join(root, ".naive", "app");
     mkdirSync(app, { recursive: true });
     symlinkSync(join(app, "0.3.14"), join(app, "current"));
     expect(repair(root)).toBe("");

@@ -15,7 +15,7 @@
 use chrono::Utc;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
-use zeron_proto::{
+use naive_proto::{
     BillingLink, BillingStatus, Chat, CloudSession, CloudSessions, CloudState, CloudStatus,
     GithubConnectProgress, GithubDeviceFlow, GithubRepo, VaultAccount, VaultProvider, VaultStatus,
 };
@@ -298,7 +298,7 @@ impl Client {
     pub async fn github_connect_poll(&self, flow_id: &str) -> Result<GithubConnectProgress> {
         if self.inner.is_demo() {
             return Ok(GithubConnectProgress {
-                state: zeron_proto::GithubConnectState::Connected,
+                state: naive_proto::GithubConnectState::Connected,
                 account: Some("octocat".into()),
                 already_connected: false,
                 error: None,
@@ -376,15 +376,15 @@ impl Client {
         &self,
         provider: VaultProvider,
         slot: &str,
-    ) -> Result<Option<(Vec<zeron_proto::AgentUsageWindow>, Option<String>)>> {
+    ) -> Result<Option<(Vec<naive_proto::AgentUsageWindow>, Option<String>)>> {
         let harness = match provider {
-            VaultProvider::Claude => zeron_proto::HarnessId::ClaudeCode,
-            VaultProvider::Codex => zeron_proto::HarnessId::Codex,
-            VaultProvider::Antigravity => zeron_proto::HarnessId::Antigravity,
+            VaultProvider::Claude => naive_proto::HarnessId::ClaudeCode,
+            VaultProvider::Codex => naive_proto::HarnessId::Codex,
+            VaultProvider::Antigravity => naive_proto::HarnessId::Antigravity,
             _ => return Ok(None),
         };
         if self.inner.is_demo() {
-            let window = |label: &str, used: f32, hours: i64| zeron_proto::AgentUsageWindow {
+            let window = |label: &str, used: f32, hours: i64| naive_proto::AgentUsageWindow {
                 label: label.into(),
                 used_fraction: used,
                 resets_at: Some(Utc::now() + chrono::Duration::hours(hours)),
@@ -408,7 +408,7 @@ impl Client {
             )
             .await
             .map_err(Failure::into_error)?;
-        Ok(zeron_proto::plan_usage::from_reply(harness, &usage.body))
+        Ok(naive_proto::plan_usage::from_reply(harness, &usage.body))
     }
 
     /// `DELETE /vault/{org}/accounts/{provider}/{slot}`.
@@ -467,7 +467,7 @@ impl Client {
         &self,
         provider: VaultProvider,
         material: serde_json::Value,
-        profile: Option<zeron_proto::VaultAccountProfile>,
+        profile: Option<naive_proto::VaultAccountProfile>,
     ) -> Result<()> {
         let device = self.cloud_device_id().await?;
         let mut body = serde_json::json!({
@@ -573,7 +573,7 @@ impl Client {
             .next()
             .unwrap_or(repo_full_name)
             .to_owned();
-        let space = zeron_proto::Space {
+        let space = naive_proto::Space {
             id: crate::new_id(),
             device_id: device,
             path: format!("{CLOUD_HOME}/{name}"),
@@ -582,7 +582,7 @@ impl Client {
             git_checked_at: Some(Utc::now()),
             checkout_id: None,
             // Groups with the clones of the repository on the user's devices.
-            repository_id: Some(zeron_proto::view::cloud_repository_id(
+            repository_id: Some(naive_proto::view::cloud_repository_id(
                 &state.spaces,
                 repo_full_name,
             )),
@@ -625,7 +625,7 @@ impl Client {
     pub async fn create_cloud_session(
         &self,
         space_id: &str,
-        config: Option<zeron_proto::ChatConfig>,
+        config: Option<naive_proto::ChatConfig>,
         branch: Option<String>,
         title: Option<String>,
     ) -> Result<String> {
@@ -646,7 +646,7 @@ impl Client {
             .await?
             .ok_or_else(|| {
                 ClientError::Unsupported(
-                "Cloud can't reach this project's repository — install the Zeron GitHub App on it."
+                "Cloud can't reach this project's repository — install the Naive GitHub App on it."
                     .into(),
             )
             })?;
@@ -796,20 +796,20 @@ impl Client {
             .request(method, url)
             .bearer_auth(token)
             .header(
-                zeron_proto::CLOUD_STATES_HEADER,
-                zeron_proto::CLOUD_STATES_UNDERSTOOD,
+                naive_proto::CLOUD_STATES_HEADER,
+                naive_proto::CLOUD_STATES_UNDERSTOOD,
             )
             // The vault providers this build parses: the edge lists no other.
             .header(
-                zeron_proto::VAULT_PROVIDERS_HEADER,
-                zeron_proto::vault_providers_understood(),
+                naive_proto::VAULT_PROVIDERS_HEADER,
+                naive_proto::vault_providers_understood(),
             );
         if let Some(body) = body {
             request = request.json(&body);
         }
         let response = request.send().await.map_err(|e| {
             Failure::Error(ClientError::Network(format!(
-                "Couldn't reach Zeron's servers: {e}"
+                "Couldn't reach Naive's servers: {e}"
             )))
         })?;
         let status = response.status().as_u16();
@@ -832,7 +832,7 @@ impl Client {
         }
         serde_json::from_slice(&bytes).map_err(|e| {
             Failure::Error(ClientError::HostError(format!(
-                "{what}: unexpected reply from Zeron's servers ({e})"
+                "{what}: unexpected reply from Naive's servers ({e})"
             )))
         })
     }
@@ -863,15 +863,15 @@ fn edge_error(status: u16, body: &[u8], what: &str) -> ClientError {
         (Some("out_of_credits"), _) => "You're out of Cloud credits.".into(),
         (Some("upstream"), _) => "The provider didn't answer — try again in a moment.".into(),
         (_, 400) => format!("{what}: the request was rejected."),
-        (_, 401) => "Your Zeron session expired — sign in again.".into(),
+        (_, 401) => "Your Naive session expired — sign in again.".into(),
         (_, 402) => "You're out of Cloud credits.".into(),
         (_, 403) => "This account can't manage Cloud for this workspace.".into(),
         (_, 404) => format!("{what}: not found."),
         (_, 409) => "Cloud is busy with another change — try again in a moment.".into(),
         (_, 429) => "Too many requests — try again in a moment.".into(),
-        (_, 501 | 503) => "Cloud isn't available on this Zeron server yet.".into(),
+        (_, 501 | 503) => "Cloud isn't available on this Naive server yet.".into(),
         (_, status) if status >= 500 => {
-            format!("{what} failed on Zeron's servers ({status}) — try again.")
+            format!("{what} failed on Naive's servers ({status}) — try again.")
         }
         (_, status) => format!("{what} failed ({status})."),
     });
@@ -883,7 +883,7 @@ fn edge_error(status: u16, body: &[u8], what: &str) -> ClientError {
 
 /// Offline answers for the demo workspace.
 mod demo {
-    use zeron_proto::{
+    use naive_proto::{
         BillingCredits, BillingPack, BillingPlan, BillingStatus, BillingSubscription, CloudState,
         CloudStatus, GithubRepo, VaultAccount, VaultConnection, VaultConnectionStatus,
         VaultProvider, VaultStatus,

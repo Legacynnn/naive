@@ -30,8 +30,8 @@ describe("detectTarget", () => {
 
 describe("urls", () => {
   test("a desktop build's file under the release", () => {
-    expect(buildUrl("0.2.98", "windows")).toBe("https://zeron.sh/releases/zeron-0.2.98-windows-x86_64-setup.exe");
-    expect(targetUrl({ kind: "desktop", build: "linux-arm" }, "1.0.0")).toBe("https://zeron.sh/releases/zeron-1.0.0-linux-aarch64.tar.gz");
+    expect(buildUrl("0.2.98", "windows")).toBe("https://naive.sh/releases/naive-0.2.98-windows-x86_64-setup.exe");
+    expect(targetUrl({ kind: "desktop", build: "linux-arm" }, "1.0.0")).toBe("https://naive.sh/releases/naive-1.0.0-linux-aarch64.tar.gz");
   });
   test("android has one stable file; the table has none", () => {
     expect(targetUrl({ kind: "android" }, "0.2.98")).toBe(ANDROID_APK);

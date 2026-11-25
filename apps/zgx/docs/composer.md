@@ -219,23 +219,23 @@ layout. The rest height and context settlement use no fixed waiting window.
 Run from the repository root:
 
 ```sh
-cargo test --locked --manifest-path apps/zgx/Cargo.toml --bin zeron-zgx composer
-cargo test --locked --manifest-path apps/zgx/Cargo.toml --bin zeron-zgx zeron_v2
+cargo test --locked --manifest-path apps/zgx/Cargo.toml --bin naive-zgx composer
+cargo test --locked --manifest-path apps/zgx/Cargo.toml --bin naive-zgx naive_v2
 ```
 
 The tests cover mode boundaries, headers, metrics/IME, interruption, context
 revisions, cleanup, editor identity/focus/selection, max-height scrolling,
 dictation layout, theme/transparency and logical resize/zoom reflow. Route-motion
 checks compare against a second, reduced-motion shell. Set
-`ZERON_ZGX_COMPOSER_TRACE=1` and use `-- --nocapture` to retain per-frame traces.
+`NAIVE_ZGX_COMPOSER_TRACE=1` and use `-- --nocapture` to retain per-frame traces.
 
 For a local visual check, build the development binary (beta omits the fixture
 CLI) and run the isolated composer preview:
 
 ```sh
-cargo build --locked --manifest-path apps/zgx/Cargo.toml --bin zeron-zgx
-python3 apps/zgx/scripts/composer_frames.py --binary apps/zgx/target/debug/zeron-zgx --output .personal/composer/normal
-python3 apps/zgx/scripts/composer_frames.py --binary apps/zgx/target/debug/zeron-zgx --output .personal/composer/damage --damage-check
+cargo build --locked --manifest-path apps/zgx/Cargo.toml --bin naive-zgx
+python3 apps/zgx/scripts/composer_frames.py --binary apps/zgx/target/debug/naive-zgx --output .personal/composer/normal
+python3 apps/zgx/scripts/composer_frames.py --binary apps/zgx/target/debug/naive-zgx --output .personal/composer/damage --damage-check
 ```
 
 The Linux runner needs Python, Xvfb, xdotool and ffmpeg. It records real frames,

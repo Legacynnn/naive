@@ -1,5 +1,5 @@
 ---
-// A Zeron session with its panel open, recreated in HTML from the app
+// A Naive session with its panel open, recreated in HTML from the app
 // itself: every box, word and icon is placed where the app's layout tree
 // places it, in the app's own colours, and diffed against a native capture
 // (tools/recreate). The markup, masks and theme values are generated;
@@ -24,7 +24,7 @@ interface Props {
 const { theme = "dark", crop = [0, 0, 1320, 840], decorative = false, class: className } = Astro.props;
 const [x, y, w, h] = crop;
 const label =
-  "Zeron with a session open. The sidebar groups eight sessions under four projects, run by Claude Code, Codex and Grok; two are still working. In the open one, Claude Code explains and fixes a rate limiter bug, and the Changes panel beside it shows the diff of window.ts.";
+  "Naive with a session open. The sidebar groups eight sessions under four projects, run by Claude Code, Codex and Grok; two are still working. In the open one, Claude Code explains and fixes a rate limiter bug, and the Changes panel beside it shows the diff of window.ts.";
 ---
 
 <div class:list={["zw-fit", className]} style={`--zx:${x};--zy:${y};--zw:${w};--zh:${h}`}>

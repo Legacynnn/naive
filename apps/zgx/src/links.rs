@@ -1,18 +1,18 @@
-//! `zeron://` links the system hands the app, as Zeron.app opens them
+//! `naive://` links the system hands the app, as Naive.app opens them
 //! (crates/ui/src/lib.rs, state.rs `open_deep_link`), in the formats both
 //! apps share (crates/notify):
-//!   zeron://notification/<target>   a clicked banner (the engine posts them
-//!                                   with the app as `ZERON_APP`): a chat, or
+//!   naive://notification/<target>   a clicked banner (the engine posts them
+//!                                   with the app as `NAIVE_APP`): a chat, or
 //!                                   agent updates (Settings → Providers)
-//!   zeron://open/chat/<id>?workspace=<locator>
+//!   naive://open/chat/<id>?workspace=<locator>
 //!                                   a chat's link, opened only in the
 //!                                   workspace it came from
 //!
 //! What to open goes to the scripts as shared `app.link`,
 //! `{ seq, chat?, settings? }` (`seq` moving with each), which the shell's
 //! route follows (ui/screens/shell/route.luau). The beta registers for them
-//! (`sh.zeron.app`'s `zeron` scheme, src/main.rs); a launch with a link
-//! (`zeron <url>`) opens it too.
+//! (`sh.naive.app`'s `naive` scheme, src/main.rs); a launch with a link
+//! (`naive <url>`) opens it too.
 
 use std::cell::{Cell, RefCell};
 
@@ -28,14 +28,14 @@ pub enum Target {
 /// What `url` asks for: the target and, for a conversation link, the
 /// workspace it belongs to. None for anything else.
 pub fn parse(url: &str) -> Option<(Target, Option<String>)> {
-    if let Some(target) = zeron_notify::link_target(url) {
-        return Some(if target == zeron_notify::AGENT_UPDATES_TARGET {
+    if let Some(target) = naive_notify::link_target(url) {
+        return Some(if target == naive_notify::AGENT_UPDATES_TARGET {
             (Target::Settings("providers"), None)
         } else {
             (Target::Chat(target.to_owned()), None)
         });
     }
-    let link = zeron_notify::links::parse_conversation_link(url).ok()?;
+    let link = naive_notify::links::parse_conversation_link(url).ok()?;
     Some((Target::Chat(link.chat_id), Some(link.workspace)))
 }
 
@@ -55,7 +55,7 @@ pub fn install(host: &ScriptHost) {
 /// which workspace is open, and only if it's the link's.
 pub fn open(url: &str) {
     let Some((target, workspace)) = parse(url) else {
-        eprintln!("zeron-zgx: links: not a Zeron link: {url}");
+        eprintln!("naive-zgx: links: not a Naive link: {url}");
         return;
     };
     let Some(workspace) = workspace else {
@@ -65,29 +65,29 @@ pub fn open(url: &str) {
     crate::engine::get().spawn(async move {
         match crate::sessions::current_locator().await {
             Some(current) if current == workspace => tell(target),
-            Some(_) => eprintln!("zeron-zgx: links: this conversation link belongs to another workspace"),
-            None => eprintln!("zeron-zgx: links: the workspace isn't known yet; the link wasn't opened"),
+            Some(_) => eprintln!("naive-zgx: links: this conversation link belongs to another workspace"),
+            None => eprintln!("naive-zgx: links: the workspace isn't known yet; the link wasn't opened"),
         }
     });
 }
 
-/// Banner clicks, taken in this process. The engine posts Zeron's banners,
-/// but macOS hands a click to the app its bundle names (Zeron.app's
+/// Banner clicks, taken in this process. The engine posts Naive's banners,
+/// but macOS hands a click to the app its bundle names (Naive.app's
 /// interface, this process), never to the engine that posted it, so the
-/// engine's own route (`open -a … zeron://notification/…`) never runs. As
-/// Zeron.app's interface always has (crates/ui `notify::on_click`), the
-/// click is answered here: Zeron comes forward, on the banner's chat.
+/// engine's own route (`open -a … naive://notification/…`) never runs. As
+/// Naive.app's interface always has (crates/ui `notify::on_click`), the
+/// click is answered here: Naive comes forward, on the banner's chat.
 pub fn take_banner_clicks() {
-    zeron_notify::on_click(|target| {
+    naive_notify::on_click(|target| {
         activate();
         clicked(&target);
     });
 }
 
 /// A clicked banner's target (a chat, or agent updates), opened as its
-/// `zeron://notification/` link is.
+/// `naive://notification/` link is.
 fn clicked(target: &str) {
-    open(&zeron_notify::link(target));
+    open(&naive_notify::link(target));
 }
 
 /// This app to the front: a banner was clicked. (Main thread: the click
@@ -147,20 +147,20 @@ mod tests {
     fn a_clicked_banner_opens_its_chat() {
         clicked("chat-42");
         assert_eq!(last(), (Some("chat-42".into()), None));
-        clicked(zeron_notify::AGENT_UPDATES_TARGET);
+        clicked(naive_notify::AGENT_UPDATES_TARGET);
         assert_eq!(last(), (None, Some("providers".into())));
     }
 
     #[test]
-    fn banners_and_chat_links_open_where_zeron_s_do() {
-        assert_eq!(parse(&zeron_notify::link("chat-1")), Some((Target::Chat("chat-1".into()), None)));
+    fn banners_and_chat_links_open_where_naive_s_do() {
+        assert_eq!(parse(&naive_notify::link("chat-1")), Some((Target::Chat("chat-1".into()), None)));
         assert_eq!(
-            parse(&zeron_notify::link(zeron_notify::AGENT_UPDATES_TARGET)),
+            parse(&naive_notify::link(naive_notify::AGENT_UPDATES_TARGET)),
             Some((Target::Settings("providers"), None))
         );
-        let link = zeron_notify::links::conversation_link("c 1", "abc");
+        let link = naive_notify::links::conversation_link("c 1", "abc");
         assert_eq!(parse(&link), Some((Target::Chat("c 1".into()), Some("abc".into()))));
         assert_eq!(parse("https://example.com"), None);
-        assert_eq!(parse("zeron://open/chat/id"), None);
+        assert_eq!(parse("naive://open/chat/id"), None);
     }
 }

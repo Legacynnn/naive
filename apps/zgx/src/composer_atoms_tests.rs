@@ -333,7 +333,7 @@ fn composer_inline_chips_drag_from_cargo_and_reorder_inside_composer() {
         other => panic!("expected calls string, got {other:?}"),
     };
     assert!(
-        calls.contains("send:s1:[Screenshot 1.10.14 PM.png](zeron-attachment:1) hello world"),
+        calls.contains("send:s1:[Screenshot 1.10.14 PM.png](naive-attachment:1) hello world"),
         "moved chip should serialize at its new position, got calls={calls:?}"
     );
 }
@@ -466,7 +466,7 @@ fn composer_inline_chip_icon_well_and_drag_preview_position() {
 fn mention_launcher_luau_suite_passes() {
     let ui = ui_dir();
     let filters = [
-        "a file picked goes as its mention, a chat as Zeron's chat link",
+        "a file picked goes as its mention, a chat as Naive's chat link",
         "what's attached, picked, goes as its mention by name",
         "round trip: an attachment picked in the draft goes as its mention",
     ];
@@ -549,7 +549,7 @@ fn lightbox_luau_suite_passes() {
         "zooming a picture:",
         "a click on the picture doesn't close it",
         "a picture smaller than the window shows at its own size",
-        "with motion reduced (Zeron's own setting), it opens and closes as a short crossfade",
+        "with motion reduced (Naive's own setting), it opens and closes as a short crossfade",
         "with motion as it is, it grows out of the thumbnail",
         "a picture is never stretched or squeezed as it grows from its thumbnail",
         "zooming never leaves a frame without the picture",
@@ -709,12 +709,12 @@ fn typing_with_inline_chips_in_a_long_draft_costs_what_a_short_one_does() {
 }
 
 #[test]
-fn zeron_v2_composer_has_mention_tabs_and_inline_chips() {
+fn naive_v2_composer_has_mention_tabs_and_inline_chips() {
     let root = std::env::temp_dir().join(format!("zgx-composer-v2-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let t = root.join("templates");
-    crate::plugins::live::sync_zeron(&ui_dir(), &t).unwrap();
-    crate::plugins::live::compose(&t, "zeron-v2", &Default::default(), false).unwrap();
+    crate::plugins::live::sync_naive(&ui_dir(), &t).unwrap();
+    crate::plugins::live::compose(&t, "naive-v2", &Default::default(), false).unwrap();
     let live_dir = t.join(crate::plugins::live::LIVE);
     for entry in std::fs::read_dir(ui_dir()).unwrap().flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -726,7 +726,7 @@ fn zeron_v2_composer_has_mention_tabs_and_inline_chips() {
     let mut app = TestApp::new(|runtime| ScriptHost::new(runtime, live_dir.join("chat_fixture.luau")));
     app.ui.scene.borrow_mut().resize(1200., 800.);
     app.frames(25);
-    assert!(app.error().is_none(), "zeron-v2 chat_fixture errored: {:?}", app.error());
+    assert!(app.error().is_none(), "naive-v2 chat_fixture errored: {:?}", app.error());
 
     // Attach an image so Attachments section has an item alongside Files / Chats.
     run_cmd(&app, "attach_odd");
@@ -749,7 +749,7 @@ fn zeron_v2_composer_has_mention_tabs_and_inline_chips() {
     }
     assert!(
         texts.iter().any(|t| t == "All") && texts.iter().any(|t| t == "Files") && texts.iter().any(|t| t == "Attachments"),
-        "zeron-v2 @ launcher must show section tabs (All / Files / Attachments), saw texts={texts:?}"
+        "naive-v2 @ launcher must show section tabs (All / Files / Attachments), saw texts={texts:?}"
     );
 
     // 2. Filter to the attached screenshot and press Enter: creates an inline chip atom.
@@ -763,7 +763,7 @@ fn zeron_v2_composer_has_mention_tabs_and_inline_chips() {
     {
         let editor = app.ui.editor_within(field).expect("editor");
         let atoms = editor.atoms();
-        assert_eq!(atoms.len(), 1, "zeron-v2 composer must insert 1 inline chip atom");
+        assert_eq!(atoms.len(), 1, "naive-v2 composer must insert 1 inline chip atom");
         let text = editor.editor.borrow().text().into_owned();
         assert_eq!(&text[atoms[0].range.clone()], "Screenshot 1.10.14 PM.png");
     }
@@ -776,23 +776,23 @@ fn zeron_v2_composer_has_mention_tabs_and_inline_chips() {
         other => panic!("expected calls string, got {other:?}"),
     };
     assert!(
-        calls.contains("send:s1:[Screenshot 1.10.14 PM.png](zeron-attachment:1)"),
-        "zeron-v2 send must serialize inline attachment chip, got calls={calls:?}"
+        calls.contains("send:s1:[Screenshot 1.10.14 PM.png](naive-attachment:1)"),
+        "naive-v2 send must serialize inline attachment chip, got calls={calls:?}"
     );
 
-    // 4. Drag/drop a file onto zeron-v2's composer: attaches to cargo AND inserts inline chip.
+    // 4. Drag/drop a file onto naive-v2's composer: attaches to cargo AND inserts inline chip.
     let composer = app.bounds("#chat-composer");
     app.ui.dispatch(InputEvent::FilesDrop {
         x: composer.x + composer.width * 0.5,
         y: composer.y + composer.height * 0.5,
-        paths: vec![PathBuf::from("/tmp/zeron-drop/readme.md")].into(),
+        paths: vec![PathBuf::from("/tmp/naive-drop/readme.md")].into(),
     });
     app.frames(15);
     {
         let editor = app.ui.editor_within(field).expect("editor");
         let atoms = editor.atoms();
         let text = editor.editor.borrow().text().into_owned();
-        assert_eq!(atoms.len(), 1, "zeron-v2 file drop must insert 1 inline chip, text={text:?}");
+        assert_eq!(atoms.len(), 1, "naive-v2 file drop must insert 1 inline chip, text={text:?}");
         assert_eq!(&text[atoms[0].range.clone()], "readme.md");
     }
 
@@ -820,7 +820,7 @@ fn dragging_files_to_attach_inserts_inline_chips() {
     app.ui.dispatch(InputEvent::FilesDrop {
         x: tx,
         y: ty,
-        paths: vec![PathBuf::from("/tmp/zeron-drop/Screenshot 2026-04-07 at 1.10.14 PM.png")].into(),
+        paths: vec![PathBuf::from("/tmp/naive-drop/Screenshot 2026-04-07 at 1.10.14 PM.png")].into(),
     });
     app.frames(15);
     {
@@ -840,7 +840,7 @@ fn dragging_files_to_attach_inserts_inline_chips() {
     app.ui.dispatch(InputEvent::FilesDrop {
         x: cx,
         y: cy,
-        paths: vec![PathBuf::from("/tmp/zeron-drop/notes.md")].into(),
+        paths: vec![PathBuf::from("/tmp/naive-drop/notes.md")].into(),
     });
     app.frames(15);
     {
@@ -903,7 +903,7 @@ fn dragging_files_to_attach_inserts_inline_chips() {
         other => panic!("expected calls string, got {other:?}"),
     };
     assert!(
-        calls.contains("send:s6:[lib.rs](zeron-attachment:3)"),
+        calls.contains("send:s6:[lib.rs](naive-attachment:3)"),
         "send should serialize auto-inserted dropped file chip, got calls={calls:?}"
     );
 }

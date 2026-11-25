@@ -5,7 +5,7 @@ use std::{
     future::Future,
     time::{Duration, Instant},
 };
-use zeron_proto::Model;
+use naive_proto::Model;
 
 #[derive(Default)]
 pub(crate) struct Catalog {

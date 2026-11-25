@@ -160,7 +160,7 @@ function M.Bar(props: BarProps): Node
 		w_full = true,
 		h = h,
 		rounded = "$radius.full",
-		bg = "$zeron.switch.track",
+		bg = "$naive.switch.track",
 		table.unpack(segs),
 	}
 end
@@ -321,11 +321,11 @@ function M.glyph(name: Icon.Name | () -> Icon.Name, tone: (() -> string?)?): Nod
 		rounded = "$radius.md",
 		bg = function(): string
 			local t = if tone then tone() else nil
-			return if t then `$zeron.tone.{t}.wash` else "$zeron.secondary.bg"
+			return if t then `$naive.tone.{t}.wash` else "$naive.secondary.bg"
 		end,
 		color = function(): string
 			local t = if tone then tone() else nil
-			return if t then `$zeron.tone.{t}.ink` else "$text.secondary"
+			return if t then `$naive.tone.{t}.ink` else "$text.secondary"
 		end,
 		aria_hidden = true,
 		Icon { name = name, size = 16 },
@@ -367,7 +367,7 @@ function M.Flag(props: { worktree: control.Live<Worktree> }): Node
 		end, ui.row {
 			gap = "$space.1",
 			items = "center",
-			ui.div { w = 6, h = 6, rounded = "$radius.full", bg = "$zeron.tone.success.ink", aria_hidden = true },
+			ui.div { w = 6, h = 6, rounded = "$radius.full", bg = "$naive.tone.success.ink", aria_hidden = true },
 			ui.text { locale.t("ds.storage.active"), text_size = "$font.size.sm", line_height = "$font.line.sm", color = "$text.tertiary" },
 		}),
 		ui.presence(function(): string

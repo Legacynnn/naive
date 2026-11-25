@@ -1,13 +1,13 @@
 -- The palettes a window can wear, and the one mapping from a palette to
 -- zgx's tokens (`tokens(p)`): every theme is a few colours it's grown from,
--- in the window's glass as Zeron's are: the window and its frosted tint
+-- in the window's glass as Naive's are: the window and its frosted tint
 -- from its background, menus and the composer from its chrome and card,
 -- every hairline and wash from its text's own ink, its accent and tones,
 -- its code's and Markdown's colours, diffs, git, statuses, and a visual's
 -- chart colours from its terminal's ANSI ones, and the terminal's own
 -- colours (`terminal.*`: its text, cursor, selection and sixteen ANSI
 -- colours, which zgx gives the terminal over the user's Ghostty ones).
--- Zeron's own (zeron-dark, zeron-light) are the design system's themes
+-- Naive's own (naive-dark, naive-light) are the design system's themes
 -- (themes/*.json) and change nothing but the terminal's.
 --
 -- Each palette stays legible: an ink that reads too faint on the palette's
@@ -16,16 +16,16 @@
 -- colours at 4.5:1, 3:1 for the two that are the background's own shade),
 -- and `tokens` says what it moved.
 --
--- The themes themselves are the host's (src/themes.rs): Zeron's built in,
+-- The themes themselves are the host's (src/themes.rs): Naive's built in,
 -- each template's own and your imported ones, and the one chosen for each
 -- scheme. A scheme with none chosen wears the running template's own
--- (its theme.luau), else Zeron's.
+-- (its theme.luau), else Naive's.
 --
 --   palettes.library()       the host's list ({ state, list, entries, chosen })
 --   palettes.find(id)        one theme's palette by its id (nil if none)
 --   palettes.slots(own)      what each scheme wears now: the theme chosen for
 --                            it, else `own`'s (a template's theme.luau:
---                            `{ name?, dark?, light? }`), else nil (Zeron's)
+--                            `{ name?, dark?, light? }`), else nil (Naive's)
 --   palettes.wear(slots)     those palettes worn as the window's two themes
 --   palettes.scheme          their names ({ dark, light }), which never change
 --   palettes.tokens(p)       the token overrides that make a window wear `p`,
@@ -48,7 +48,7 @@ export type Palette = {
 	warning: string,
 	success: string,
 	-- comment, keyword, string, number, type, function, property,
-	-- variable, punctuation, tag, attribute, invalid (Zeron's order).
+	-- variable, punctuation, tag, attribute, invalid (Naive's order).
 	syntax: { string },
 	-- The theme it's listed under (src/themes.rs).
 	entry: string?,
@@ -63,7 +63,7 @@ export type Palette = {
 
 -- A theme's palettes, one per scheme it has (a template's theme.luau).
 export type Family = { name: string?, dark: Palette?, light: Palette? }
--- What each scheme wears: a palette, or nil for Zeron's.
+-- What each scheme wears: a palette, or nil for Naive's.
 export type Slots = { dark: Palette?, light: Palette? }
 
 -- An ink `tokens` moved to keep it legible: its role, the source's colour,
@@ -71,7 +71,7 @@ export type Slots = { dark: Palette?, light: Palette? }
 export type Fix = { role: string, from: string, to: string, min: number }
 
 -- The design system's own: nothing to override.
-local OWN = { ["zeron-dark"] = true, ["zeron-light"] = true }
+local OWN = { ["naive-dark"] = true, ["naive-light"] = true }
 
 -- Every theme, as the host publishes them (src/themes.rs): `{ state,
 -- list = { Palette }, entries = { { id, name, source, variants, … } },
@@ -208,7 +208,7 @@ local SYNTAX = {
 -- Code's quieter roles: held to 3:1, as faint text is.
 local QUIET = { [1] = true, [9] = true }
 
--- An agent's status, a tone a state (`zeron.status.*` and its dots).
+-- An agent's status, a tone a state (`naive.status.*` and its dots).
 local STATUS = {
 	connecting = "info",
 	waiting = "faint",
@@ -305,8 +305,8 @@ function M.tokens(p: Palette): ({ [string]: any }?, { Fix })
 	local tint = a(bg, pick(0.8, 0.72))
 	local out: { [string]: any } = {
 		-- The window: opaque where it has no glass, its frosted tint where
-		-- it does (Zeron's own strength), and its surfaces over that glass.
-		["zeron.window"] = bg,
+		-- it does (Naive's own strength), and its surfaces over that glass.
+		["naive.window"] = bg,
 		background = tint,
 		["glass.tint"] = tint,
 		["popover.bg"] = pick(M.mix(raised, card, 0.25), card),
@@ -325,17 +325,17 @@ function M.tokens(p: Palette): ({ [string]: any }?, { Fix })
 		hover = a(text, 0.05),
 		pressed = a(text, pick(0.09, 0.08)),
 		["selection.item"] = a(text, pick(0.1, 0.07)),
-		["zeron.edge"] = a(text, pick(0.05, 0.18)),
-		["zeron.well.edge"] = a(text, pick(0.09, 0.07)),
+		["naive.edge"] = a(text, pick(0.05, 0.18)),
+		["naive.well.edge"] = a(text, pick(0.09, 0.07)),
 		-- The accent, and what follows it (written against `accent`, so an
 		-- accent chosen in Settings carries them: the focus ring, a
 		-- switch's fill, a search's wash, the caret, the editor's selection
-		-- are Zeron's own, written so already).
+		-- are Naive's own, written so already).
 		accent = fill.accent,
 		["accent.hover"] = M.mix(fill.accent, pick(WHITE, BLACK), pick(0.12, 0.1)),
 		["accent.text"] = M.on(fill.accent),
-		["zeron.accent.active"] = M.mix(fill.accent, BLACK, 0.15),
-		["zeron.accents.default"] = fill.accent,
+		["naive.accent.active"] = M.mix(fill.accent, BLACK, 0.15),
+		["naive.accents.default"] = fill.accent,
 		selection = pick("alpha({accent}, 0.35)", "alpha({accent}, 0.24)"),
 		["focus.ring"] = "alpha({accent}, 0.6)",
 		danger = fill.danger,
@@ -344,113 +344,113 @@ function M.tokens(p: Palette): ({ [string]: any }?, { Fix })
 		info = fill.info,
 		-- Chosen things: a card's raised chip, a sidebar row's wash, a
 		-- segmented control's thumb, a menu's row.
-		["zeron.selected.bg"] = pick(a(text, 0.11), a(card, 0.92)),
-		["zeron.selected.ring"] = a(text, pick(0.08, 0.2)),
-		["zeron.selected.flat.bg"] = a(text, pick(0.14, 0.07)),
-		["zeron.segmented.thumb"] = pick(a(text, 0.14), a(card, 0.55)),
-		["zeron.menu.tint"] = a(shell, pick(0.65, 0.45)),
-		["zeron.menu.solid"] = menu,
-		["zeron.menu.selected"] = a(text, pick(0.09, 0.06)),
+		["naive.selected.bg"] = pick(a(text, 0.11), a(card, 0.92)),
+		["naive.selected.ring"] = a(text, pick(0.08, 0.2)),
+		["naive.selected.flat.bg"] = a(text, pick(0.14, 0.07)),
+		["naive.segmented.thumb"] = pick(a(text, 0.14), a(card, 0.55)),
+		["naive.menu.tint"] = a(shell, pick(0.65, 0.45)),
+		["naive.menu.solid"] = menu,
+		["naive.menu.selected"] = a(text, pick(0.09, 0.06)),
 		-- The composer: the chrome's glass, opaque the card's.
-		["zeron.composer.tint"] = pick(a(shell, 0.35), a(card, 0.55)),
-		["zeron.composer.solid"] = pick(M.mix(card, raised, 0.18), card),
-		["zeron.composer.edge"] = a(text, pick(0.09, 0.12)),
-		-- The frosted surfaces, each by Zeron's own recipe from this palette
-		-- rather than Zeron's greys (zeron-dark/light.json have them written
+		["naive.composer.tint"] = pick(a(shell, 0.35), a(card, 0.55)),
+		["naive.composer.solid"] = pick(M.mix(card, raised, 0.18), card),
+		["naive.composer.edge"] = a(text, pick(0.09, 0.12)),
+		-- The frosted surfaces, each by Naive's own recipe from this palette
+		-- rather than Naive's greys (naive-dark/light.json have them written
 		-- out): the island the overlay's glass, the panel its background at
 		-- 0.4, a field dark a settings select's wash (light the input's), the
 		-- sidebar, tabs and cards a wash of the ink.
-		["zeron.island.tint"] = a(menu, pick(0.75, 0.45)),
-		["zeron.panel.tint"] = a(bg, 0.4),
-		["zeron.field.glass"] = pick(a(text, 0.06), a(card, 0.35)),
-		["zeron.field.glass_hover"] = pick(a(text, 0.1), a(card, 0.8)),
-		["zeron.sidebar.tint"] = a(text, 0.05),
-		["zeron.tab.selected"] = a(text, 0.1),
-		["zeron.tab.hover"] = a(text, 0.06),
-		["zeron.settings.tint"] = a(text, 0.045),
-		["zeron.settings.note"] = a(text, 0.035),
-		["zeron.settings.comment"] = a(text, 0.05),
+		["naive.island.tint"] = a(menu, pick(0.75, 0.45)),
+		["naive.panel.tint"] = a(bg, 0.4),
+		["naive.field.glass"] = pick(a(text, 0.06), a(card, 0.35)),
+		["naive.field.glass_hover"] = pick(a(text, 0.1), a(card, 0.8)),
+		["naive.sidebar.tint"] = a(text, 0.05),
+		["naive.tab.selected"] = a(text, 0.1),
+		["naive.tab.hover"] = a(text, 0.06),
+		["naive.settings.tint"] = a(text, 0.045),
+		["naive.settings.note"] = a(text, 0.035),
+		["naive.settings.comment"] = a(text, 0.05),
 		-- The title bar's controls and Windows' caption buttons: their glyph
 		-- the secondary ink, on their own firmer wash (0.7 of it pressed, for
 		-- a caption button).
-		["zeron.bar.ink"] = muted,
-		["zeron.bar.hover"] = a(text, pick(0.11, 0.06)),
-		["zeron.bar.pressed"] = a(text, pick(0.16, 0.1)),
+		["naive.bar.ink"] = muted,
+		["naive.bar.hover"] = a(text, pick(0.11, 0.06)),
+		["naive.bar.pressed"] = a(text, pick(0.16, 0.1)),
 		["caption.pressed"] = a(text, pick(0.08, 0.04)),
 		-- Buttons: the way on in the text's ink, beside it a wash of it,
 		-- destructive in the danger's fill.
-		["zeron.primary.bg"] = text,
-		["zeron.primary.hover"] = M.mix(text, pick(WHITE, BLACK), 0.15),
-		["zeron.primary.active"] = M.mix(text, pick(BLACK, WHITE), 0.12),
-		["zeron.primary.text"] = bg,
-		["zeron.secondary.bg"] = a(text, pick(0.08, 0.05)),
-		["zeron.secondary.hover"] = a(text, pick(0.12, 0.08)),
-		["zeron.secondary.active"] = a(text, pick(0.16, 0.11)),
-		["zeron.destructive.bg"] = fill.danger,
-		["zeron.destructive.hover"] = M.mix(fill.danger, pick(WHITE, BLACK), 0.1),
-		["zeron.destructive.active"] = M.mix(fill.danger, BLACK, 0.15),
-		["zeron.destructive.text"] = M.on(fill.danger),
+		["naive.primary.bg"] = text,
+		["naive.primary.hover"] = M.mix(text, pick(WHITE, BLACK), 0.15),
+		["naive.primary.active"] = M.mix(text, pick(BLACK, WHITE), 0.12),
+		["naive.primary.text"] = bg,
+		["naive.secondary.bg"] = a(text, pick(0.08, 0.05)),
+		["naive.secondary.hover"] = a(text, pick(0.12, 0.08)),
+		["naive.secondary.active"] = a(text, pick(0.16, 0.11)),
+		["naive.destructive.bg"] = fill.danger,
+		["naive.destructive.hover"] = M.mix(fill.danger, pick(WHITE, BLACK), 0.1),
+		["naive.destructive.active"] = M.mix(fill.danger, BLACK, 0.15),
+		["naive.destructive.text"] = M.on(fill.danger),
 		-- Fields and switches.
-		["zeron.switch.track"] = a(text, pick(0.14, 0.09)),
-		["zeron.field.edge"] = a(text, pick(0.08, 0.12)),
-		["zeron.field.edge_hover"] = a(text, pick(0.15, 0.22)),
-		["zeron.check.edge"] = a(text, 0.22),
-		["zeron.lightbox.scrim"] = pick(a(M.mix(shell, BLACK, 0.4), 0.88), a(bg, 0.92)),
+		["naive.switch.track"] = a(text, pick(0.14, 0.09)),
+		["naive.field.edge"] = a(text, pick(0.08, 0.12)),
+		["naive.field.edge_hover"] = a(text, pick(0.15, 0.22)),
+		["naive.check.edge"] = a(text, 0.22),
+		["naive.lightbox.scrim"] = pick(a(M.mix(shell, BLACK, 0.4), 0.88), a(bg, 0.92)),
 		-- Diffs, git, pull requests, reviews and checks: each tone's ink.
-		["zeron.diff.added"] = ink.success,
-		["zeron.diff.removed"] = ink.danger,
-		["zeron.git.modified"] = ink.warning,
-		["zeron.git.added"] = ink.success,
-		["zeron.git.untracked"] = ink.success,
-		["zeron.git.renamed"] = ink.accent,
-		["zeron.git.deleted"] = ink.danger,
-		["zeron.git.conflict"] = ink.danger,
-		["zeron.pr.open"] = ink.success,
-		["zeron.pr.merged"] = ink.accent,
-		["zeron.pr.closed"] = ink.danger,
-		["zeron.pr.draft"] = faint,
-		["zeron.review.approved"] = ink.success,
-		["zeron.review.changes"] = ink.danger,
-		["zeron.review.pending"] = ink.warning,
-		["zeron.checks.passing"] = ink.success,
-		["zeron.checks.failing"] = ink.danger,
-		["zeron.checks.running"] = ink.warning,
+		["naive.diff.added"] = ink.success,
+		["naive.diff.removed"] = ink.danger,
+		["naive.git.modified"] = ink.warning,
+		["naive.git.added"] = ink.success,
+		["naive.git.untracked"] = ink.success,
+		["naive.git.renamed"] = ink.accent,
+		["naive.git.deleted"] = ink.danger,
+		["naive.git.conflict"] = ink.danger,
+		["naive.pr.open"] = ink.success,
+		["naive.pr.merged"] = ink.accent,
+		["naive.pr.closed"] = ink.danger,
+		["naive.pr.draft"] = faint,
+		["naive.review.approved"] = ink.success,
+		["naive.review.changes"] = ink.danger,
+		["naive.review.pending"] = ink.warning,
+		["naive.checks.passing"] = ink.success,
+		["naive.checks.failing"] = ink.danger,
+		["naive.checks.running"] = ink.warning,
 		-- Code: its body, and Markdown's quieter parts in the text's steps.
-		["zeron.syntax.text"] = text,
-		["zeron.syntax.quote"] = muted,
-		["zeron.syntax.meta"] = muted,
-		["zeron.syntax.inserted"] = ink.success,
-		["zeron.syntax.deleted"] = ink.danger,
+		["naive.syntax.text"] = text,
+		["naive.syntax.quote"] = muted,
+		["naive.syntax.meta"] = muted,
+		["naive.syntax.inserted"] = ink.success,
+		["naive.syntax.deleted"] = ink.danger,
 	}
 	if not dark then
 		-- Light glass: fields and checks the card's white, not a darkening.
-		out["zeron.field.bg"] = a(card, 0.6)
-		out["zeron.field.hover"] = a(card, 0.8)
-		out["zeron.check.bg"] = a(card, 0.8)
+		out["naive.field.bg"] = a(card, 0.6)
+		out["naive.field.hover"] = a(card, 0.8)
+		out["naive.check.bg"] = a(card, 0.8)
 	end
 	for tone, c in fill do
-		out[`zeron.tone.{tone}.ink`] = ink[tone]
-		out[`zeron.tone.{tone}.wash`] = a(c, pick(0.14, 0.1))
-		out[`zeron.tone.{tone}.edge`] = a(c, pick(0.3, 0.26))
+		out[`naive.tone.{tone}.ink`] = ink[tone]
+		out[`naive.tone.{tone}.wash`] = a(c, pick(0.14, 0.1))
+		out[`naive.tone.{tone}.edge`] = a(c, pick(0.3, 0.26))
 	end
 	for state, tone in STATUS do
-		out[`zeron.status.{state}`] = ink[tone]
-		out[`zeron.status.dot.{state}`] = ink[tone]
+		out[`naive.status.{state}`] = ink[tone]
+		out[`naive.status.dot.{state}`] = ink[tone]
 	end
 	for i, names in SYNTAX do
 		local color = p.syntax[i]
 		if color and #names > 0 then
 			local min = if QUIET[i] then 3 else 4.5
-			local legible = ensure(`zeron.syntax.{names[1]}`, color, code, min)
+			local legible = ensure(`naive.syntax.{names[1]}`, color, code, min)
 			for _, name in names do
-				out[`zeron.syntax.{name}`] = legible
+				out[`naive.syntax.{name}`] = legible
 			end
 		end
 	end
 	for name, i in SERIES do
 		local color = ansi[if dark then i + 8 else i]
 		if color then
-			out[`zeron.visual.series.{name}`] = ensure(`zeron.visual.series.{name}`, color, { bg }, 3)
+			out[`naive.visual.series.{name}`] = ensure(`naive.visual.series.{name}`, color, { bg }, 3)
 		end
 	end
 	terminal(out, p, dark, surfaces, card, text, fill.accent, ensure)
@@ -458,13 +458,13 @@ function M.tokens(p: Palette): ({ [string]: any }?, { Fix })
 end
 
 -- The names of the window's two themes: one for each scheme, each over
--- Zeron's own of its scheme (its glass, type and shape kept), worn whatever
+-- Naive's own of its scheme (its glass, type and shape kept), worn whatever
 -- palette is in them, so a change of theme restyles in place.
 M.scheme = { dark = "theme-dark", light = "theme-light" }
 
 -- What each scheme wears now: the theme chosen for it, if it's there and of
 -- its scheme; else `own`'s palette for it (the running template's theme);
--- else nil, Zeron's. (Read tracked: it follows the host's list.)
+-- else nil, Naive's. (Read tracked: it follows the host's list.)
 function M.slots(own: Family?): Slots
 	local chosen = M.library():get().chosen or {}
 	local out: { [string]: Palette? } = {}
@@ -497,21 +497,21 @@ end
 -- What each of the window's themes was last registered with.
 local worn: { [string]: string } = {}
 
--- `slots` worn (nil: Zeron's in both): each scheme's theme registered again
+-- `slots` worn (nil: Naive's in both): each scheme's theme registered again
 -- where its palette changed. Their names (`palettes.scheme`). A scheme
--- wearing Zeron's own takes its terminal's colours from Zeron's palette
+-- wearing Naive's own takes its terminal's colours from Naive's palette
 -- (the host's list) once that's there; with no slots (a plugin, lent the
 -- design system) nothing is looked up.
 function M.wear(slots: Slots?): { dark: string, light: string }
 	for _, kind: any in { "dark", "light" } do
 		local p = if slots then (slots :: any)[kind] :: Palette? else nil
 		if slots and p == nil then
-			p = M.find(`zeron-{kind}`)
+			p = M.find(`naive-{kind}`)
 		end
 		local said = signature(p)
 		if worn[kind] ~= said then
 			worn[kind] = said
-			-- (No tokens at all for Zeron's: an empty table isn't an object.)
+			-- (No tokens at all for Naive's: an empty table isn't an object.)
 			local tokens = nil
 			if p then
 				local own = table.clone(p)
@@ -521,7 +521,7 @@ function M.wear(slots: Slots?): { dark: string, light: string }
 			ui.theme.register {
 				name = (M.scheme :: any)[kind],
 				type = kind,
-				extends = `zeron-{kind}`,
+				extends = `naive-{kind}`,
 				tokens = tokens,
 			}
 		end

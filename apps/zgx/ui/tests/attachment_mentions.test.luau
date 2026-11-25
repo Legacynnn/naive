@@ -1,7 +1,7 @@
 -- What a prompt's words say of what it carries (ds/attachment_mentions, the
 -- proto's attachment_mentions.rs): a picture by its number in the draft,
--- `[Image N](zeron-image:N)`, a file by its name and number,
--- `[name](zeron-attachment:N)`; the engine gives an agent the plain label.
+-- `[Image N](naive-image:N)`, a file by its name and number,
+-- `[name](naive-attachment:N)`; the engine gives an agent the plain label.
 -- The words in words alone first, then on the chat page (ui/chat_fixture):
 -- an `@` mention goes as its link, a picture up as `Image N`, a mention of
 -- what's no longer attached as its plain label; the sent message, and the
@@ -35,14 +35,14 @@ end)
 
 test("words: only links exactly as written count: not escaped text, code, a picture's own, a bad number or label", function()
 	for _, text in {
-		"\\[Image 1](zeron-image:1)",
-		"`[Image 1](zeron-image:1)`",
-		"![Image 1](zeron-image:1)",
-		"[Image 2](zeron-image:1)",
-		"[Image 0](zeron-image:0)",
-		"[a]b](zeron-attachment:1)",
-		"[x](zeron-attachment:01)",
-		"[x](zeron-attachment:1x)",
+		"\\[Image 1](naive-image:1)",
+		"`[Image 1](naive-image:1)`",
+		"![Image 1](naive-image:1)",
+		"[Image 2](naive-image:1)",
+		"[Image 0](naive-image:0)",
+		"[a]b](naive-attachment:1)",
+		"[x](naive-attachment:01)",
+		"[x](naive-attachment:1x)",
 	} do
 		expect(`{text}: {#AM.mentions(text)}`).to_be(`{text}: 0`)
 	end
@@ -122,12 +122,12 @@ test("a picture with a screenshot's name, mentioned, goes with its cleaned scree
 	settle(app)
 	expect(app:wait('~"what is"', { timeout_ms = 2000 })).to_be(true)
 	local calls = app:state("calls")
-	expect(calls).to_contain("send:s2:what is [Screenshot 1.10.14 PM.png](zeron-attachment:1)")
+	expect(calls).to_contain("send:s2:what is [Screenshot 1.10.14 PM.png](naive-attachment:1)")
 	expect(calls).to_contain("attname:Screenshot 1.10.14 PM.png")
 	-- The sent message: the chip, its cleaned label.
 	local tree = app:tree("#transcript")
 	expect(tree).to_contain("what is Screenshot 1.10.14 PM.png")
-	expect(tree).never.to_contain("zeron-attachment")
+	expect(tree).never.to_contain("naive-attachment")
 end)
 
 test("files with odd names go as their escaped links, each by its own number, and show as their chips", function()
@@ -142,7 +142,7 @@ test("files with odd names go as their escaped links, each by its own number, an
 	local calls = app:state("calls")
 	expect(calls).to_contain(AM.link(2, "notes (draft) [v2] \u{1F4DD}.md"))
 	expect(calls).to_contain(AM.link(3, "see (attachment: other).txt"))
-	expect(app:tree("#transcript")).never.to_contain("zeron-attachment")
+	expect(app:tree("#transcript")).never.to_contain("naive-attachment")
 end)
 
 test("two files of one name are two numbers, each its own", function()
@@ -165,7 +165,7 @@ test("removing an attachment deletes inline chips mentioning it; one typed by ha
 	app:command("attach_odd")
 	settle(app)
 	mention(app, "Screenshot")
-	app:type(BOX, "and [mine](zeron-attachment:9)")
+	app:type(BOX, "and [mine](naive-attachment:9)")
 	settle(app)
 	app:hover('role:button "Screenshot 1.10.14 PM.png"')
 	app:frames(10)
@@ -181,8 +181,8 @@ test("removing an attachment deletes inline chips mentioning it; one typed by ha
 	-- link typed by hand is still demoted to its plain words.
 	expect(said).never.to_contain("Screenshot 1.10.14 PM.png")
 	expect(said).to_contain("and mine")
-	expect(said).never.to_contain("zeron-image")
-	expect(said).never.to_contain("zeron-attachment")
+	expect(said).never.to_contain("naive-image")
+	expect(said).never.to_contain("naive-attachment")
 end)
 
 test("an Appshot mentioned goes by its window title with image extension", function()
@@ -196,7 +196,7 @@ test("an Appshot mentioned goes by its window title with image extension", funct
 	settle(app)
 	expect(app:wait('~"look"', { timeout_ms = 2000 })).to_be(true)
 	local calls = app:state("calls")
-	expect(calls).to_contain("send:s2:look [Release notes.png](zeron-attachment:1)")
+	expect(calls).to_contain("send:s2:look [Release notes.png](naive-attachment:1)")
 	expect(calls).to_contain("attname:Release notes.png")
 end)
 
@@ -206,14 +206,14 @@ test("after a relaunch, read back with its uploads' names, the message shows its
 	settle(app)
 	local tree = app:tree("#mu1")
 	expect(tree).to_contain("Look at Image 1 and notes [v2].md")
-	expect(tree).never.to_contain("zeron-")
+	expect(tree).never.to_contain("naive-")
 end)
 
 -- A file tab and a saved side chat's tab dragged from the panel into the
 -- composer (ui/panel_context_fixture): each is what the draft carries, the
 -- file numbered as anything attached; `@` offers both under Attachments,
 -- and each goes as its mention: the file's link by its number, the chat's
--- Zeron chat mention. The sent message shows both as chips.
+-- Naive chat mention. The sent message shows both as chips.
 test("dragged in from the panel, a file and a side chat are mentioned as what's attached", function()
 	local app = mount("panel_context_fixture.luau")
 	app:resize(1400, 900)
@@ -252,7 +252,7 @@ test("dragged in from the panel, a file and a side chat are mentioned as what's 
 	local sent = app:state("fixture_sent")
 	local text = sent[#sent].text
 	expect(text).to_contain(AM.link(1, "notes.md"))
-	expect(text).to_contain("[Look into the flake](zeron-chat:s1)")
+	expect(text).to_contain("[Look into the flake](naive-chat:s1)")
 	-- What an agent reads: the file's name.
 	expect(AM.prompt(text)).to_contain("see notes.md")
 	-- The sent message: both chips, no link left as words.
@@ -269,6 +269,6 @@ test("dragged in from the panel, a file and a side chat are mentioned as what's 
 	page:frames(30)
 	local tree = page:tree("#dragged1")
 	expect(tree).to_contain("see notes.md Look into the flake")
-	expect(tree).never.to_contain("zeron-")
+	expect(tree).never.to_contain("naive-")
 	expect(page:error()).to_be_nil()
 end)

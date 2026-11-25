@@ -1,6 +1,6 @@
 -- A plugin's settings (screens/plugins/settings): a page of its own in
--- Settings, under "Plugins" ahead of the "Zeron" group, while it's on;
--- drawn by Zeron from what it declares; what's set goes to the host and
+-- Settings, under "Plugins" ahead of the "Naive" group, while it's on;
+-- drawn by Naive from what it declares; what's set goes to the host and
 -- stays (turned off and on again too); a setting never set follows its
 -- default as the plugin changes it; Settings search finds them; and the
 -- Plugins page links to them. On ui/plugin_settings_fixture.luau, which
@@ -66,16 +66,16 @@ test("a plugin's page is listed under Plugins while it's on, and goes when it's 
 	app:command("plugin_on")
 	app:frames(20)
 	expect(app:has(TAB)).to_be(true)
-	-- Under its own heading, with its tile, ahead of the "Zeron" group
+	-- Under its own heading, with its tile, ahead of the "Naive" group
 	-- (About and updates stay last).
 	local nav = app:tree(NAV)
 	local heading = nav:find('text "Plugins"', 1, true)
 	local tab = nav:find('tab "Greeter"', 1, true) or 0
-	local zeron = nav:find('text "Zeron"', 1, true) or 0
+	local naive = nav:find('text "Naive"', 1, true) or 0
 	local about = nav:find('tab "About & updates"', 1, true) or 0
-	expect(heading ~= nil and heading < tab and tab < zeron and zeron < about).to_be(true)
+	expect(heading ~= nil and heading < tab and tab < naive and naive < about).to_be(true)
 	expect(app:tree(TAB)).to_contain('text "G"')
-	-- Drawn by Zeron from what it declares: its sections and every kind.
+	-- Drawn by Naive from what it declares: its sections and every kind.
 	app:scroll('#settings-nav >> role:tab "General"', 2000)
 	app:frames(10)
 	app:click(TAB)
@@ -241,9 +241,9 @@ test("a status the plugin reports is drawn beside the control, and cleared", fun
 	expect(app:tree("#setting-keys")).never.to_contain('"Set up"')
 end)
 
-test("permission rows are Zeron's own plugins' alone, every word Zeron's", function()
+test("permission rows are Naive's own plugins' alone, every word Naive's", function()
 	local app = greeter(open())
-	-- Greeter isn't Zeron's: its declared Screen Recording row isn't there.
+	-- Greeter isn't Naive's: its declared Screen Recording row isn't there.
 	expect(app:tree(PAGE)).never.to_contain("Screen Recording")
 	app:command("snapper_on")
 	app:frames(20)
@@ -259,7 +259,7 @@ test("permission rows are Zeron's own plugins' alone, every word Zeron's", funct
 	expect(rec).to_contain('"Allow Screen Recording"')
 	expect(app:tree("#setting-accessibility")).to_contain('"Granted"')
 	expect(app:tree("#setting-accessibility")).never.to_contain("Check again")
-	expect(app:tree(PAGE)).to_contain("macOS asks for these for the app that opened Zeron")
+	expect(app:tree(PAGE)).to_contain("macOS asks for these for the app that opened Naive")
 	-- Asking: macOS's prompt, then System Settings.
 	app:click('#setting-screen-recording >> role:button "Allow Screen Recording"')
 	app:frames(10)
@@ -277,7 +277,7 @@ test("Check again asks the host afresh", function()
 	app:click(`{NAV} >> role:tab "Snapper"`)
 	app:frames(30)
 	expect(app:tree("#setting-screen-recording")).to_contain('"Required"')
-	-- Granted in System Settings: nothing changes until Zeron looks again.
+	-- Granted in System Settings: nothing changes until Naive looks again.
 	app:command("grant_capture")
 	app:frames(10)
 	expect(app:tree("#setting-screen-recording")).to_contain('"Required"')
@@ -290,7 +290,7 @@ test("Check again asks the host afresh", function()
 	expect(app:tree("#setting-screen-recording")).never.to_contain("Check again")
 end)
 
-test("a page says the plugin's own intro under its title, or Zeron's line", function()
+test("a page says the plugin's own intro under its title, or Naive's line", function()
 	local app = greeter(open())
 	expect(app:tree(PAGE)).to_contain("Settings for the Greeter plugin.")
 	app:command("snapper_on")
@@ -304,7 +304,7 @@ test("a page says the plugin's own intro under its title, or Zeron's line", func
 	expect(app:tree(PAGE)).never.to_contain("Settings for the Snapper plugin.")
 end)
 
--- A plugin's wallpaper: used from its own page (Zeron's "Use as
+-- A plugin's wallpaper: used from its own page (Naive's "Use as
 -- wallpaper" row, its effect beside it), said on Appearance's Wallpaper row
 -- with a way to its page, taken back by choosing None or Image there,
 -- falling back to Appearance's kept choice when the plugin goes, and one
@@ -336,7 +336,7 @@ test("a plugin's wallpaper is used from its own page, said on Appearance, and ta
 	app:command("scenes_on")
 	app:frames(20)
 	app:set_state("shell_wallpaper", "image")
-	app:set_state("shell_wallpaper_image", { path = "assets/favicons/zeron.png", name = "zeron.png", w = 512, h = 512, x = 0.5, y = 0.5, zoom = 1 })
+	app:set_state("shell_wallpaper_image", { path = "assets/favicons/naive.png", name = "naive.png", w = 512, h = 512, x = 0.5, y = 0.5, zoom = 1 })
 	-- Appearance offers None and Image alone, the plugin nowhere in them.
 	appearance_page(app)
 	app:click(`{PAGE} >> role:button "Wallpaper"`)
@@ -344,7 +344,7 @@ test("a plugin's wallpaper is used from its own page, said on Appearance, and ta
 	expect(app:has('role:menuitem "Parallax scenes"')).to_be(false)
 	app:key("Escape")
 	app:frames(10)
-	-- Its page: Zeron's row, off; on, its effect beside it.
+	-- Its page: Naive's row, off; on, its effect beside it.
 	plugin_page(app, "Parallax scenes")
 	expect(line(app, "Use as wallpaper")).never.to_be("")
 	expect(app:has(`{PAGE} >> role:button "Effect"`)).to_be(false)
@@ -387,7 +387,7 @@ test("a plugin's wallpaper going off falls back to Appearance's choice, and anot
 	app:command("backdrops_on")
 	app:frames(20)
 	app:set_state("shell_wallpaper", "image")
-	app:set_state("shell_wallpaper_image", { path = "assets/favicons/zeron.png", name = "zeron.png", w = 512, h = 512, x = 0.5, y = 0.5, zoom = 1 })
+	app:set_state("shell_wallpaper_image", { path = "assets/favicons/naive.png", name = "naive.png", w = 512, h = 512, x = 0.5, y = 0.5, zoom = 1 })
 	plugin_page(app, "Parallax scenes")
 	app:click(`{PAGE} >> role:switch "Use as wallpaper"`)
 	app:frames(10)
@@ -408,7 +408,7 @@ test("a plugin's wallpaper going off falls back to Appearance's choice, and anot
 	appearance_page(app)
 	expect(line(app, "From Parallax scenes")).to_be("")
 	expect(app:state("shell_wallpaper")).to_be("image")
-	expect(line(app, "zeron.png")).never.to_be("")
+	expect(line(app, "naive.png")).never.to_be("")
 	expect(app:has("#new-chat-background")).to_be(false)
 	-- Back on: its wallpaper again, as it was left.
 	app:command("scenes_on")
@@ -416,7 +416,7 @@ test("a plugin's wallpaper going off falls back to Appearance's choice, and anot
 	expect(line(app, "From Parallax scenes.")).never.to_be("")
 end)
 
-test("a plugin's page says Unverified at its top right when Zeron can't vouch for who made it", function()
+test("a plugin's page says Unverified at its top right when Naive can't vouch for who made it", function()
 	local app = greeter(open())
 	expect(app:has(`{PAGE} >> "Unverified"`)).to_be(false)
 	app:command("greeter_unverified")

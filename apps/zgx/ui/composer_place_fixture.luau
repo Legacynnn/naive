@@ -6,7 +6,7 @@
 --   test_place_art       the wallpaper shows (the footer stands over it)
 --   test_place_effect    "none" | "dither" | "ascii" | "halftone" | "scanlines"
 --   test_place_dark      the theme
---   test_place_project   "zeron", "atlas", "none"
+--   test_place_project   "naive", "atlas", "none"
 --   test_place_branch    the branch chosen
 --   test_place_checkout  "worktree" | "local"
 --   test_place_usage     { tokens, window } or nil
@@ -29,7 +29,7 @@ ds.setup()
 -- and the trays' 24, read as the fixture loads: set it, then reload.)
 -- (A test sets the shared `test_place_hot_radii` before the fixture loads.)
 if ui.state("test_place_radii", "default"):peek() == "hot" or ui.shared("test_place_hot_radii", false):peek() == true then
-	ui.theme.tokens { zeron = { composer = { radius = 36, tray = { radius = 24 } } } }
+	ui.theme.tokens { naive = { composer = { radius = 36, tray = { radius = 24 } } } }
 end
 
 local art = ui.state("test_place_art", true)
@@ -50,7 +50,7 @@ local reach_picked = ui.state("test_place_reach_picked", nil :: string?)
 -- theme's values follows it too.
 ui.effect(function()
 	ui.theme.follow_system(false)
-	ui.theme.current:set(if dark:get() then "zeron-dark" else "zeron-light")
+	ui.theme.current:set(if dark:get() then "naive-dark" else "naive-light")
 end)
 
 -- (For tests: what zgx's own menu tokens resolve to beside ours, as the
@@ -61,7 +61,7 @@ ui.effect(function()
 	menu_tokens:set {
 		menu_bg = tostring(ui.theme.get("menu.bg")),
 		menu_hover = tostring(ui.theme.get("menu.hover")),
-		tint = tostring(ui.theme.get("zeron.menu.tint")),
+		tint = tostring(ui.theme.get("naive.menu.tint")),
 		hover = tostring(ui.theme.get("hover")),
 	}
 end)
@@ -69,12 +69,12 @@ end)
 local HARNESSES: { ds.Harness } = { { id = "claude", label = "Claude", mark = "claude" } }
 local MODELS: { ds.Model } = { { value = "opus", label = "Opus 5.5", harness = "claude" } }
 local PROJECTS: { Composer.Project } = {
-	{ value = "zeron", label = "zeron", hue = "violet" },
+	{ value = "naive", label = "naive", hue = "violet" },
 	{ value = "atlas", label = "Atlas Platform Monorepo", hue = "teal" },
 }
 local BRANCHES = {
 	{ value = "main", label = "main" },
-	{ value = "zeron/create-readme-update-for-onboarding", label = "zeron/create-readme-update-for-onboarding" },
+	{ value = "naive/create-readme-update-for-onboarding", label = "naive/create-readme-update-for-onboarding" },
 }
 
 local box = ui.ref()
@@ -85,7 +85,7 @@ return ui.column {
 	relative = true,
 	overflow = "hidden",
 	theme = function(): string
-		return if dark:get() then "zeron-dark" else "zeron-light"
+		return if dark:get() then "naive-dark" else "naive-light"
 	end,
 	-- (Opaque: a capture of the window's glass comes out white.)
 	bg = function(): any
@@ -177,12 +177,12 @@ return ui.column {
 			effort = ui.state("test_place_effort", "high" :: string?),
 			harnesses = HARNESSES,
 			models = MODELS,
-			project = ui.state("test_place_project", "zeron" :: string?),
+			project = ui.state("test_place_project", "naive" :: string?),
 			projects = PROJECTS,
 			device = ui.state("test_place_device", nil :: string?),
 			devices = ui.state("test_place_devices", {} :: { Composer.Device }),
 			checkout = ui.state("test_place_checkout", "worktree" :: string?),
-			branch = ui.state("test_place_branch", "zeron/create-readme-update-for-onboarding" :: string?),
+			branch = ui.state("test_place_branch", "naive/create-readme-update-for-onboarding" :: string?),
 			branches = BRANCHES,
 			reach = ui.state("test_place_reach", nil :: string?),
 			reach_default = function(): string?

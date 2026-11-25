@@ -30,8 +30,8 @@
 --
 -- An agent that keeps a login per model provider (Pi, OpenCode, Hermes)
 -- also has `groups`: its accounts by provider, `{ id, name, accounts,
--- login?, key?, hint?, read_only }` (`login`, who Zeron signs you in to for
--- it; `key`, who issues the API key Zeron adds; neither: `hint` says how the
+-- login?, key?, hint?, read_only }` (`login`, who Naive signs you in to for
+-- it; `key`, who issues the API key Naive adds; neither: `hint` says how the
 -- agent does), and its sign-in's provider, `login_for`. Its accounts each
 -- say their `provider`.
 --   agents.add_key(id, provider, key)  an API key for one such provider on
@@ -197,7 +197,7 @@ end
 -- plan, active, can_switch, error?, windows = { { label, used } } }`.
 M.on_device = ui.shared("agents.on_device", {} :: { [string]: { [string]: { any } } })
 
--- Each per-provider agent's providers Zeron adds to, by provider: `{
+-- Each per-provider agent's providers Naive adds to, by provider: `{
 -- [harness] = { [provider] = { name, login?, key? } } }` (who it signs you
 -- in to, who issues the key it adds).
 M.logins = ui.shared("agents.logins", {} :: { [string]: { [string]: { name: string, login: string?, key: string? } } })

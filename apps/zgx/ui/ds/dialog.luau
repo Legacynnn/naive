@@ -69,7 +69,7 @@ export type DialogProps = {
 	[number]: Child,
 }
 
--- How the panel arrives and leaves (Zeron's dialog-in, its 180; leaving, a
+-- How the panel arrives and leaves (Naive's dialog-in, its 180; leaving, a
 -- little quicker than it came).
 local IN = { duration = 200, ease = "out(3)" }
 local OUT = { duration = 130, ease = "in(2)" }
@@ -125,10 +125,10 @@ local function stage(props: { open: State<boolean>, label: Label, dismissable: b
 		placement = props.placement,
 		p = 0,
 		gap = 0,
-		rounded = "$zeron.dialog.radius",
+		rounded = "$naive.dialog.radius",
 		bg = "#00000000",
 		border = 0,
-		shadow = "$zeron.dialog.stage",
+		shadow = "$naive.dialog.stage",
 		dismiss_on_backdrop = props.dismissable,
 		build = function()
 			return ui.column {
@@ -147,10 +147,10 @@ local function panel(props: ContainerProps): ContainerProps
 	props.bg = function()
 		-- (As its glass above: solid where a popup can't blur, or what's behind shows
 		-- through sharp.)
-		return if material.menus_see_through() then "$zeron.dialog.tint" else "$zeron.dialog.solid"
+		return if material.menus_see_through() then "$naive.dialog.tint" else "$naive.dialog.solid"
 	end
-	props.rounded = "$zeron.dialog.radius"
-	props.shadow = "$zeron.dialog.shadow"
+	props.rounded = "$naive.dialog.radius"
+	props.shadow = "$naive.dialog.shadow"
 	return props
 end
 
@@ -212,9 +212,9 @@ local DialogBody = ui.component(function(args: { props: DialogProps, close: () -
 			return false
 		end,
 		ui.column {
-			gap = "$zeron.space.tight",
+			gap = "$naive.space.tight",
 			if props.icon
-				then ui.div { pb = "$zeron.space.tight", color = "$text.secondary", Icon { name = props.icon, size = 20 } }
+				then ui.div { pb = "$naive.space.tight", color = "$text.secondary", Icon { name = props.icon, size = 20 } }
 				else nil,
 			ui.text { props.title, heading = 2, text_size = "$font.size.lg", line_height = "$font.line.lg", weight = "$font.weight.semibold", color = "$text.primary", wrap = true },
 			if props.body
@@ -316,7 +316,7 @@ M.Dialog = ui.component(function(props: DialogProps): Node
 		label = props.title,
 		dismissable = props.dismissable ~= false,
 		hold = props.hold,
-		w = `$zeron.dialog.{props.size or "sm"}`,
+		w = `$naive.dialog.{props.size or "sm"}`,
 		panel = function(phase: State<number>): Node
 			return DialogBody { props = props, close = close, phase = phase }
 		end,
@@ -345,7 +345,7 @@ M.Sheet = ui.component(function(props: SheetProps): Node
 	for _, c in ipairs(props :: any) do
 		table.insert(children, c)
 	end
-	local width = props.size or (ui.theme.get("zeron.dialog.sheet") :: number)
+	local width = props.size or (ui.theme.get("naive.dialog.sheet") :: number)
 	-- Tall as the window: zgx's modal has no height to take a percentage
 	-- of, but its foot sits `EDGE` off the window's, wherever its top is, so
 	-- where that foot lies says how tall the window is.
@@ -380,7 +380,7 @@ M.Sheet = ui.component(function(props: SheetProps): Node
 		open = open,
 		label = props.title,
 		dismissable = true,
-		w = if bottom then "$zeron.dialog.lg" else width,
+		w = if bottom then "$naive.dialog.lg" else width,
 		h = height,
 		ref = box,
 		placement = { x = if bottom then "center" else "end", y = "end", inset = EDGE },
@@ -412,7 +412,7 @@ M.Sheet = ui.component(function(props: SheetProps): Node
 					ui.column {
 						grow = 1,
 						min_w = 0,
-						gap = "$zeron.space.tight",
+						gap = "$naive.space.tight",
 						ui.text { props.title, heading = 2, text_size = "$font.size.lg", line_height = "$font.line.lg", weight = "$font.weight.semibold", color = "$text.primary" },
 						if props.description
 							then ui.text { props.description, text_size = "$font.size.md", line_height = 20, color = "$text.secondary", wrap = true }

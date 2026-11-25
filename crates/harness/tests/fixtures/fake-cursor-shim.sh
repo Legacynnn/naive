@@ -1,5 +1,5 @@
 #!/bin/sh
-# Fake zeron cursor shim for zeron-harness tests: speaks the shim's JSONL
+# Fake naive cursor shim for naive-harness tests: speaks the shim's JSONL
 # protocol (see crates/harness/src/cursor/shim.mjs) without node or the SDK.
 # Driven by crates/harness/tests/cursor.rs.
 
@@ -76,7 +76,7 @@ case "$first" in
 
 *scenario:mcp*)
   case "$first" in
-    *'"mcp":{"args":["mcp"],"command":"/path with spaces/zeron","env":{"ZERON_CHAT_ID":"origin-chat"},"name":"zeron"}'*) ;;
+    *'"mcp":{"args":["mcp"],"command":"/path with spaces/naive","env":{"NAIVE_CHAT_ID":"origin-chat"},"name":"naive"}'*) ;;
     *) exit 1 ;;
   esac
   emit '{"ev":"ready","agentId":"agent-1","model":"auto"}'

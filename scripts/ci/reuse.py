@@ -63,7 +63,7 @@ SUITE_INPUTS: dict[str, list[str]] = {
     "cursor": [".github/workflows/cursor-compatibility.yml", "scripts/*cursor-sdk*", "crates/harness/src/cursor/**"],
     "edge": [".github/workflows/preview-tests.yml", "edge/**"],
     "installer": [".github/workflows/linux-installer.yml", "edge/src/install.sh", "scripts/package-linux.sh",
-                  "scripts/test-linux-desktop-entry.sh", "dist/zeron.desktop", "dist/zeron.png",
+                  "scripts/test-linux-desktop-entry.sh", "dist/naive.desktop", "dist/naive.png",
                   "scripts/ci/apt-install.sh"],
     "voice": [".github/workflows/voice-tests.yml", "dist/voice/**", "scripts/package-voice-runtime.py",
               "scripts/codex-voice-remote-smoke.py", "scripts/tests/*voice*"] + LINUX_SETUP + NEXTEST,
@@ -72,7 +72,7 @@ SUITE_INPUTS: dict[str, list[str]] = {
     "macos": [".github/workflows/macos.yml", "dist/macos/**"] + NEXTEST,
     "ios": [".github/workflows/macos.yml", "apps/ios/**", "scripts/ios/**"],
     "android": [".github/workflows/android.yml", "apps/android/**", "scripts/android/**",
-                "apps/ios/Zeron/Fonts/**", "apps/ios/Zeron/Assets.xcassets/**"],
+                "apps/ios/Naive/Fonts/**", "apps/ios/Naive/Assets.xcassets/**"],
     # apps/zgx is a workspace of its own: all of it (sources, lockfile, Luau UI
     # and tests, plugins, SDK) is an input; its path dependencies are in SUITE_PACKAGES.
     "zgx": [".github/workflows/zgx-tests.yml", "scripts/ci/test-zgx.sh", "scripts/ci/zgx-known-failures.txt",
@@ -81,18 +81,18 @@ SUITE_INPUTS: dict[str, list[str]] = {
 
 # The workspace packages each suite builds and tests (their dependencies are added).
 SUITE_PACKAGES: dict[str, list[str]] = {
-    "core": ["zeron-harness", "zeron-engine", "zeron-sync", "zeron-update", "zeron-doc", "zeron-preview",
-             "zeron-mcp", "zeron-proto", "zeron-rpc", "zeron-orb", "zeron-voice-session", "zeron-voice-media",
-             "zeron-cli", "zeron-launch", "zeron-notify"],
-    "voice": ["zeron-audio", "zeron-voice-media"],
-    "windows": ["zeron-harness", "zeron", "zeron-update", "zeron-proto", "zeron-engine", "zeron-voice-media"],
-    "macos": ["zeron-update", "zeron-preview", "zeron-text", "zeron"],
-    "ios": ["zeron-mobile", "zeron-text", "zeron-markdown", "zeron-client"],
-    "android": ["zeron-mobile"],
-    # zeron-engine's plugin tests, and the root crates apps/zgx builds against.
-    "zgx": ["zeron-engine", "zatex", "zeron-theme", "zeron-preview-label", "zeron-cli", "zeron-launch",
-            "zeron-notify", "zeron-proto", "zeron-update", "zeron-visual", "zeron-plugin-guard",
-            "zeron-visual-gpu"],
+    "core": ["naive-harness", "naive-engine", "naive-sync", "naive-update", "naive-doc", "naive-preview",
+             "naive-mcp", "naive-proto", "naive-rpc", "naive-orb", "naive-voice-session", "naive-voice-media",
+             "naive-cli", "naive-launch", "naive-notify"],
+    "voice": ["naive-audio", "naive-voice-media"],
+    "windows": ["naive-harness", "naive", "naive-update", "naive-proto", "naive-engine", "naive-voice-media"],
+    "macos": ["naive-update", "naive-preview", "naive-text", "naive"],
+    "ios": ["naive-mobile", "naive-text", "naive-markdown", "naive-client"],
+    "android": ["naive-mobile"],
+    # naive-engine's plugin tests, and the root crates apps/zgx builds against.
+    "zgx": ["naive-engine", "zatex", "naive-theme", "naive-preview-label", "naive-cli", "naive-launch",
+            "naive-notify", "naive-proto", "naive-update", "naive-visual", "naive-plugin-guard",
+            "naive-visual-gpu"],
 }
 
 # A ../ path that names something (a bare "../.." names no file); "/../x" as in
@@ -294,7 +294,7 @@ def covered(path: str, inputs: dict[str, tuple[list[str], set[str]]]) -> bool:
 
 # Changed files here that no fingerprint covers mean the inputs are not understood:
 # nothing is reused (fail closed).
-BUILD_PATHS = ["crates/**", "apps/zeron/**", "apps/zgx/**", "Cargo.toml", "Cargo.lock", ".cargo/**", "rust-toolchain.toml"]
+BUILD_PATHS = ["crates/**", "apps/naive/**", "apps/zgx/**", "Cargo.toml", "Cargo.lock", ".cargo/**", "rust-toolchain.toml"]
 
 
 def passed_jobs(api, repo: str, key: str, trusted_refs: set[str]) -> set[str]:

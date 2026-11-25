@@ -214,7 +214,7 @@ local function bind(name: string, messages: any, can_open: () -> boolean, bar_id
 				border_color = "$border.subtle",
 				shadow = "$shadow.lg",
 				ui.div {
-					w = "$zeron.icon_button.sm",
+					w = "$naive.icon_button.sm",
 					shrink = 0,
 					items = "center",
 					justify = "center",

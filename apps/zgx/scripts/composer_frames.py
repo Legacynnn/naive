@@ -42,8 +42,8 @@ def run(binary, output, damage_check):
         env.pop("WAYLAND_DISPLAY", None)
         env.pop("ZGX_DAMAGE_CHECK", None)
         env.update(DISPLAY=display, XDG_CONFIG_HOME=str(output / "config"),
-                   XDG_DATA_HOME=str(output / "data"), ZERON_ZGX_ENGINE_SPAWN="0",
-                   ZERON_ZGX_ENGINE_PORT="27963", ZERON_ZGX_ENGINE_DATA=str(output / "engine"))
+                   XDG_DATA_HOME=str(output / "data"), NAIVE_ZGX_ENGINE_SPAWN="0",
+                   NAIVE_ZGX_ENGINE_PORT="27963", NAIVE_ZGX_ENGINE_DATA=str(output / "engine"))
         if damage_check:
             env["ZGX_DAMAGE_CHECK"] = "1"
         app = launch([str(binary), "fixture=composer_transition_preview.luau", "--inspect"],
@@ -141,7 +141,7 @@ def run(binary, output, damage_check):
         stale = re.findall(r"ZGX_DAMAGE_CHECK frame .*", app_log)
         report = {"platform": platform.platform(), "content_size": [1200, 800],
                   "capture_size": [1280, 900], "fps": 60, "frames": len(counts),
-                  "theme": "zeron-dark", "zoom": "100%", "transparency": "default frosted",
+                  "theme": "naive-dark", "zoom": "100%", "transparency": "default frosted",
                   "damage_check": damage_check, "minimum_text_pixels": min(counts, default=0),
                   "suspicious_frames": [i for i, count in enumerate(counts) if count <= 50],
                   "damage_mismatches": stale, "idle_cpu_percent": idle,
@@ -167,7 +167,7 @@ def run(binary, output, damage_check):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True,
-                        help="development zeron-zgx build; beta omits the fixture CLI")
+                        help="development naive-zgx build; beta omits the fixture CLI")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--damage-check", action="store_true")
     args = parser.parse_args()

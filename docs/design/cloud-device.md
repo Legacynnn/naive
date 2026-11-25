@@ -7,7 +7,7 @@ note in the encrypted-sync RFC for the Cloud device only.
 
 **Cloud is a place a session runs, and every Cloud session gets its own machine.** It is a
 row of the composer's device menu, after the devices holding the project: offered while Cloud
-is on, for any project whose GitHub repository (the folder's `origin`) the Zeron GitHub App
+is on, for any project whose GitHub repository (the folder's `origin`) the Naive GitHub App
 reaches. Picked, the composer drops the checkout menu (the machine clones the picked branch
 fresh), and the model menu offers only the agents Cloud has an active account for. A session started there runs in its own sandbox — which clones the repository, sleeps
 when the session is idle and wakes when the chat is sent to — instead of on the computer the
@@ -20,7 +20,7 @@ device list shows it.
   fx, Pi, OpenCode, Antigravity and Muse Code — each on the vault credentials listed in
   "Providers" (agents added from the ACP registry stay on the devices that added them). A
   machine installs an agent's CLI the first time a session runs it.
-- v1 repositories on Cloud: **GitHub repositories** the user installed the Zeron GitHub App on.
+- v1 repositories on Cloud: **GitHub repositories** the user installed the Naive GitHub App on.
   Each session sandbox clones its project's repository from the branch picked in the composer;
   agents get a one-hour GitHub App installation token for `git push` and `gh pr create`, so
   pushes and pull requests act as the App (see "GitHub").
@@ -32,7 +32,7 @@ device list shows it.
 ## Topology
 
 ```
-laptop engine ─┐                      ┌─ zeron-vault Worker (service binding only)
+laptop engine ─┐                      ┌─ naive-vault Worker (service binding only)
                │  WorkOS JWT          │    VaultAccount DO  per (user, provider)
                ├──────────────► edge ─┤    VaultDevices DO  per user (keys, parents, revokes)
 session engine ┘  runner JWT   Worker │    secret KEK (rotatable), daily canary cron
@@ -43,19 +43,19 @@ session engine ┘  runner JWT   Worker │    secret KEK (rotatable), daily can
                                       └─ Workflows per session: provision / wake / sleep / delete
 ```
 
-Each **session device** is an ordinary Zeron engine (`zeron headless`) running as a systemd
+Each **session device** is an ordinary Naive engine (`naive headless`) running as a systemd
 service inside one sandbox ([Boat](https://docs.boat.dev) today). It hosts its own DeviceRoom
 and its chat, so transcripts, diffs, terminals, file browsing and side chats work unchanged. We
 do not use Boat's integrated agents (`POST /prompt`): they would bypass the session doc, the
 command plane and every existing UI surface. Every sandbox is created `noEnv: true` (nothing of
-Zeron's Boat account reaches it).
+Naive's Boat account reaches it).
 
 ### Devices and ids
 
 | Device | Id | Registry row | Engine |
 | --- | --- | --- | --- |
 | Logical Cloud device | `cloud-{uuid}`, minted at enable | none — it is the vault parent provider connections are authorized for, and the runner JWT's `cld` | none — never dialed or forwarded to |
-| Session device | `cloud-{uuid}`, minted per session | written by its engine: `platform: "cloud"`, capability `cloud-session` | `zeron headless` in the session's sandbox |
+| Session device | `cloud-{uuid}`, minted per session | written by its engine: `platform: "cloud"`, capability `cloud-session` | `naive headless` in the session's sandbox |
 
 Projects stay where they are: a space on the computer whose folder it is, whose owner stamps
 `githubRepo` (`owner/name` of the folder's `origin`) next to `gitDetected`, so every device can
@@ -75,8 +75,8 @@ catalog restricted to Codex + Claude Code, so opening a composer never wakes a s
    checkout as cwd. The first send queues in the chat doc as usual and is executed once the
    engine is up.
 2. **Provision.** Sandbox created with the enrollment and the project
-   (`ZERON_CLOUD_ACCOUNT`, `ZERON_CLOUD_CHAT`, `ZERON_CLOUD_REPO`, `ZERON_CLOUD_PATH`,
-   `ZERON_CLOUD_BRANCH`) in its per-sandbox env; the engine installs, enrolls, clones the
+   (`NAIVE_CLOUD_ACCOUNT`, `NAIVE_CLOUD_CHAT`, `NAIVE_CLOUD_REPO`, `NAIVE_CLOUD_PATH`,
+   `NAIVE_CLOUD_BRANCH`) in its per-sandbox env; the engine installs, enrolls, clones the
    repository with its GitHub grant (public repositories need none) and only then drains the
    chat's commands. With `CLOUD_TEMPLATE` set, sandboxes start from that named snapshot (engine
    pre-installed, no identity) instead of installing.
@@ -110,17 +110,17 @@ to the registry: Cloud is not a device.
 Each session machine's engine is its own device and never sees a WorkOS session (WorkOS
 refresh tokens are single-use; sharing a laptop's `session.json` would race). Instead:
 
-1. Provisioning passes `ZERON_RUNNER_ENROLL={orgId}.{userId}.{deviceId}.{code}` as per-sandbox
+1. Provisioning passes `NAIVE_RUNNER_ENROLL={orgId}.{userId}.{deviceId}.{code}` as per-sandbox
    env. On first boot the engine generates an Ed25519 key (`{data_dir}/runner-key`, 0600) and
    calls `POST /runner/enroll {orgId, userId, deviceId, code, publicKey}`. The DO checks the
    code hash, stores the key, and clears the code (single use). It also enrolls the same key
    with the vault as device kind `cloud`, with the account's logical device as `parentId`, so
    providers authorized for Cloud cover every session machine.
 2. Every token refresh is `POST /runner/token {orgId, userId, deviceId, ts, sig}` with
-   `sig = Ed25519("zeron-runner-token\n{orgId}\n{userId}\n{deviceId}\n{ts}")`, `ts` in Unix
+   `sig = Ed25519("naive-runner-token\n{orgId}\n{userId}\n{deviceId}\n{ts}")`, `ts` in Unix
    milliseconds within ±120 s and strictly greater than the last accepted `ts`. The Worker
    answers with a **runner JWT** (ES256, `RUNNER_JWT_PRIVATE_KEY` secret, 1 h lifetime):
-   `{iss: "zeron-edge", sub: userId, org_id, dev: deviceId, cld: accountDeviceId, kind: "runner"}`.
+   `{iss: "naive-edge", sub: userId, org_id, dev: deviceId, cld: accountDeviceId, kind: "runner"}`.
 3. `authenticate()` accepts runner JWTs alongside WorkOS JWTs. `Verified` gains
    `deviceId?` and `kind: "user" | "runner"`. Runner tokens are refused on `/auth/*`,
    `/cloud/*` and the vault upload/admin routes, and may host only their own DeviceRoom
@@ -180,7 +180,7 @@ once it holds. Enforced at the edge:
   the change that arrives after it. Its registry sockets close too (1012), and its next
   state is `full`, so what it held of other devices' rows goes. A room whose drop fails stays
   recorded, and the change answers 503 until a retry closes it.
-- **Registry** (`edge/src/registry-runner.ts`; the Worker stamps `x-zeron-runner-device`
+- **Registry** (`edge/src/registry-runner.ts`; the Worker stamps `x-naive-runner-device`
   on runner forwards and strips any inbound value). Writes, either reach: `devices` only its
   own row; `chats`, `spaces`, `sessions` when the existing live row is hosted by the runner
   AND the row after the op still is (no claiming, handing away or ownerless rows); a
@@ -215,7 +215,7 @@ User bearers are unaffected by all of the above.
 #### Delegation
 
 A session's machine may start and manage **delegates** of the chat it runs
-(Zeron MCP `create_chat { cloud: true }`), one level deep. A delegate is a Cloud session of
+(Naive MCP `create_chat { cloud: true }`), one level deep. A delegate is a Cloud session of
 its own, on its own machine, recorded with `parentChatId` = the parent's chat.
 
 - **Start** (`POST /cloud/{org}/sessions {chatId, parentChatId, branch?, config?}` with a
@@ -259,28 +259,28 @@ its generation).
 
 **ProvisionWorkflow** — `create` (`Idempotency-Key: {sessionDeviceId}-g{generation}`,
 `noEnv`, `ttlSeconds: CLOUD_TTL_SECONDS`, `machine: CLOUD_MACHINE`, `from: CLOUD_TEMPLATE` when
-set, per-sandbox env `ZERON_RUNNER_ENROLL`, `ZERON_EDGE_URL`, `ZERON_DEVICE_NAME="Cloud
-session"`, `ZERON_DEVICE_PLATFORM=cloud`, `ZERON_CLOUD_{ACCOUNT,CHAT,REPO,PATH,BRANCH}`) → poll
+set, per-sandbox env `NAIVE_RUNNER_ENROLL`, `NAIVE_EDGE_URL`, `NAIVE_DEVICE_NAME="Cloud
+session"`, `NAIVE_DEVICE_PLATFORM=cloud`, `NAIVE_CLOUD_{ACCOUNT,CHAT,REPO,PATH,BRANCH}`) → poll
 until ready → `exec` the install script → `waitForEvent("enrolled", 10 min)` (sent by `/runner/enroll`) → `ready`. The
 install script (`edge/src/cloud/install-script.ts`) is idempotent POSIX `sh`: it downloads the
-Linux release from `{edge}/releases/`, writes `~/.zeron/env` (0600) from the per-sandbox env
-(systemd services don't see it), and enables a **system** unit `zeron-cloud.service` running
-`zeron headless` as the exec user with `Restart=always`. Enabled units restart on resume
+Linux release from `{edge}/releases/`, writes `~/.naive/env` (0600) from the per-sandbox env
+(systemd services don't see it), and enables a **system** unit `naive-cloud.service` running
+`naive headless` as the exec user with `Restart=always`. Enabled units restart on resume
 (verified on Boat: a resumed sandbox lands on a new machine in ~4 s with the service up).
 
 **WakeWorkflow** — one step (`edge/src/cloud/wake.ts`, `fastWake`): `resume`, then at once
-`systemctl start --no-block zeron-cloud` (Boat holds a command until the machine can run it,
+`systemctl start --no-block naive-cloud` (Boat holds a command until the machine can run it,
 so this races the machine's own start of its enabled units), polling the state every 250 ms,
 then easing off (no Workflow sleep: those cost whole seconds). A resume during a stop is taken
 (it keeps the machine); a refused one falls back to the slow poll. A wake onto another size stops
 the machine first, so that never applies to it. A resume refused for good comes back typed, as
 "A wake refused for want of disk" says. Then
 `waitForEvent("online", 90 s)` (the runner's first token after resume); on timeout it runs one
-idempotent `sudo systemctl restart zeron-cloud` and waits 5 more minutes before failing. None of
+idempotent `sudo systemctl restart naive-cloud` and waits 5 more minutes before failing. None of
 this gates the queued message: the engine drains it as soon as it joins its room, so the
 workflow only decides when the session reads `ready`.
 
-**SleepWorkflow** — `zeron quiesce` → `sudo systemctl stop zeron-cloud` → `stop` → poll until
+**SleepWorkflow** — `naive quiesce` → `sudo systemctl stop naive-cloud` → `stop` → poll until
 stopped. A refused stop is retried (the provider bills nothing while a stop is refused); it is
 never forced.
 - *Quiesce* (headless IPC `QuiesceForSleep`): the engine starts no new work from here on, so a
@@ -412,7 +412,7 @@ days, 10 included per $20 of plan), and restoring one means a new sandbox and re
 
 **When it's gone anyway** (no credits, a user who didn't act, or the provider's refusal
 `snapshot_data_expired`), the session reads `data_expired`, for a client that says it can read that
-(`x-zeron-cloud-states: data_expired`). A shipped engine's `CloudState` is a closed enum, and one
+(`x-naive-cloud-states: data_expired`). A shipped engine's `CloudState` is a closed enum, and one
 state it doesn't know would fail its whole session list, so a client that doesn't say gets `error`
 with `failedAction: "wake"` and `dataExpired: true` on every session route. A send or a wake starts
 nothing: an empty machine must be asked for. `POST …/retry {machine?}` starts a fresh one: the same session
@@ -446,14 +446,14 @@ What follows a machine dying mid-turn is a resume or a clear failure, never sile
 
 ### Engine updates on Cloud
 
-A Cloud machine runs a *system* unit, `zeron-cloud.service`, not the user unit installs elsewhere
-use. `zeron_update::service_unit()` knows it from `ZERON_DEVICE_PLATFORM=cloud` (written by the
+A Cloud machine runs a *system* unit, `naive-cloud.service`, not the user unit installs elsewhere
+use. `naive_update::service_unit()` knows it from `NAIVE_DEVICE_PLATFORM=cloud` (written by the
 installer on every machine), and `ServiceScope::of(unit)` picks the manager: `sudo -n systemctl` to
 act, plain `systemctl` to read.
 
 That only helps an engine new enough to have it. One older than this logs "update available" and
 stays where it is (seen on 0.2.114), so a machine provisioned earlier keeps its engine, and everything
-that needs a newer one, until something installs it. `zeron update` works from there: it installs and
+that needs a newer one, until something installs it. `naive update` works from there: it installs and
 switches `current`, its restart fails (it looks for the user unit), and the next start runs the new
 version.
 
@@ -477,26 +477,26 @@ Nothing running is cut off. Nothing starts a turn while work is held, and a term
 ends the attempt. Past the wake, an update arriving mid-turn goes to the background path, which
 waits until no run or terminal is live and, on Cloud, no message is waiting.
 
-**Only the running version stays.** Each release is a folder of its own (`~/.zeron/app/<version>`,
+**Only the running version stays.** Each release is a folder of its own (`~/.naive/app/<version>`,
 about 270 MB), and a resume copies the whole disk back in, all at once, while the engine starts:
 every old version kept was read in beside the one starting, and on staging a machine three updates
 in answered in about 39 s instead of 18 (send to first output, n=8 each), its release check alone
 taking 7 to 23 s. So once an update settles (committed, or given up), and on every start after,
 `prune_installed_versions` removes the older versions and the one an update gave up on. A Cloud
-machine (`ZERON_DEVICE_PLATFORM=cloud`) keeps none of them: going back there is a reinstall, which
+machine (`NAIVE_DEVICE_PLATFORM=cloud`) keeps none of them: going back there is a reinstall, which
 downloads anyway. Other Linux installs keep the newest older one, to go back to by hand. Never
 `current`, the running executable's folder, or a newer version (an update being staged).
 
-A Cloud machine keeps the release's `zeron-engine` (78 MB). From 2026-11-07 to 2026-11-15 the
-installer, the updater and the tidy left it out, when the unit's `zeron headless` linked the engine;
-since 0.3.0 the release's `zeron` is the zgx app, whose `zeron headless` runs that `zeron-engine`, so
+A Cloud machine keeps the release's `naive-engine` (78 MB). From 2026-11-07 to 2026-11-15 the
+installer, the updater and the tidy left it out, when the unit's `naive headless` linked the engine;
+since 0.3.0 the release's `naive` is the zgx app, whose `naive headless` runs that `naive-engine`, so
 a machine without it exited at once and never enrolled. The installer keeps it now, and a repair
-(`~/.zeron/repair-engine`, the unit's `ExecStartPre=-`, set up by the installer and every wake) puts
+(`~/.naive/repair-engine`, the unit's `ExecStartPre=-`, set up by the installer and every wake) puts
 it back before each start if an older updater left it out (edge/src/cloud/install-script.ts).
 
 A longer wake reads as updating: the engine says so (`POST /runner/wake-stage`), `CloudSession.stage`
 is `updating` while it lasts (a stage nobody clears stops showing after 10 minutes), the desktop's
-waiting word follows it, and the answer's setup steps include "Updated Zeron to X".
+waiting word follows it, and the answer's setup steps include "Updated Naive to X".
 
 ### Waking
 
@@ -507,8 +507,8 @@ agent in under 5 s; today's floor is below.
 | --- | --- | --- |
 | Send → nudge → `autoWake` → workflow | us | sender polls its durable job every 100 ms; the rest is a Worker and a DO |
 | Resume accepted, machine `ready` | Boat | "a few seconds"; every resume lands on a new machine and is a reboot (no memory, no processes) |
-| Engine started | us | `zeron-cloud-boot.service` (active through the snapshot, so it starts on any resume) races the exec; the unit no longer waits on `network-online.target` |
-| Binary loads | Boat's lazy disk | `~/.zeron/app` isn't in the base image, so it downloads on every resume; Boat's playbook (`~/.ascii/playbook.json`) fetches what we opened first, first; everything else on the disk downloads at the same time, so old engine versions are removed ("Engine updates on Cloud") |
+| Engine started | us | `naive-cloud-boot.service` (active through the snapshot, so it starts on any resume) races the exec; the unit no longer waits on `network-online.target` |
+| Binary loads | Boat's lazy disk | `~/.naive/app` isn't in the base image, so it downloads on every resume; Boat's playbook (`~/.ascii/playbook.json`) fetches what we opened first, first; everything else on the disk downloads at the same time, so old engine versions are removed ("Engine updates on Cloud") |
 | First token, room joined | us | connect timeout 3 s and 250 ms retries (a restored machine often loses its first connection) |
 | Release check | us | one small request beside the rest of the boot; a newer release is installed first ("Engine updates on Cloud") |
 | Command → agent running | us | grants and git identity primed at boot; for 2 minutes after boot no agent CLI check (its install would hold the run) |
@@ -534,8 +534,8 @@ Boat is one implementation of a provider-neutral `SandboxProvider` interface
 (normalized state), stop, resume, delete, extend TTL, exec, usage, list. Only
 `edge/src/cloud/providers/boat.ts` knows Boat's API; `SANDBOX_PROVIDER` selects the
 implementation. Everything above it (workflows, the CloudAccount DO, metering) and everything
-inside the sandbox (a POSIX install script, a systemd unit, a `zeron headless` runner configured
-purely by `ZERON_*` env) is provider-neutral. Sandbox references are stored as
+inside the sandbox (a POSIX install script, a systemd unit, a `naive headless` runner configured
+purely by `NAIVE_*` env) is provider-neutral. Sandbox references are stored as
 `{provider, sandboxId}`, so a user can hold sandboxes on two providers during a migration and
 billing stays exact.
 
@@ -548,7 +548,7 @@ GitHub, so only unpushed work in an old session's machine is tied to the old pro
 
 ### Metering
 
-Cloud machine time is billed to Zeron by Boat and will be charged on to users, so every
+Cloud machine time is billed to Naive by Boat and will be charged on to users, so every
 second is attributed to a user and reconciled against Boat's own meter rather than estimated
 from our lifecycle events.
 
@@ -565,7 +565,7 @@ from our lifecycle events.
   sandbox is deleted. Reconciliation failures never block lifecycle actions.
 - A `CloudIndex` DO lists every Cloud user so an hourly cron can reconcile all of them, and a
   daily scan of Boat's sandbox list reports **orphans** (sandboxes no user owns, usually a
-  crashed provision) — those are Zeron's cost, not a user's.
+  crashed provision) — those are Naive's cost, not a user's.
 - Rows are per **UTC day** and sandbox (a month is the sum of its days), so users see credits
   per day: Settings → Cloud → Usage, a range (last 7/30/90 days, this or last month) and a bar
   per day (`GET /cloud/{orgId}/usage?from&to`). Operators bill from
@@ -585,7 +585,7 @@ from our lifecycle events.
   reconcile — every 5 minutes while a machine is awake (awake machines only; everything
   hourly) — puts awake machines to sleep. `CloudStatus.credits` carries the balance.
 
-## Credential vault — `zeron-vault` Worker
+## Credential vault — `naive-vault` Worker
 
 A separate Worker (`edge/vault/`), with no routes, no `workers_dev`, and a minimal
 dependency list (none at runtime; WebCrypto only). The only way in is the `VAULT` service
@@ -660,7 +660,7 @@ Every sign-in an agent offers on a computer, it offers on Cloud (`cloud_login_op
 `login_options`). Logins and keys are per account, not per agent: one ChatGPT sign-in runs
 Codex, Pi, OpenCode and Hermes on Cloud; one Claude sign-in runs Claude Code and Pi; one Copilot
 sign-in runs Pi and OpenCode; one OpenRouter key serves every agent that reaches OpenRouter.
-Which agent runs on which credential is one table, `zeron_proto::providers::cloud_credentials`:
+Which agent runs on which credential is one table, `naive_proto::providers::cloud_credentials`:
 
 | Agent | Cloud credentials (preference order within a group) | How the machine hands them over |
 | --- | --- | --- |
@@ -682,7 +682,7 @@ card is how to prefer it.
 
 **Claude subscriptions.** Anthropic's published Claude Code terms restrict third parties from
 storing or intermediating Claude.ai credentials "unless we've mutually agreed otherwise".
-Zeron holds Claude logins in the vault under its arrangement with Anthropic for running
+Naive holds Claude logins in the vault under its arrangement with Anthropic for running
 Claude Code on users' Cloud devices (confirmed by Wing, 2026-10-01; keep the written
 confirmation on file next to this doc). Claude grants are delivered only to the user's own
 Cloud machines: to the unmodified Claude Code CLI, and — by Wing's decision of 2026-11-18 — to
@@ -725,7 +725,7 @@ The vault only refreshes. It owns each refresh token from upload on.
 ### Grants
 
 `POST /vault/{orgId}/grant {provider, deviceId, ts, sig}` (sig by the device key, same scheme
-as runner tokens with prefix `zeron-vault-grant`) → `{provider, accessToken, expiresAt,
+as runner tokens with prefix `naive-vault-grant`) → `{provider, accessToken, expiresAt,
 accountId?, generation}`. A grant requires: the device is enrolled and not revoked, the device
 is in the credential's `authorizedDevices`, the user is not disabled, and the global kill switch
 (`VAULT_DISABLED=1`) is off. Grants are the provider's own access token, refreshed by the vault
@@ -734,7 +734,7 @@ when within 10 minutes of expiry (Codex: when `last_refresh` is older than 7 day
 refresh token.
 
 An agent that runs on several credentials (Pi) asks for them in one round trip: `POST
-/vault/{orgId}/grants {providers, deviceId, ts, sig}` signs `zeron-vault-grant\n{userId}\n
+/vault/{orgId}/grants {providers, deviceId, ts, sig}` signs `naive-vault-grant\n{userId}\n
 {deviceId}\n{providers joined by ","}\n{ts}` (the providers sorted and distinct; `github` is
 never batched, it needs its repository) and answers `{grants, missing: [{provider, error,
 message}]}`. One signature spends one `ts`. A machine whose edge predates the route (404) asks
@@ -857,22 +857,22 @@ Kill switches: per device (revoke), per user (`POST /vault/{orgId}/disable`), an
 ### Daily canary
 
 A cron trigger (`0 6 * * *`) refreshes one canary credential per refreshable provider (codex,
-claude, github — the connections of the dedicated Zeron account named by `CANARY_USER_ID`) and
+claude, github — the connections of the dedicated Naive account named by `CANARY_USER_ID`) and
 checks the GitHub App's own credentials, records `{provider, ok, status, at}` in a `canary` table and logs a
 structured `vault.canary` line (Workers observability alert on `ok=false`). A provider whose
 refresh contract changes is caught within a day, before users' grants start failing.
 
 ## Engine changes
 
-- **Runner mode** (`ZERON_RUNNER_ENROLL` or an existing `{data_dir}/runner.json`): `Auth`
+- **Runner mode** (`NAIVE_RUNNER_ENROLL` or an existing `{data_dir}/runner.json`): `Auth`
   gains a runner token source (enroll once, then signed `/runner/token`); scope is `Synced`
-  for the runner's `{orgId, userId}`. Platform comes from `ZERON_DEVICE_PLATFORM` (`cloud`).
+  for the runner's `{orgId, userId}`. Platform comes from `NAIVE_DEVICE_PLATFORM` (`cloud`).
   The runner posts heartbeats and registers the built-in agents only (`CLOUD_HARNESSES`): no
   agent from the ACP registry.
-- **Session machines** (`ZERON_CLOUD_*`, persisted to `cloud-session.json`): the device row
-  carries `cloud-session`; at boot the engine clones the project into `ZERON_CLOUD_PATH` (with
+- **Session machines** (`NAIVE_CLOUD_*`, persisted to `cloud-session.json`): the device row
+  carries `cloud-session`; at boot the engine clones the project into `NAIVE_CLOUD_PATH` (with
   the GitHub grant's credential store; retried with backoff) and checks out
-  `zeron/cloud-{12 alphanumerics of the chat id}` — one branch per session, so neighbours on one
+  `naive/cloud-{12 alphanumerics of the chat id}` — one branch per session, so neighbours on one
   repository never push the same branch. A run dispatched meanwhile starts its harness only
   once the checkout is ready. A wake or restart keeps the existing checkout. A Cloud machine
   writes no viewport rows (sidebar pins) and no legacy diff sidecar. Every boot also schedules
@@ -880,7 +880,7 @@ refresh contract changes is caught within a day, before users' grants start fail
   warning (provider auto-stop, crash) after accepting a send still finds the message in its
   chat's room.
 - **Setup steps, live**: the boot's steps ("Started a machine" / "Woke the machine", "Cloning
-  owner/repo" → "Cloned owner/repo", "Checking out zeron/cloud-…") open the first answer after
+  owner/repo" → "Cloned owner/repo", "Checking out naive/cloud-…") open the first answer after
   it as tool chips (`ToolCall::Unknown` tagged `cloudSetup`; the start/wake chip says how long
   the message waited), each spinning until its step finishes, grouped as "Set up the Cloud
   machine" / "Woke the Cloud machine". Before the machine can write anything, the sender shows
@@ -936,7 +936,7 @@ refresh contract changes is caught within a day, before users' grants start fail
   logical device fails fast — it has no engine. The edge's list is Claude Code's and Codex's
   kept by hand, and every other agent's as a Cloud machine last discovered it: after a run
   prepares its credentials, the machine hands the agent's credential variables to its model
-  discovery (`zeron_harness::catalog_env`, part of the catalog's cache key), discovers, and
+  discovery (`naive_harness::catalog_env`, part of the catalog's cache key), discovers, and
   sends the catalog with the run's credential fingerprint (`POST /runner/models`; once per
   agent and fingerprint per 10 minutes, at once for a new fingerprint). The account keeps the
   last one per agent, so pickers list it while every machine sleeps.
@@ -967,7 +967,7 @@ the bearer's `org_id`.
 | `POST /cloud/{orgId}/sessions/{chatId}/wake` | user | `{machine?, wake?}` → `CloudSession`. `wake: false` only records the size for its next wake. `409`: `machine_too_small` {`machine`, `neededGiB`, `capacityGiB`}, `machine_awake`, `data_expired` |
 | `POST /cloud/{orgId}/sessions/{chatId}/sleep` | user | → `CloudSession` |
 | `POST /cloud/{orgId}/sessions/{chatId}/retry` | user | `{machine?}` → `CloudSession`: a failed lifecycle again; a fresh machine once `data_expired` |
-| any session route | | `x-zeron-cloud-states: data_expired` lets a reply say `state: "data_expired"`; without it, that session reads `state: "error", failedAction: "wake", dataExpired: true` |
+| any session route | | `x-naive-cloud-states: data_expired` lets a reply say `state: "data_expired"`; without it, that session reads `state: "error", failedAction: "wake", dataExpired: true` |
 | `DELETE /cloud/{orgId}/sessions/{chatId}` | user | → `CloudSession` (`deleting` → removed) |
 | `GET /vault/{orgId}/github/repos?q=` | user | → `{repos: GithubRepo[]}` (the vault calls GitHub) |
 | `POST /runner/enroll` | none | `{orgId, userId, deviceId, code, publicKey}` → `{ok: true}` |
@@ -976,7 +976,7 @@ the bearer's `org_id`.
 | `POST /runner/wake-stage` | runner | `{stage: "updating" \| null}` → `{ok: true}`: shown as `CloudSession.stage` |
 | `POST /runner/models` | runner | `{harness, models, credential}` → `{ok: true}`: the agent's catalog as this machine discovered it (≤ 400 models, unparseable ones dropped; never `claude-code`/`codex`'s, which stay hand-kept) |
 | `POST /runner/heartbeat` | runner | `{activeRuns, clients, backgroundRuns?, waitingRuns?, diskUsedBytes?, diskTotalBytes?}` → `{ok: true, diskCapacityGiB?}` (per session device) |
-| `GET /vault/{orgId}` | user | → `VaultStatusView`. Lists only the providers named in `x-zeron-vault-providers` (comma-separated); without the header, the original five (`codex`, `claude`, `github`, `anthropic-key`, `openai-key`). Every route answering a status filters it alike |
+| `GET /vault/{orgId}` | user | → `VaultStatusView`. Lists only the providers named in `x-naive-vault-providers` (comma-separated); without the header, the original five (`codex`, `claude`, `github`, `anthropic-key`, `openai-key`). Every route answering a status filters it alike |
 | `PUT /vault/{orgId}/credentials/{provider}` | user | `PutCredentialRequest` → `VaultStatusView` |
 | `PATCH /vault/{orgId}/credentials/{provider}` | user | `{authorizedDevices}` → `VaultStatusView` |
 | `DELETE /vault/{orgId}/credentials/{provider}` | user | → `VaultStatusView` |
@@ -991,11 +991,11 @@ the bearer's `org_id`.
 Types are in `edge/vault/src/api.ts` (TypeScript) and `crates/proto/src/cloud.rs` (Rust).
 Signatures are base64url (no padding) Ed25519 over UTF-8:
 
-- runner token: `zeron-runner-token\n{orgId}\n{userId}\n{deviceId}\n{ts}`
-- vault grant: `zeron-vault-grant\n{userId}\n{deviceId}\n{provider}\n{ts}` (a batch: the sorted
+- runner token: `naive-runner-token\n{orgId}\n{userId}\n{deviceId}\n{ts}`
+- vault grant: `naive-vault-grant\n{userId}\n{deviceId}\n{provider}\n{ts}` (a batch: the sorted
   providers joined by `,` in place of `{provider}`)
 
-`ZERON_RUNNER_ENROLL` = `{orgId}.{userId}.{deviceId}.{code}` (`code` is 32 random bytes,
+`NAIVE_RUNNER_ENROLL` = `{orgId}.{userId}.{deviceId}.{code}` (`code` is 32 random bytes,
 base64url). After enrollment the engine persists `{data_dir}/runner.json`
 (`{orgId, userId, deviceId, edgeUrl}`) and `{data_dir}/runner-key` (PKCS#8 Ed25519, 0600);
 `runner.json` wins over the env var from then on.
@@ -1020,8 +1020,8 @@ provider for orphan sandboxes (logged as `{"event":"cloud.orphan", provider, san
 
 1. **Localhost IPC (P1, local-process vector).** The engine's IPC port accepted any local
    process. It now requires a per-install bearer (`{data_dir}/ipc-token`, 0600, rotated on each
-   engine start) on the WebSocket handshake. Viewports, the CLI and `zeron mcp` read it at
-   dial time; the engine passes the file's path (`ZERON_IPC_TOKEN_FILE`, never the token —
+   engine start) on the WebSocket handshake. Viewports, the CLI and `naive mcp` read it at
+   dial time; the engine passes the file's path (`NAIVE_IPC_TOKEN_FILE`, never the token —
    Claude gets MCP env on its argv) to the MCP servers it injects. See `docs/mcp.md`.
 2. **Claude injected-token expiry probe.** The Cloud engine writes vault-granted Claude access
    tokens (never refresh tokens) into Claude Code's credential file and rewrites it before

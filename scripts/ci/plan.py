@@ -82,7 +82,7 @@ CI_SELF = [
 ]
 
 # The apps link the Rust mobile core and everything it depends on (iOS and Android).
-# main() replaces this with zeron-mobile's dependency closure from the Cargo.toml
+# main() replaces this with naive-mobile's dependency closure from the Cargo.toml
 # files; this list is the fallback when they cannot be read.
 MOBILE_CORE = [
     "crates/mobile/**", "crates/client/**", "crates/text/**", "crates/markdown/**",
@@ -91,7 +91,7 @@ MOBILE_CORE = [
     "crates/term/**", "crates/term-link/**", "crates/veil/**", "crates/zatex/**", "crates/preview/**",
 ]
 
-# Voice: the WebRTC audio stack (zeron-audio, which nothing else builds yet) and
+# Voice: the WebRTC audio stack (naive-audio, which nothing else builds yet) and
 # the packaged Windows media runtime. The rest of voice is tested where it is
 # built: protocol and transport in core-tests, mobile voice in ios-core,
 # voice-media in core-tests and the Windows tests.
@@ -109,22 +109,22 @@ ZGX_CORE = [
 ]
 
 BROAD: dict[str, list[str]] = {
-    "core": CARGO + ["crates/**", "apps/zeron/**", "scripts/ci/**", ".github/actions/linux-ci/**",
+    "core": CARGO + ["crates/**", "apps/naive/**", "scripts/ci/**", ".github/actions/linux-ci/**",
                      ".github/workflows/ui-tests.yml"],
     "cursor": CARGO + ["crates/harness/**", "crates/doc/**", "crates/engine/**",
                        "scripts/*cursor-sdk*", ".github/workflows/cursor-*.yml"],
     "edge": ["edge/**", ".github/workflows/preview-tests.yml"],
     "installer": ["edge/src/install.sh", "scripts/package-linux.sh", "scripts/test-linux-desktop-entry.sh",
-                  "scripts/ci/apt-install.sh", "dist/zeron.desktop", "dist/zeron.png",
+                  "scripts/ci/apt-install.sh", "dist/naive.desktop", "dist/naive.png",
                   ".github/workflows/linux-installer.yml"],
     "voice": CARGO + VOICE_PATHS,
-    "windows": CARGO + ["crates/**", "apps/zeron/**", "dist/windows/**", "scripts/test-windows-*.ps1",
+    "windows": CARGO + ["crates/**", "apps/naive/**", "dist/windows/**", "scripts/test-windows-*.ps1",
                         "scripts/package-windows.ps1", ".github/actions/windows-ci-setup/**",
                         ".github/workflows/windows.yml"],
-    "macos": CARGO + ["crates/**", "apps/zeron/**", "dist/macos/Info.plist", ".github/workflows/macos.yml"],
+    "macos": CARGO + ["crates/**", "apps/naive/**", "dist/macos/Info.plist", ".github/workflows/macos.yml"],
     "ios": CARGO + MOBILE_CORE + ["apps/ios/**", "scripts/ios/**", ".github/workflows/macos.yml"],
-    "android": CARGO + ["apps/android/**", "crates/**", "scripts/android/**", "apps/ios/Zeron/Fonts/**",
-                        "apps/ios/Zeron/Assets.xcassets/**", ".github/workflows/android.yml"],
+    "android": CARGO + ["apps/android/**", "crates/**", "scripts/android/**", "apps/ios/Naive/Fonts/**",
+                        "apps/ios/Naive/Assets.xcassets/**", ".github/workflows/android.yml"],
     # The zgx interface (its own workspace: apps/zgx/Cargo.lock) with its Rust and
     # Luau UI tests, and the engine's plugin host (also on macOS here; core-tests
     # runs it on Linux).
@@ -134,17 +134,17 @@ BROAD: dict[str, list[str]] = {
 # Fast tier: the files that always select the platform suite...
 FAST_PATHS: dict[str, list[str]] = {
     "voice": VOICE_PATHS,
-    "windows": CARGO + ["apps/zeron/**", "dist/windows/**", "scripts/test-windows-*.ps1",
+    "windows": CARGO + ["apps/naive/**", "dist/windows/**", "scripts/test-windows-*.ps1",
                         "scripts/package-windows.ps1", ".github/actions/windows-ci-setup/**",
                         ".github/workflows/windows.yml", "crates/update/**", "crates/cli/**",
                         "crates/launch/**"],
-    "macos": CARGO + ["apps/zeron/**", "crates/update/**", "crates/cli/**", "crates/launch/**",
+    "macos": CARGO + ["apps/naive/**", "crates/update/**", "crates/cli/**", "crates/launch/**",
                       "crates/preview/**", "crates/text/**",
                       "dist/macos/Info.plist", ".github/workflows/macos.yml"],
     # The Rust is the same code the Linux suites test (no Android cfg), so a pull
     # request builds the APK for the app, the FFI crate and dependency changes.
     "android": CARGO + ["apps/android/**", "scripts/android/**", "crates/mobile/**", "crates/mobile-bindgen/**",
-                        "apps/ios/Zeron/Fonts/**", "apps/ios/Zeron/Assets.xcassets/**",
+                        "apps/ios/Naive/Fonts/**", "apps/ios/Naive/Assets.xcassets/**",
                         ".github/workflows/android.yml"],
 }
 
@@ -153,7 +153,7 @@ FAST_PATHS: dict[str, list[str]] = {
 JOB_PATHS: dict[tuple[str, str], list[str]] = {
     # Release build, packaging, installer and CLI start-up probes (`tests`
     # already compiles the binary).
-    ("windows", "app"): CARGO + ["apps/zeron/**", "dist/windows/**", "scripts/test-windows-*.ps1",
+    ("windows", "app"): CARGO + ["apps/naive/**", "dist/windows/**", "scripts/test-windows-*.ps1",
                                  "scripts/package-windows.ps1", ".github/actions/windows-ci-setup/**",
                                  ".github/workflows/windows.yml", "crates/update/**"],
     # The simulator unit tests (and the bindings they link): the app, the FFI
@@ -418,7 +418,7 @@ def main() -> int:
 
     mobile = None
     try:
-        mobile = [d + "/**" for d in sorted(reuse.Workspace(".").closure(["zeron-mobile"]))] + ["crates/mobile-bindgen/**"]
+        mobile = [d + "/**" for d in sorted(reuse.Workspace(".").closure(["naive-mobile"]))] + ["crates/mobile-bindgen/**"]
     except (OSError, ValueError, KeyError) as error:
         print(f"::warning::could not read the workspace ({error}); using the static mobile core list")
     zgx = None

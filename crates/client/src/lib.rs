@@ -1,9 +1,9 @@
-//! zeron-client — the engine-free thin client ("viewer device").
+//! naive-client — the engine-free thin client ("viewer device").
 //!
-//! A phone (or any frontend without an engine) is a *peer* on the zeron mesh:
+//! A phone (or any frontend without an engine) is a *peer* on the naive mesh:
 //! it mirrors the workspace registry, joins per-chat chat2 rooms, renders the
 //! session docs, and drives remote engines through the durable command ledger
-//! (`zeron_doc::SessionDoc::queue_command`) plus host RPCs over the device
+//! (`naive_doc::SessionDoc::queue_command`) plus host RPCs over the device
 //! relay. No agent ever runs here.
 //!
 //! # Shape
@@ -67,12 +67,12 @@ pub use workspace::{
     DeviceView, FrontPage, ProjectRef, ProjectView, PullRequestGroups, SearchField, SearchHit,
     SectionView, SessionRow, WorkspaceSnapshot, project_color_index, relative_time_label,
 };
-pub use zeron_term_link::remote::TerminalPath;
+pub use naive_term_link::remote::TerminalPath;
 
 /// Re-exported so consumers (the layout engine) name the exact doc types the
-/// transcript carries without a direct `zeron-doc` dependency.
-pub use zeron_doc::{MessagePart, MessageRole, MessageStatus, SessionMessageEntry};
-pub use zeron_proto::{
+/// transcript carries without a direct `naive-doc` dependency.
+pub use naive_doc::{MessagePart, MessageRole, MessageStatus, SessionMessageEntry};
+pub use naive_proto::{
     ChangeRequestState, ChangeRequestSummary, ChatConfig, ChatIndicator, ContextUsage,
     UserInputAnswer, UserInputQuestion, WorktreeSpec,
 };

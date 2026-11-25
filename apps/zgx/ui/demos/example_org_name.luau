@@ -55,7 +55,7 @@ return {
 			look_up(slug(name:get()))
 		end)
 		local address = ds.AddressLine {
-			prefix = "zeron.sh/",
+			prefix = "naive.sh/",
 			value = function()
 				return slug(name:get())
 			end,
@@ -101,7 +101,7 @@ return {
 							else "It's what your teammates see when they join."
 					end,
 					tone = function()
-						return if failed:get() then "$zeron.tone.danger.ink" else "$text.secondary"
+						return if failed:get() then "$naive.tone.danger.ink" else "$text.secondary"
 					end,
 					ui.column {
 						w_full = true,

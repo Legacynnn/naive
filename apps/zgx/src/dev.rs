@@ -1,12 +1,12 @@
 //! Development switches, read from the environment: on in debug builds
 //! alone, never in a release or the beta. Each one lets whoever sets the
 //! environment past a decision the user makes:
-//! - `ZERON_ZGX_DEV_PLUGINS` loads unsigned plugins with all they ask for;
-//! - `ZERON_ZGX_REVIEW` / `ZERON_ZGX_TEMPLATE_REVIEW` serve devtools (click,
+//! - `NAIVE_ZGX_DEV_PLUGINS` loads unsigned plugins with all they ask for;
+//! - `NAIVE_ZGX_REVIEW` / `NAIVE_ZGX_TEMPLATE_REVIEW` serve devtools (click,
 //!   type) on a consent window;
 //! - `ZGX_INSPECT_SOCKET` serves devtools on the main window.
 //!
-//! An agent (or anything else) launching Zeron sets its environment, so a
+//! An agent (or anything else) launching Naive sets its environment, so a
 //! shipped build reads none of them. Every read goes through `switch`
 //! (a test holds the source to it).
 
@@ -14,19 +14,19 @@ use std::ffi::OsString;
 
 /// The development switches, by name.
 pub const SWITCHES: &[&str] = &[
-    "ZERON_ZGX_DEV_PLUGINS",
-    "ZERON_ZGX_DEV_GITHUB",
-    "ZERON_ZGX_DEV_SERVICE",
-    "ZERON_ZGX_REVIEW",
-    "ZERON_ZGX_TEMPLATE_REVIEW",
+    "NAIVE_ZGX_DEV_PLUGINS",
+    "NAIVE_ZGX_DEV_GITHUB",
+    "NAIVE_ZGX_DEV_SERVICE",
+    "NAIVE_ZGX_REVIEW",
+    "NAIVE_ZGX_TEMPLATE_REVIEW",
     "ZGX_INSPECT_SOCKET",
 ];
 
 /// The switches scripts/smoke.sh drives a release build with (as it does
 /// `--inspect`): read by any build but the beta, which ignores its
-/// arguments too. `ZERON_ZGX_UI` runs other scripts as the app's;
-/// `ZERON_ZGX_NO_BROWSER` hands the sign-in page to a file.
-pub const SMOKE_SWITCHES: &[&str] = &["ZERON_ZGX_UI", "ZERON_ZGX_NO_BROWSER"];
+/// arguments too. `NAIVE_ZGX_UI` runs other scripts as the app's;
+/// `NAIVE_ZGX_NO_BROWSER` hands the sign-in page to a file.
+pub const SMOKE_SWITCHES: &[&str] = &["NAIVE_ZGX_UI", "NAIVE_ZGX_NO_BROWSER"];
 
 /// Whether this build reads `SWITCHES`.
 pub const ON: bool = cfg!(debug_assertions);
@@ -67,7 +67,7 @@ mod tests {
     /// R28: nothing else in the app reads a development switch, or asks zgx
     /// whether the environment asks for devtools (`inspect::asked` reads
     /// `ZGX_INSPECT_SOCKET` itself, in any build): each read is `switch`'s,
-    /// so a release build honours none (`ZERON_ZGX_DEV_PLUGINS` once
+    /// so a release build honours none (`NAIVE_ZGX_DEV_PLUGINS` once
     /// loaded unsigned plugins with all they asked in the shipped app).
     #[test]
     fn every_development_switch_is_read_through_switch() {

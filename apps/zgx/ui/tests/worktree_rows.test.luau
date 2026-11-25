@@ -120,8 +120,8 @@ test("the header's + starts a chat in the worktree showing, in its folder", func
 	new_here(app)
 	local pinned = app:state("screens/shell/route.luau::shell_pinned_worktree") :: any
 	expect(pinned).never.to_be_nil()
-	expect(pinned.cwd).to_be("/Users/me/.zeron/worktrees/atlas/quick-fox")
-	expect(pinned.branch).to_be("zeron/quick-fox")
+	expect(pinned.cwd).to_be("/Users/me/.naive/worktrees/atlas/quick-fox")
+	expect(pinned.branch).to_be("naive/quick-fox")
 	expect(app:error()).to_be_nil()
 end)
 
@@ -146,7 +146,7 @@ test("New chat starts a row of its own; the header's + stays in the workspace", 
 	app:frames(30)
 	new_here(app)
 	expect(app:state("chat_checkout")).to_be("local")
-	expect(app:state("chat_branch")).to_be("zeron/quick-fox")
+	expect(app:state("chat_branch")).to_be("naive/quick-fox")
 	expect(app:state("shell_workspace_pick")).to_be_nil()
 	app:click(`{SIDE} >> role:button "Write the docs"`)
 	app:frames(30)
@@ -175,7 +175,7 @@ test("a new chat in the worktree shows as its tab at once, and stays until put a
 	expect(app:has("#session-tab-draft")).to_be(true)
 	app:click("#session-tab-draft")
 	app:frames(30)
-	expect(app:state("chat_branch")).to_be("zeron/quick-fox")
+	expect(app:state("chat_branch")).to_be("naive/quick-fox")
 	app:click('#session-tab-draft >> role:button "Discard new chat"')
 	app:frames(30)
 	expect(app:has("#session-tab-draft")).to_be(false)
@@ -216,7 +216,7 @@ test("⌘T is another chat in the workspace showing; ⌘N starts a workspace of 
 	app:command("shell.new_tab")
 	app:frames(30)
 	expect(app:state("chat_checkout")).to_be("local")
-	expect(app:state("chat_branch")).to_be("zeron/quick-fox")
+	expect(app:state("chat_branch")).to_be("naive/quick-fox")
 	expect(app:has("#session-tab-draft")).to_be(true)
 	expect(app:state("shell_workspace_pick")).to_be_nil()
 	app:click("#session-tab-a1")
@@ -278,7 +278,7 @@ test("a terminal agent opens as a tab of the worktree, its CLI typed in", functi
 		return string.find(app:state("fixture_term_writes") or "", "claude\r", 1, true) ~= nil
 	end)).to_be(true)
 	local open_list = app:state("screens/shell/terminal_agents.luau::terminal_agents_open") :: any
-	expect(open_list[1].cwd).to_be("/Users/me/.zeron/worktrees/atlas/quick-fox")
+	expect(open_list[1].cwd).to_be("/Users/me/.naive/worktrees/atlas/quick-fox")
 	expect(app:error()).to_be_nil()
 end)
 
@@ -338,7 +338,7 @@ test("a new chat sent with a terminal agent picked starts it there, the prompt p
 	local open_list = app:state("screens/shell/terminal_agents.luau::terminal_agents_open") :: any
 	expect(#open_list).to_be(1)
 	expect(open_list[1].agent).to_be("claude")
-	expect(open_list[1].cwd).to_be("/Users/me/.zeron/worktrees/atlas/quick-fox")
+	expect(open_list[1].cwd).to_be("/Users/me/.naive/worktrees/atlas/quick-fox")
 	expect(eventually(app, function()
 		return string.find(app:state("fixture_term_writes") or "", "claude 'fix the build'\\''s tests'\r", 1, true) ~= nil
 	end)).to_be(true)

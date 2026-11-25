@@ -1,5 +1,5 @@
 -- The changed files of a commit or a pull request as one list, drawn for
--- the worst case: a thousand files, a diff of thousands of lines. Zeron's
+-- the worst case: a thousand files, a diff of thousands of lines. Naive's
 -- own Changes panel is a single virtualized list at line granularity
 -- (changes.rs: every file header, hunk header and line a row of its own;
 -- a folded file keeps no body rows), and this does the same with
@@ -256,7 +256,7 @@ local List = ui.component(function(props: ListProps): Node
 	-- The room between a row's wash and the card's edge over the first
 	-- row and under the last: the list's gap, as between the washes, so
 	-- with the wash's own inset the room is the sides' (README rule 6).
-	local gap = (ui.theme.get("zeron.list.gap") :: number?) or 2
+	local gap = (ui.theme.get("naive.list.gap") :: number?) or 2
 	-- Blocks measure themselves; the list takes the height it last saw.
 	local measured: { [string]: number } = {}
 	local remeasure = ui.use_state(0)
@@ -485,10 +485,10 @@ local List = ui.component(function(props: ListProps): Node
 						rounded = radius,
 						overflow = "hidden",
 						bg = function(): string
-							return if pinned() then (if material.see_through() then "$zeron.diff.sticky.tint" else "$zeron.diff.sticky.solid") else "transparent"
+							return if pinned() then (if material.see_through() then "$naive.diff.sticky.tint" else "$naive.diff.sticky.solid") else "transparent"
 						end,
 						backdrop_blur = function(): any
-							return if pinned() and material.see_through() then "$zeron.diff.sticky.blur" else 0
+							return if pinned() and material.see_through() then "$naive.diff.sticky.blur" else 0
 						end,
 						-- Keep the row's original width and text column; inset only
 						-- the glass and its clip, not the content's geometry.
@@ -922,7 +922,7 @@ function M.panel(props: Panel): Node
 		},
 	}
 	local function rule(): Node
-		return ui.div { h = 1, w_full = true, shrink = 0, bg = "$zeron.settings.rule", aria_hidden = true }
+		return ui.div { h = 1, w_full = true, shrink = 0, bg = "$naive.settings.rule", aria_hidden = true }
 	end
 	-- The filter: a quiet field, a row of the card, its words on the head's
 	-- column; inset evenly, with the corner that inset gives it inside the
@@ -939,9 +939,9 @@ function M.panel(props: Panel): Node
 		grow = 1,
 		min_h = 0,
 		rounded = git.RADIUS,
-		bg = "$zeron.settings.card",
+		bg = "$naive.settings.card",
 		border = git.EDGE,
-		border_color = "$zeron.settings.edge",
+		border_color = "$naive.settings.edge",
 		overflow = "hidden",
 		head,
 		rule(),

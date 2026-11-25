@@ -3,8 +3,8 @@
 -- account — "ChatGPT account" for a ChatGPT model, "Claude account" for a
 -- Claude one — listing and switching that provider's accounts alone, so
 -- switching ChatGPT accounts never touches the Claude one. A provider with
--- no account yet that Zeron can sign in to says None and offers to add one;
--- one Zeron can't add to offers nothing more; a provider with neither has
+-- no account yet that Naive can sign in to says None and offers to add one;
+-- one Naive can't add to offers nothing more; a provider with neither has
 -- no row. On ui/chat_fixture.luau, its composer reading `agents.on_device`
 -- and `agents.logins` as the host publishes them (src/agents.rs).
 
@@ -113,7 +113,7 @@ test("a Claude model's row is its Anthropic account; switching ChatGPT never tou
 	expect(app:has('"Add Claude account"')).to_be(true)
 end)
 
-test("a provider Zeron adds keys for offers its key, on this Mac", function()
+test("a provider Naive adds keys for offers its key, on this Mac", function()
 	local app = with_model("pi/openrouter/kimi")
 	open_panel(app)
 	local row = app:tree("#model-picker-account")
@@ -144,7 +144,7 @@ test("a provider with no account yet says None and offers to add one", function(
 	expect(calls).to_contain("sign_in_to:pi:github-copilot")
 end)
 
-test("a provider with no account and nothing Zeron adds has no row", function()
+test("a provider with no account and nothing Naive adds has no row", function()
 	local app = with_model("pi/groq/llama")
 	expect(limits_shown(app)).to_be(false)
 	open_panel(app)

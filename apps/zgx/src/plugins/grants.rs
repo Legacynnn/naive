@@ -1,9 +1,9 @@
 //! What a plugin may do in zgx, from what it was allowed: a manifest's
-//! permissions mapped onto zgx's capabilities, and what Zeron shows plugins
+//! permissions mapped onto zgx's capabilities, and what Naive shows plugins
 //! of itself, named once.
 //!
 //! Plugins place their nodes by selector, anywhere (`elements` names what's
-//! there); what they read of Zeron comes as records the host keeps for each
+//! there); what they read of Naive comes as records the host keeps for each
 //! plugin, holding only what it was allowed (`records`). Every plugin is also
 //! granted `plugin:<id>`, which opens its own calls, messages, records and
 //! actions (`plugin.<id>.*`) to it alone: zgx's host actions don't know which
@@ -13,11 +13,11 @@ use zgx_script::Capability;
 
 /// The capability adding anywhere takes ("ui.add"): every contribution
 /// before or after an element asks it.
-pub const UI_ADD: &str = "zeron.ui.add";
+pub const UI_ADD: &str = "naive.ui.add";
 
 /// Adding into a slot whose place gives what only "files.read" reads:
 /// a plugin allowed both "ui.add" and "files.read".
-pub const UI_ADD_FILES: &str = "zeron.ui.add.files";
+pub const UI_ADD_FILES: &str = "naive.ui.add.files";
 
 /// Those slots: Git's, whose places give a checkout's folder, its remote
 /// and its commits' authors (`git_branch`, `git_commit`).
@@ -27,22 +27,22 @@ pub const FILES_SLOTS: &[&str] = &["git.branch", "git.commit", "git.commit.face"
 /// needs (none: every plugin). The app writes them (screens/plugins);
 /// plugins can't.
 pub const SHARED_READ: &[(&str, Option<&str>)] = &[
-    ("zeron.route", None),
-    ("zeron.appearance", None),
+    ("naive.route", None),
+    ("naive.appearance", None),
     // The locale the app shows (Settings → General → Language): a plugin's
-    // own words follow it (the SDK's `zeron.t`).
-    ("zeron.locale", None),
+    // own words follow it (the SDK's `naive.t`).
+    ("naive.locale", None),
     // The session page's session, as an id (what a record is found by).
-    ("zeron.page_session", None),
-    ("zeron.profile_id", Some("zeron.profile")),
-    ("zeron.session", Some("zeron.sessions")),
-    ("zeron.project", Some("zeron.sessions")),
-    ("zeron.device", Some("zeron.devices")),
-    ("zeron.devices", Some("zeron.devices")),
+    ("naive.page_session", None),
+    ("naive.profile_id", Some("naive.profile")),
+    ("naive.session", Some("naive.sessions")),
+    ("naive.project", Some("naive.sessions")),
+    ("naive.device", Some("naive.devices")),
+    ("naive.devices", Some("naive.devices")),
     // The draft in the window's composer, for a plugin allowed "draft":
     // `{ session, text, attachments = { { kind, name } } }`, never a path.
-    ("zeron.draft", Some("zeron.draft")),
-    // Whether the window shows and is in front (the SDK's `zeron.window`):
+    ("naive.draft", Some("naive.draft")),
+    // Whether the window shows and is in front (the SDK's `naive.window`):
     // work no one would see waits for it.
     ("zgx.window.shown", None),
     ("zgx.window.active", None),
@@ -63,7 +63,7 @@ pub const SHARED_READ: &[(&str, Option<&str>)] = &[
 /// each needs: the sidebar's filter (`{ statuses, by }`, the shell's), for
 /// a plugin allowed "ui.change" on the sidebar or its rows (it's one virtual
 /// list, so the shell filters its sessions by this instead).
-pub const SHARED_WRITE: &[(&str, &str)] = &[("sidebar.filter", "zeron.sidebar.filter")];
+pub const SHARED_WRITE: &[(&str, &str)] = &[("sidebar.filter", "naive.sidebar.filter")];
 
 /// The selectors a "ui.change" plugin names to be allowed the sidebar's
 /// filter.
@@ -71,8 +71,8 @@ const SIDEBAR: &[&str] = &["#sidebar", "#shell-sidebar", ".session-row", "hook:s
 
 /// The app's actions plugins may call, by the capability each needs.
 pub const ACTIONS: &[(&str, &str)] = &[
-    ("zeron.open", "zeron.navigate"),
-    ("zeron.compose.insert", "zeron.compose"),
+    ("naive.open", "naive.navigate"),
+    ("naive.compose.insert", "naive.compose"),
 ];
 
 /// Screens no plugin may replace, whatever it was allowed: allowing
@@ -111,7 +111,7 @@ pub fn replaceable(module: &str) -> bool {
 /// May a plugin allowed "ui.change" be given `target`? Only an element's
 /// selector, as zgx reads one: a target naming a module or everything (`*`)
 /// is never given (zgx's `OverrideElement` doesn't reach modules anyway); nor
-/// Zeron's plugin placeholders (`.plugin-…`: a plugin's tabs, pages and the
+/// Naive's plugin placeholders (`.plugin-…`: a plugin's tabs, pages and the
 /// Unverified badge, each plugin's own through "panel.tabs" and
 /// "pages.add" alone). The engine refuses such a manifest too
 /// (`change_target_problem`); this holds whatever it lists.
@@ -221,7 +221,7 @@ pub fn capabilities(id: &str, permissions: &[String], change: &[String], replace
                         .map(|t| Capability::OverrideElement(t.clone())),
                 );
                 if change.iter().any(|t| SIDEBAR.contains(&t.as_str())) {
-                    out.push(named("zeron.sidebar.filter"));
+                    out.push(named("naive.sidebar.filter"));
                 }
             }
             "ui.replace" => out.extend(
@@ -231,41 +231,41 @@ pub fn capabilities(id: &str, permissions: &[String], change: &[String], replace
                     .map(|m| Capability::OverrideModule(m.clone())),
             ),
             // Read through records (`records`), but these two follow what
-            // Zeron keeps window-wide too.
-            "profile.read" => out.push(named("zeron.profile")),
-            "sessions.read" => out.push(named("zeron.sessions")),
+            // Naive keeps window-wide too.
+            "profile.read" => out.push(named("naive.profile")),
+            "sessions.read" => out.push(named("naive.sessions")),
             // Records only: what's read is the host's to give.
             "messages.read" | "account.email" | "files.read" => {}
-            // Zeron's GitHub, lent by proxy: the host checks it on each ask
+            // Naive's GitHub, lent by proxy: the host checks it on each ask
             // (`github`), and no token reaches the plugin.
             "github" | "github.write" => {}
-            // Links go where Zeron opens links; the host checks each.
+            // Links go where Naive opens links; the host checks each.
             "links.open" => {}
             // The programs its manifest names: the host checks each run
             // (`commands`).
             "commands" => {}
-            // Banners go through Zeron's own, under its Settings.
+            // Banners go through Naive's own, under its Settings.
             "notifications" => {}
             // The agents' usage, accounts and models: the engine checks each
             // ask against what this device allowed (`plugin.<id>.agents`).
             "usage.read" | "accounts.read" | "accounts.switch" | "accounts.pin" | "models.read" | "models.set" | "messages.send" => {}
-            // Its own tabs and pages: Zeron draws a placeholder of each,
+            // Its own tabs and pages: Naive draws a placeholder of each,
             // which only this plugin may fill (replace).
             "panel.tabs" => out.push(Capability::OverrideElement(tab_selector(id))),
             "pages.add" => out.push(Capability::OverrideElement(page_selector(id))),
-            "navigate" => out.push(named("zeron.navigate")),
-            "compose" => out.push(named("zeron.compose")),
-            // Reading the composer's draft (`zeron.draft`); taking it and
+            "navigate" => out.push(named("naive.navigate")),
+            "compose" => out.push(named("naive.compose")),
+            // Reading the composer's draft (`naive.draft`); taking it and
             // putting it back are its own action's, checked by the host.
-            "draft" => out.push(named("zeron.draft")),
-            "devices" => out.push(named("zeron.devices")),
+            "draft" => out.push(named("naive.draft")),
+            "devices" => out.push(named("naive.devices")),
             "network" => out.push(Capability::Fetch),
             "clipboard" => out.push(Capability::Clipboard),
             "files" => out.push(Capability::Files),
             "web" => out.push(Capability::Web),
             "windows" => out.push(Capability::Windows),
             "scene3d" => out.push(Capability::Scene3d),
-            // The engine's: tools reach agents through Zeron's MCP server,
+            // The engine's: tools reach agents through Naive's MCP server,
             // a native server runs beside agents.
             "tools" | "native" => {}
             _ => {}
@@ -299,10 +299,10 @@ mod tests {
             got,
             vec![
                 own("focus"),
-                Capability::Named("zeron.ui.add".into()),
+                Capability::Named("naive.ui.add".into()),
                 Capability::OverrideElement(".session-row".into()),
-                Capability::Named("zeron.sidebar.filter".into()),
-                Capability::Named("zeron.sessions".into()),
+                Capability::Named("naive.sidebar.filter".into()),
+                Capability::Named("naive.sessions".into()),
                 Capability::Fetch,
             ]
         );
@@ -384,7 +384,7 @@ mod tests {
                 Capability::OverrideElement("#composer-toolbar".into()),
                 Capability::OverrideElement("hook:sidebar.sessions".into()),
                 Capability::OverrideElement("\"Send @ once\"".into()),
-                Capability::Named("zeron.sidebar.filter".into()),
+                Capability::Named("naive.sidebar.filter".into()),
             ]
         );
     }
@@ -411,10 +411,10 @@ mod tests {
     /// "draft" reads the composer's draft; "compose" alone never does.
     #[test]
     fn only_draft_reads_the_draft() {
-        let draft = Capability::Named("zeron.draft".into());
+        let draft = Capability::Named("naive.draft".into());
         assert_eq!(capabilities("stash", &s(&["draft"]), &[], &[]), vec![own("stash"), draft.clone()]);
         assert!(!capabilities("x", &s(&["compose"]), &[], &[]).contains(&draft));
-        assert!(SHARED_READ.contains(&("zeron.draft", Some("zeron.draft"))));
+        assert!(SHARED_READ.contains(&("naive.draft", Some("naive.draft"))));
     }
 
     #[test]

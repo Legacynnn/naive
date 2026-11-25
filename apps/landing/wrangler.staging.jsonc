@@ -1,14 +1,14 @@
 {
-  // The landing page's staging copy, at https://site-staging.zeron.sh: the
+  // The landing page's staging copy, at https://site-staging.naive.sh: the
   // same build as wrangler.jsonc deploys, on its own worker
-  // (zeron-landing-staging), which holds only that domain and so can never
-  // take zeron.sh.
+  // (naive-landing-staging), which holds only that domain and so can never
+  // take naive.sh.
   // Deploy: `npx wrangler deploy -c wrangler.staging.jsonc` (it builds and
   // tests first, as production's does).
   "$schema": "https://unpkg.com/wrangler/config-schema.json",
-  "name": "zeron-landing-staging",
+  "name": "naive-landing-staging",
   "compatibility_date": "2026-07-01",
-  "routes": [{ "pattern": "site-staging.zeron.sh", "custom_domain": true }],
+  "routes": [{ "pattern": "site-staging.naive.sh", "custom_domain": true }],
   "workers_dev": true,
   "build": { "command": "npm ci && npm run check && npm test" },
   "assets": {

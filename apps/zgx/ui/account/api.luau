@@ -1,4 +1,4 @@
--- What setup asks of Zeron once you're signed in: your username, whether
+-- What setup asks of Naive once you're signed in: your username, whether
 -- one is free, claiming it, and a member's card. Each is a host call
 -- (src/auth.rs) that carries the account's token, so it returns a promise:
 -- `:after(on_value, on_error)`, or its `done`, `value` and `error` read by
@@ -86,7 +86,7 @@ end
 -- (invalid, exists or failed).
 export type Invited = { sent: { string }, failed: { { email: string, error: string } } }
 
--- Invites `emails` to the organization as members; Zeron sends the emails.
+-- Invites `emails` to the organization as members; Naive sends the emails.
 function M.invite(organization_id: string, emails: { string }): any
 	return ui.call("account.invite", { organization_id = organization_id, emails = emails })
 end
@@ -123,14 +123,14 @@ function M.problem(u: string): string?
 	return nil
 end
 
--- Where a card lives, as shown (`zeron.sh/c/mara`) and as shared (the
+-- Where a card lives, as shown (`naive.sh/c/mara`) and as shared (the
 -- whole link; staging's own while setup signs into staging).
 function M.address(name: string): string
-	return `zeron.sh/c/{name}`
+	return `naive.sh/c/{name}`
 end
 
 function M.link(name: string): string
-	local host = if auth.env:peek() == "staging" then "staging.zeron.sh" else "zeron.sh"
+	local host = if auth.env:peek() == "staging" then "staging.naive.sh" else "naive.sh"
 	return `https://{host}/c/{name}`
 end
 

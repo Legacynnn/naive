@@ -37,7 +37,7 @@ local Carried = require("@app/screens/chat/carried")
 local Completions = require("@app/screens/chat/completions")
 local Find = require("@app/screens/chat/find")
 local Invocations = require("@app/screens/chat/invocations")
-local ZeronCommands = require("@app/screens/chat/zeron_commands")
+local NaiveCommands = require("@app/screens/chat/naive_commands")
 local look = require("@app/screens/shell/project_look")
 local Appshots = require("@app/screens/chat/appshots")
 local DropOverlay = require("@ds/drop_overlay")
@@ -646,7 +646,7 @@ local function composer(chat: string, view: any, name: string, focus: State<numb
 		if command == "model" then
 			open_model:add(1)
 		else
-			ZeronCommands.run(command, if unsent() then nil else chat)
+			NaiveCommands.run(command, if unsent() then nil else chat)
 		end
 	end
 	local completions = if split
@@ -834,7 +834,7 @@ local function composer(chat: string, view: any, name: string, focus: State<numb
 				edits.finish("commit")
 				return
 			end
-			-- A draft that is only one of Zeron's own commands runs it.
+			-- A draft that is only one of Naive's own commands runs it.
 			local command = if completions then completions.command_of(draft:peek()) else nil
 			if command then
 				ui.batch(function()
@@ -1163,7 +1163,7 @@ M.Tab = ui.component(function(props: { tab: any }): Node
 		return if s then s.id else nil
 	end
 	local function open_link(target: string)
-		local other = string.match(target, "^zeron%-chat:([%w%-_]+)$")
+		local other = string.match(target, "^naive%-chat:([%w%-_]+)$")
 		if other then
 			route.open_session(other)
 			return
@@ -1275,7 +1275,7 @@ M.Tab = ui.component(function(props: { tab: any }): Node
 		open_sender = function(chat: string, title: string)
 			local home = home_session()
 			if chat == home then
-				open_link(`zeron-chat:{chat}`)
+				open_link(`naive-chat:{chat}`)
 			elseif home then
 				lanes.open(home, { kind = "side_chat", id = chat, title = title })
 			end

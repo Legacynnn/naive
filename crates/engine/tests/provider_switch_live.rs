@@ -3,14 +3,14 @@
 //! tiny turns of real usage and needs both CLIs logged in):
 //!
 //! ```text
-//! cargo test -p zeron-engine --test provider_switch_live -- --ignored --nocapture
+//! cargo test -p naive-engine --test provider_switch_live -- --ignored --nocapture
 //! ```
 
 use std::time::{Duration, Instant};
 
-use zeron_doc::{MessagePart, MessageRole};
-use zeron_engine::{EngineCore, default_registry};
-use zeron_proto::{HarnessId, RunRequest, SandboxLevel, SessionStatus};
+use naive_doc::{MessagePart, MessageRole};
+use naive_engine::{EngineCore, default_registry};
+use naive_proto::{HarnessId, RunRequest, SandboxLevel, SessionStatus};
 
 const CHAT: &str = "live-switch";
 const CODEWORD: &str = "TANGERINE-4417";

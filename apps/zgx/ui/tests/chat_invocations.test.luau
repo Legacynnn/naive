@@ -66,7 +66,7 @@ test("`$` lists the skills; with the agent's `$` off it's plain text, and with `
 	app:set_state(PREFS, {})
 end)
 
-test("a Codex chat whose model the catalog doesn't name lists Codex's commands and skills in `/`, then Zeron's", function()
+test("a Codex chat whose model the catalog doesn't name lists Codex's commands and skills in `/`, then Naive's", function()
 	local app = mount("chat_fixture.luau")
 	app:resize(900, 700)
 	app:command("codex_model_less")
@@ -74,7 +74,7 @@ test("a Codex chat whose model the catalog doesn't name lists Codex's commands a
 	settle(app)
 	app:type("role:textbox", "/")
 	settle(app)
-	-- Its own agent asked (not none, which left Zeron's commands alone).
+	-- Its own agent asked (not none, which left Naive's commands alone).
 	expect(app:state("calls")).to_contain("invocations:codex:s3")
 	expect(app:has('role:option "/review"')).to_be(true)
 	expect(app:has('role:option "/compact"')).to_be(true)
@@ -111,7 +111,7 @@ test("a command picked lands as its token and is sent as its reference; one type
 	-- (It goes to the host as it joins the transcript.)
 	expect(app:wait('~"the branch"', { timeout_ms = 2000 })).to_be(true)
 	local calls = app:state("calls")
-	expect(calls).to_contain("send:s2:[/review](zeron-invoke:7b226b696e64223a22636f6d6d616e64222c226e616d65223a22726576696577227d) the branch, then /compact by hand")
+	expect(calls).to_contain("send:s2:[/review](naive-invoke:7b226b696e64223a22636f6d6d616e64222c226e616d65223a22726576696577227d) the branch, then /compact by hand")
 end)
 
 test("narrowing the list lights the row now at its top, and the arrows move the light", function()
@@ -173,7 +173,7 @@ test("skills sent in a prompt show in its bubble as their names, not as their re
 	settle(app)
 	expect(app:wait('~"and again"', { timeout_ms = 2000 })).to_be(true)
 	local bubble = app:tree("#transcript")
-	expect(bubble:find("zeron-invoke", 1, true)).to_be(nil)
+	expect(bubble:find("naive-invoke", 1, true)).to_be(nil)
 	-- (A skill's chip by its name alone: no `$`.)
 	expect(bubble:find("$code-review", 1, true)).to_be(nil)
 	local _, shown = string.gsub(bubble, "code%-review", "")
@@ -195,16 +195,16 @@ test("a draft whose last word is a trigger nothing matches still sends on Enter"
 	end
 end)
 
-test("Zeron's own commands end the `/` list, named clear of the agent's, and only a chat's in a chat", function()
+test("Naive's own commands end the `/` list, named clear of the agent's, and only a chat's in a chat", function()
 	local app = chat()
 	app:type("role:textbox", "/")
 	settle(app)
 	expect(app:has('role:option "/model"')).to_be(true)
 	expect(app:has('role:option "/stop"')).to_be(true)
-	expect(app:has('~"Zeron: open settings"')).to_be(true)
-	-- The agent has a `/new`: it keeps it, and Zeron's is `/zeron:new`.
+	expect(app:has('~"Naive: open settings"')).to_be(true)
+	-- The agent has a `/new`: it keeps it, and Naive's is `/naive:new`.
 	expect(app:has('role:option "/new"')).to_be(true)
-	expect(app:has('role:option "/zeron:new"')).to_be(true)
+	expect(app:has('role:option "/naive:new"')).to_be(true)
 	-- A new chat (no session): none of a chat's own.
 	app:key("Escape")
 	app:fill("role:textbox", "")
@@ -217,7 +217,7 @@ test("Zeron's own commands end the `/` list, named clear of the agent's, and onl
 	expect(app:has('role:option "/rename"')).to_be(false)
 end)
 
-test("one of Zeron's own picked runs at once, its token gone and the rest kept; a draft of only it runs as it's sent", function()
+test("one of Naive's own picked runs at once, its token gone and the rest kept; a draft of only it runs as it's sent", function()
 	local app = chat()
 	app:type("role:textbox", "Keep this /sto")
 	settle(app)
@@ -239,10 +239,10 @@ end)
 
 -- (`/rename` opens the sidebar's rename, which reads the host's places:
 -- the fixture has none, so it's left to the app.)
-test("every one of Zeron's own runs from the chat page without an error", function()
-	-- (The fixture's agent has a `/new` of its own, so Zeron's is
-	-- `/zeron:new`: `/new` goes to the agent, as it should.)
-	for _, name in { "model", "resume", "settings", "files", "terminal", "zeron:new" } do
+test("every one of Naive's own runs from the chat page without an error", function()
+	-- (The fixture's agent has a `/new` of its own, so Naive's is
+	-- `/naive:new`: `/new` goes to the agent, as it should.)
+	for _, name in { "model", "resume", "settings", "files", "terminal", "naive:new" } do
 		local app = chat()
 		app:type("role:textbox", `/{name}`)
 		settle(app)

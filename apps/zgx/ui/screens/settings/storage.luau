@@ -750,7 +750,7 @@ local function app_page(): Node
 			title = ui.t("settings.storage.app.title"),
 			description = function(): string
 				local u = usage:get()
-				return ui.t("settings.storage.app.page", { path = if u then u.root else "~/.zeron" }):get()
+				return ui.t("settings.storage.app.page", { path = if u then u.root else "~/.naive" }):get()
 			end,
 			ds.Settings.Group(rows :: any),
 		}

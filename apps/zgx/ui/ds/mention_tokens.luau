@@ -136,7 +136,7 @@ function M.pick(text: string, caret: number, item: Item, sources: Sources): (num
 	if not t then
 		return nil, nil, nil, nil
 	end
-	-- (An action, as Zeron's own `/model`: taken, its token goes.)
+	-- (An action, as Naive's own `/model`: taken, its token goes.)
 	if (item :: any).consume then
 		return t.from, t.to, "", ""
 	end
@@ -231,8 +231,8 @@ function M.highlight(line: string, state: number): ({ { any } }, number)
 				last -= 1
 			end
 			if last > from then
-				local ink = if trigger == "@" then "$zeron.composer.token.file" else "$zeron.composer.token.action"
-				table.insert(spans, { from, from, "$zeron.composer.token.trigger" } :: any)
+				local ink = if trigger == "@" then "$naive.composer.token.file" else "$naive.composer.token.action"
+				table.insert(spans, { from, from, "$naive.composer.token.trigger" } :: any)
 				table.insert(spans, { from + 1, last, ink, weight = 500 } :: any)
 			end
 		end

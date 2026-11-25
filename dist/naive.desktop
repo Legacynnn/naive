@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Naive
+GenericName=Coding Agent Controller
+Comment=Multi-device controller for coding agents
+Exec=naive %u
+TryExec=naive
+Icon=naive
+Terminal=false
+StartupNotify=true
+Categories=Development;Utility;
+Keywords=agent;claude;codex;ai;coding;
+StartupWMClass=naive
+MimeType=x-scheme-handler/naive;

@@ -13,12 +13,12 @@ param(
   [string[]] $ExtraPath = @(),
   [switch] $CheckOnly,
   [string] $AfterApply = "",  # run while applywatch runs (W3, W6)
-  [string] $BeforeExe = ""     # default: ..\zeron-before\target-before\debug\zeron-engine.exe
+  [string] $BeforeExe = ""     # default: ..\naive-before\target-before\debug\naive-engine.exe
 )
 $ErrorActionPreference = "Stop"
-$rig = "$env:TEMP\zeron-rig"
+$rig = "$env:TEMP\naive-rig"
 $repo = (Resolve-Path "$PSScriptRoot\..\..").Path
-$exe = if ($Label -eq "after") { "$repo\target\debug\zeron-engine.exe" } else { if ($BeforeExe) { $BeforeExe } else { "$repo\..\zeron-before\target-before\debug\zeron-engine.exe" } }
+$exe = if ($Label -eq "after") { "$repo\target\debug\naive-engine.exe" } else { if ($BeforeExe) { $BeforeExe } else { "$repo\..\naive-before\target-before\debug\naive-engine.exe" } }
 $c = "$repo\scripts\provider-update-rig\rigclient\target\debug\rigclient.exe"
 if ($Port -eq 27654) { throw "never the real engine's port" }
 
@@ -28,14 +28,14 @@ $data = "$run\data"; $home_ = "$run\home"
 foreach ($d in $data, $home_, "$home_\AppData\Roaming", "$home_\AppData\Local", "$run\tmp") { New-Item -ItemType Directory -Force $d | Out-Null }
 
 $vars = @{
-  ZERON_DATA_DIR = $data; ZERON_IPC_PORT = "$Port"
-  ZERON_EDGE_URL = "http://127.0.0.1:1"; ZERON_DISABLE_NOTIFICATIONS = "1"; ZERON_AUTO_UPDATE = "0"
-  ZERON_NO_LOGIN_SHELL = "1"
+  NAIVE_DATA_DIR = $data; NAIVE_IPC_PORT = "$Port"
+  NAIVE_EDGE_URL = "http://127.0.0.1:1"; NAIVE_DISABLE_NOTIFICATIONS = "1"; NAIVE_AUTO_UPDATE = "0"
+  NAIVE_NO_LOGIN_SHELL = "1"
   USERPROFILE = $home_; HOME = $home_
   APPDATA = "$home_\AppData\Roaming"; LOCALAPPDATA = "$home_\AppData\Local"
   TEMP = "$run\tmp"; TMP = "$run\tmp"
   PATH = (@($ExtraPath) + @("C:\Windows\System32", "C:\Windows", "C:\Windows\System32\Wbem", "C:\Windows\System32\WindowsPowerShell\v1.0")) -join ";"
-  RUST_LOG = "info,zeron_engine=debug"
+  RUST_LOG = "info,naive_engine=debug"
 }
 $pins = @{ "claude-code"="CLAUDE_CODE_EXECUTABLE"; codex="CODEX_EXECUTABLE"; grok="GROK_EXECUTABLE"; devin="DEVIN_EXECUTABLE"
            fx="FX_EXECUTABLE"; hermes="HERMES_EXECUTABLE"; pi="PI_EXECUTABLE"; opencode="OPENCODE_EXECUTABLE"

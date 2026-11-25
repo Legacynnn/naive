@@ -1,5 +1,5 @@
 -- What a plugin allowed "compose" puts in a chat's draft
--- (`zeron.compose(text, opts)`, handed on by screens/plugins as the host
+-- (`naive.compose(text, opts)`, handed on by screens/plugins as the host
 -- asks it): after what's there, or in place of its words with its chips
 -- kept (`replace`), in the chat shown or another (`session`), never sent.
 -- On the shell in ui/shell_fixture.luau, the host's asks made here.

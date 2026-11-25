@@ -1,4 +1,4 @@
--- Zeron's light theme on its solid window: muted text darkens to stay legible
+-- Naive's light theme on its solid window: muted text darkens to stay legible
 -- there, the window, sidebar and page stay one colour (no card, no edge of
 -- their own), glass keeps its own tones, and the dark theme is untouched.
 -- Driven through Settings on the shell in ui/shell_fixture.luau.
@@ -37,8 +37,8 @@ test("light: muted text is the solid window's when opaque, and glass's when fros
 	app:click(`{PAGE} >> role:switch "Frosted glass"`)
 	app:frames(10)
 	local secondary, tertiary = muted(app)
-	expect(secondary).to_be("$zeron.solid.secondary")
-	expect(tertiary).to_be("$zeron.solid.tertiary")
+	expect(secondary).to_be("$naive.solid.secondary")
+	expect(tertiary).to_be("$naive.solid.tertiary")
 	-- The page and sidebar wear the theme's own fill and edge: one colour
 	-- with the window, no card.
 	local t = read(app)

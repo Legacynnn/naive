@@ -29,7 +29,7 @@ ui.command {
 	id = "fixture.metrics.type",
 	title = "Larger composer type",
 	run = function()
-		ui.theme.tokens { zeron = { composer = { text = 18, line = 28 } } }
+		ui.theme.tokens { naive = { composer = { text = 18, line = 28 } } }
 	end,
 }
 
@@ -44,8 +44,8 @@ return ui.div {
 			value = value,
 			w_full = true,
 			h = 22,
-			text_size = "$zeron.composer.text",
-			line_height = "$zeron.composer.line",
+			text_size = "$naive.composer.text",
+			line_height = "$naive.composer.line",
 			highlight = function(line)
 				local a, b = string.find(line, "@[%w_]+")
 				return if a then { { a, b, weight = 700 } } else {}

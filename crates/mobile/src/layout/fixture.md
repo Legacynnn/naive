@@ -2,7 +2,7 @@
 
 The **transcript** is laid out _analytically_: every row's height is known
 before it is shown, so scrolling never guesses. Inline `code spans` get chips,
-[links](https://zeron.sh/docs) are tappable, and ~~old ideas~~ are struck.
+[links](https://naive.sh/docs) are tappable, and ~~old ideas~~ are struck.
 
 ## Steps
 
@@ -29,9 +29,9 @@ fn main() {
 
 | Crate | Role | Lines |
 |:------|:----:|------:|
-| zeron-text | measurement + line breaking | 3,100 |
-| zeron-markdown | incremental parse | 1,700 |
-| zeron-mobile | layout + FFI | 1,400 |
+| naive-text | measurement + line breaking | 3,100 |
+| naive-markdown | incremental parse | 1,700 |
+| naive-mobile | layout + FFI | 1,400 |
 
 Math sits on the line: $E = mc^2$, $\frac{a}{b}$ and $\sum_{i=1}^{n} x_i$ grow
 their lines only as much as they need.

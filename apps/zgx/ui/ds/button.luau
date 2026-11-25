@@ -1,4 +1,4 @@
--- Buttons, as Zeron's are: 8-point corners (6 small) unless `shape =
+-- Buttons, as Naive's are: 8-point corners (6 small) unless `shape =
 -- "pill"`. `Button { "Continue", on_click = … }` is the primary; `tone`
 -- picks its weight (`danger` for a confirm that can't be taken back),
 -- `size` its height (`xs`, a header's or a bar's, the panel controls' 24). An icon goes beside the text as a
@@ -20,44 +20,44 @@ local recipe = ui.variants {
 		tone = {
 			-- The way on: one per screen.
 			primary = {
-				bg = "$zeron.primary.bg",
-				color = "$zeron.primary.text",
-				hover = { bg = "$zeron.primary.hover" },
-				active = { bg = "$zeron.primary.active" },
+				bg = "$naive.primary.bg",
+				color = "$naive.primary.text",
+				hover = { bg = "$naive.primary.hover" },
+				active = { bg = "$naive.primary.active" },
 			},
 			-- Beside it: a fill, firmer as it is touched.
 			secondary = {
-				bg = "$zeron.secondary.bg",
+				bg = "$naive.secondary.bg",
 				color = "$text.primary",
-				hover = { bg = "$zeron.secondary.hover" },
-				active = { bg = "$zeron.secondary.active" },
+				hover = { bg = "$naive.secondary.hover" },
+				active = { bg = "$naive.secondary.active" },
 			},
 			-- Back, Skip: text until touched.
 			ghost = {
 				bg = "#00000000",
 				color = "$text.secondary",
-				hover = { bg = "$zeron.secondary.bg", color = "$text.primary" },
-				active = { bg = "$zeron.secondary.hover", color = "$text.primary" },
+				hover = { bg = "$naive.secondary.bg", color = "$text.primary" },
+				active = { bg = "$naive.secondary.hover", color = "$text.primary" },
 			},
 			accent = {
 				bg = "$accent",
 				color = "$accent.text",
 				hover = { bg = "$accent.hover" },
-				active = { bg = "$zeron.accent.active" },
+				active = { bg = "$naive.accent.active" },
 			},
 			-- Delete, Discard: a confirm that can't be taken back.
 			danger = {
-				bg = "$zeron.destructive.bg",
-				color = "$zeron.destructive.text",
-				hover = { bg = "$zeron.destructive.hover" },
-				active = { bg = "$zeron.destructive.active" },
+				bg = "$naive.destructive.bg",
+				color = "$naive.destructive.text",
+				hover = { bg = "$naive.destructive.hover" },
+				active = { bg = "$naive.destructive.active" },
 			},
 		},
 		size = {
 			-- A header's or a bar's: the panel's controls' height (its icon
 			-- buttons', its chips'), their padding and corner.
-			xs = { h = 24, px = "$zeron.space.tight", rounded = "$radius.lg", text_size = "$font.size.sm" },
-			sm = { h = 28, px = "$zeron.space.snug", rounded = "$radius.md", text_size = "$font.size.sm" },
+			xs = { h = 24, px = "$naive.space.tight", rounded = "$radius.lg", text_size = "$font.size.sm" },
+			sm = { h = 28, px = "$naive.space.snug", rounded = "$radius.md", text_size = "$font.size.sm" },
 			md = { h = "$control.height", px = "$space.3", rounded = "$radius.lg", text_size = "$font.size.md" },
 			lg = { h = 40, px = "$space.5", rounded = "$radius.lg", text_size = "$font.size.lg" },
 		},
@@ -92,11 +92,11 @@ export type Props = Merge<ContainerProps, {
 
 -- The spinner in each tone's text colour, and at each size.
 local INK: { [string]: string } = {
-	primary = "$zeron.primary.text",
+	primary = "$naive.primary.text",
 	secondary = "$text.primary",
 	ghost = "$text.secondary",
 	accent = "$accent.text",
-	danger = "$zeron.destructive.text",
+	danger = "$naive.destructive.text",
 }
 local SPIN: { [string]: number } = { sm = 12, md = 14, lg = 16 }
 

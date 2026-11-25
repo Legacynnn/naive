@@ -1,4 +1,4 @@
-//! The Zeron engine this app works through: its account (src/auth.rs), the
+//! The Naive engine this app works through: its account (src/auth.rs), the
 //! agents on this Mac (src/agents.rs) and GitHub for Cloud (src/github.rs)
 //! are all the engine's, reached over its local IPC ([`rpc`]). One
 //! connection for every window, kept open: dialled again when it drops,
@@ -132,7 +132,7 @@ pub fn install(cx: &mut WindowContext) {
 pub fn start_ahead() {
     let engine = get();
     if let Ok(config) = &engine.config
-        && !zeron_launch::data_dir_held(&config.data_dir)
+        && !naive_launch::data_dir_held(&config.data_dir)
     {
         engine.spawner.borrow_mut().start_if_due(config);
     }
@@ -155,8 +155,8 @@ impl Engine {
         let account = crate::auth::endpoint();
         let config = Config::from_env(&account.edge, &account.client, account.port);
         match &config {
-            Ok(config) => eprintln!("zeron-zgx: engine: {}", config.describe()),
-            Err(why) => eprintln!("zeron-zgx: engine: refused ({why}); nothing that needs it works"),
+            Ok(config) => eprintln!("naive-zgx: engine: {}", config.describe()),
+            Err(why) => eprintln!("naive-zgx: engine: refused ({why}); nothing that needs it works"),
         }
         Self {
             config,
@@ -307,7 +307,7 @@ impl Engine {
 
     /// Whether this device keeps its chats local while signed in.
     pub fn keeps_chats_local(&self) -> bool {
-        self.data_dir().is_some_and(|dir| zeron_proto::keeps_chats_local(&dir))
+        self.data_dir().is_some_and(|dir| naive_proto::keeps_chats_local(&dir))
     }
 
     /// Keep this device's chats local while signed in, or sync them again:
@@ -315,7 +315,7 @@ impl Engine {
     /// if its workspace no longer follows (see [`manager::needs_restart`]).
     pub fn keep_chats_local(&self, on: bool) -> Result<(), String> {
         let dir = self.data_dir().ok_or("offline")?;
-        zeron_proto::set_keep_chats_local(&dir, on).map_err(|error| error.to_string())?;
+        naive_proto::set_keep_chats_local(&dir, on).map_err(|error| error.to_string())?;
         self.follow_session();
         Ok(())
     }
@@ -331,9 +331,9 @@ impl Engine {
         };
         self.restarting.set(true);
         if keep_local {
-            eprintln!("zeron-zgx: engine: chats kept on this device; starting it again on the local workspace");
+            eprintln!("naive-zgx: engine: chats kept on this device; starting it again on the local workspace");
         } else {
-            eprintln!("zeron-zgx: engine: signed in on a local workspace; starting it again to sync");
+            eprintln!("naive-zgx: engine: signed in on a local workspace; starting it again to sync");
         }
         self.spawn(async move {
             // It answers, then stops; the connection ends and a new engine
@@ -341,7 +341,7 @@ impl Engine {
             if let Err(error) = rpc.call("StopEngine", json!({})).await
                 && error != "closed"
             {
-                eprintln!("zeron-zgx: engine: didn't stop: {error}");
+                eprintln!("naive-zgx: engine: didn't stop: {error}");
             }
         });
     }
@@ -366,7 +366,7 @@ impl Engine {
             // No engine holds the data dir (a launch after a restart of the
             // computer, or after the engine stopped): none is running, so
             // one is started before dialling, not once a dial is refused.
-            if !zeron_launch::data_dir_held(&config.data_dir) {
+            if !naive_launch::data_dir_held(&config.data_dir) {
                 self.spawner.borrow_mut().start_if_due(config);
             }
             match rpc::connect(config.port, token.clone()).await {
@@ -376,7 +376,7 @@ impl Engine {
                     said_unreachable = false;
                     refused = None;
                     self.answered.set(true);
-                    eprintln!("zeron-zgx: engine: connected");
+                    eprintln!("naive-zgx: engine: connected");
                     *self.rpc.borrow_mut() = Some(rpc.clone());
                     self.scope.borrow_mut().take();
                     self.restarting.set(false);
@@ -396,7 +396,7 @@ impl Engine {
                     let reason = rpc.pump().await;
                     self.rpc.borrow_mut().take();
                     self.down_since.set(Instant::now());
-                    eprintln!("zeron-zgx: engine: connection ended ({reason})");
+                    eprintln!("naive-zgx: engine: connection ended ({reason})");
                 }
                 Err(DialError::Refused) => {
                     refused = None;
@@ -413,7 +413,7 @@ impl Engine {
                 Err(DialError::Unauthorized) => {
                     if stale && said.as_deref() != Some(STALE_TOKEN) {
                         eprintln!(
-                            "zeron-zgx: engine: {STALE_TOKEN} ({}): trying it again less often",
+                            "naive-zgx: engine: {STALE_TOKEN} ({}): trying it again less often",
                             config.data_dir.join("ipc-token").display()
                         );
                         said = Some(STALE_TOKEN.to_string());
@@ -424,7 +424,7 @@ impl Engine {
                 Err(DialError::Other(error)) => {
                     refused = None;
                     if said.as_deref() != Some(&error) {
-                        eprintln!("zeron-zgx: engine: can't connect: {error}");
+                        eprintln!("naive-zgx: engine: can't connect: {error}");
                         said = Some(error);
                     }
                 }

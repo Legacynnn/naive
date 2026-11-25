@@ -1,46 +1,46 @@
 //! Which engine this app works through, and keeping it running: the one
 //! place that starts, restarts and refuses engines.
 //!
-//! **Zeron.app's beta** (the `beta` feature: this interface as the Zeron app
-//! itself, scripts/package-zgx-macos.sh) manages Zeron.app's own engine, as
+//! **Naive.app's beta** (the `beta` feature: this interface as the Naive app
+//! itself, scripts/package-zgx-macos.sh) manages Naive.app's own engine, as
 //! the shipping app does (crates/engine/src/managed.rs, through the same
-//! crates/launch): the bundle's `Contents/MacOS/Zeron Engine`, started
-//! detached with `ZERON_MANAGED_ENGINE` and the bundle as `ZERON_APP`, its
-//! data in `ZERON_DATA_DIR` or ~/.zeron (crates/cli's paths), on
-//! `ZERON_IPC_PORT` or 27654. One already serving that port is used as it is
+//! crates/launch): the bundle's `Contents/MacOS/Naive Engine`, started
+//! detached with `NAIVE_MANAGED_ENGINE` and the bundle as `NAIVE_APP`, its
+//! data in `NAIVE_DATA_DIR` or ~/.naive (crates/cli's paths), on
+//! `NAIVE_IPC_PORT` or 27654. One already serving that port is used as it is
 //! (the shipping app's, before this one was installed). It signs in against
 //! production only (src/auth.rs), and a staging engine (port 27871,
-//! ~/.zeron-staging) or any other edge is refused. No more devices, no other
+//! ~/.naive-staging) or any other edge is refused. No more devices, no other
 //! data: the same engine as before the beta. When the bundle is replaced by a
 //! newer one, the engine restarts into it by itself once nothing runs
 //! (crates/update `SupersededRestart`, weighing the bundle's
-//! `ZeronEngineVersion`).
+//! `NaiveEngineVersion`).
 //!
 //! **Development builds** work through a staging engine: the one at
-//! `ZERON_ZGX_ENGINE_PORT` (27871) with its data in `ZERON_ZGX_ENGINE_DATA`
-//! (~/.zeron-staging), scripts/staging-app.sh's. One already serving that port
-//! is used as it is; otherwise this app starts `zeron-engine`
-//! (`ZERON_ZGX_ENGINE_BIN`, or this checkout's `target/debug/zeron-engine`:
-//! `cargo build -p zeron --bin zeron-engine` at the repository's root)
+//! `NAIVE_ZGX_ENGINE_PORT` (27871) with its data in `NAIVE_ZGX_ENGINE_DATA`
+//! (~/.naive-staging), scripts/staging-app.sh's. One already serving that port
+//! is used as it is; otherwise this app starts `naive-engine`
+//! (`NAIVE_ZGX_ENGINE_BIN`, or this checkout's `target/debug/naive-engine`:
+//! `cargo build -p naive --bin naive-engine` at the repository's root)
 //! against the same edge and sign-in client as `src/auth.rs`'s, detached, so
 //! it outlives the app as the shipping app's engine does.
 //!
-//!   ZERON_ZGX_ENGINE_PORT=<n>     the engine's IPC port (27871)
-//!   ZERON_ZGX_ENGINE_DATA=<dir>   its data dir (~/.zeron-staging)
-//!   ZERON_ZGX_ENGINE_BIN=<path>   the engine to start when none answers
-//!   ZERON_ZGX_ENGINE_HOME=<dir>   a home of its own for the engine it starts
+//!   NAIVE_ZGX_ENGINE_PORT=<n>     the engine's IPC port (27871)
+//!   NAIVE_ZGX_ENGINE_DATA=<dir>   its data dir (~/.naive-staging)
+//!   NAIVE_ZGX_ENGINE_BIN=<path>   the engine to start when none answers
+//!   NAIVE_ZGX_ENGINE_HOME=<dir>   a home of its own for the engine it starts
 //!                                 (HOME, CLAUDE_CONFIG_DIR, CODEX_HOME), so
 //!                                 the agents' logins it reads and writes are
 //!                                 that dir's, not this Mac's: for trying
 //!                                 sign-ins with throwaway state
-//!   ZERON_ZGX_ENGINE_SPAWN=0      never start one; only use one that runs
+//!   NAIVE_ZGX_ENGINE_SPAWN=0      never start one; only use one that runs
 //!
 //! A development build never uses the production engine by accident: ports
-//! 27654 and 27655 (Zeron v3's on Windows), ~/.zeron (and the pre-0.2.0
-//! ~/.comet-native) and, on Windows, %LOCALAPPDATA%\Zeron are refused unless
+//! 27654 and 27655 (Naive v3's on Windows), ~/.naive (and the pre-0.2.0
+//! ~/.comet-native) and, on Windows, %LOCALAPPDATA%\Naive are refused unless
 //! it's asked for by name:
 //!
-//!   ZERON_ZGX_ENGINE_PRODUCTION=1 the production engine is allowed (the real
+//!   NAIVE_ZGX_ENGINE_PRODUCTION=1 the production engine is allowed (the real
 //!                                 chats: for comparing against the shipping
 //!                                 app; never sign out from it)
 //!
@@ -55,26 +55,26 @@ use std::time::{Duration, Instant};
 
 /// The production engine's data dirs, relative to home: today's and the one
 /// it was renamed from in 0.2.0.
-const PRODUCTION_DATA: &[&str] = &[".zeron", ".comet-native"];
+const PRODUCTION_DATA: &[&str] = &[".naive", ".comet-native"];
 
-/// The ports the production engine serves: Zeron's, and the one Zeron v3's
+/// The ports the production engine serves: Naive's, and the one Naive v3's
 /// Windows install serves beside it.
-const PRODUCTION_PORTS: &[u16] = &[zeron_cli::DEFAULT_IPC_PORT, 27655];
+const PRODUCTION_PORTS: &[u16] = &[naive_cli::DEFAULT_IPC_PORT, 27655];
 
 /// The production engine's data dirs: [`PRODUCTION_DATA`] under home, and on
-/// Windows where zeron_cli puts it there (%LOCALAPPDATA%\Zeron, which no
+/// Windows where naive_cli puts it there (%LOCALAPPDATA%\Naive, which no
 /// HOME moves).
 fn production_dirs(var: &impl Fn(&str) -> Option<String>, home: &Path) -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = PRODUCTION_DATA.iter().map(|dir| home.join(dir)).collect();
     if cfg!(windows) {
         let local = var("LOCALAPPDATA").map(PathBuf::from).or_else(|| var("USERPROFILE").map(|p| Path::new(&p).join("AppData").join("Local")));
-        dirs.extend(local.map(|local| local.join("Zeron")));
+        dirs.extend(local.map(|local| local.join("Naive")));
     }
     dirs
 }
 
 const STAGING_PORT: u16 = 27871;
-const STAGING_DATA: &str = ".zeron-staging";
+const STAGING_DATA: &str = ".naive-staging";
 
 const BETA: bool = cfg!(feature = "beta");
 
@@ -92,7 +92,7 @@ pub struct Config {
     edge: String,
     client: String,
     callback_port: u16,
-    /// Zeron.app's engine, managed as Zeron.app manages it (the beta): its
+    /// Naive.app's engine, managed as Naive.app manages it (the beta): its
     /// bundle's, started through crates/launch; it restarts into a newer
     /// bundle by itself.
     managed: bool,
@@ -102,7 +102,7 @@ pub struct Config {
 pub type Refusal = String;
 
 /// The file in an engine's data dir holding the build of the engine this
-/// app started there last (`zeron-engine --build-id`): an engine reporting
+/// app started there last (`naive-engine --build-id`): an engine reporting
 /// that build is one this app started.
 const STARTED: &str = "zgx-started-build";
 
@@ -112,14 +112,14 @@ impl Config {
         if self.spawn { self.bin.as_deref() } else { None }
     }
 
-    /// Whether this is Zeron.app's engine, which follows its bundle by
+    /// Whether this is Naive.app's engine, which follows its bundle by
     /// itself (no "older than the one on disk" of this app's to judge).
     pub fn follows_bundle(&self) -> bool {
         self.managed
     }
 }
 
-/// Which build `bin` is (`zeron-engine --build-id`), if it says; an engine
+/// Which build `bin` is (`naive-engine --build-id`), if it says; an engine
 /// from before build ids doesn't.
 pub fn build_of(bin: &Path) -> Option<String> {
     let out = std::process::Command::new(bin)
@@ -158,14 +158,14 @@ impl Config {
         callback_port: u16,
     ) -> Result<Self, Refusal> {
         if BETA {
-            Self::zeron_app(var, home, exe, edge, client, callback_port)
+            Self::naive_app(var, home, exe, edge, client, callback_port)
         } else {
             Self::staging(var, home, edge, client, callback_port)
         }
     }
 
-    /// The beta's: Zeron.app's engine, resolved as Zeron.app resolves it.
-    fn zeron_app(
+    /// The beta's: Naive.app's engine, resolved as Naive.app resolves it.
+    fn naive_app(
         var: impl Fn(&str) -> Option<String>,
         home: &Path,
         exe: Option<&Path>,
@@ -177,8 +177,8 @@ impl Config {
         if (edge, client, callback_port) != (production.edge.as_str(), production.client.as_str(), production.port) {
             return Err(format!("{edge} isn't production's edge and sign-in"));
         }
-        let port = zeron_cli::ipc_port_from(var("ZERON_IPC_PORT").as_deref());
-        let data_dir = zeron_cli::paths::resolve_data_dir(|key| match key {
+        let port = naive_cli::ipc_port_from(var("NAIVE_IPC_PORT").as_deref());
+        let data_dir = naive_cli::paths::resolve_data_dir(|key| match key {
             "HOME" => Some(home.as_os_str().to_owned()),
             key => var(key).map(Into::into),
         });
@@ -191,7 +191,7 @@ impl Config {
         Ok(Self {
             port,
             data_dir,
-            bin: exe.and_then(zeron_launch::engine_executable),
+            bin: exe.and_then(naive_launch::engine_executable),
             home: None,
             spawn: true,
             edge: edge.into(),
@@ -209,35 +209,35 @@ impl Config {
         client: &str,
         callback_port: u16,
     ) -> Result<Self, Refusal> {
-        let port = match var("ZERON_ZGX_ENGINE_PORT") {
+        let port = match var("NAIVE_ZGX_ENGINE_PORT") {
             Some(raw) => raw
                 .trim()
                 .parse()
-                .map_err(|_| format!("ZERON_ZGX_ENGINE_PORT `{raw}` isn't a port"))?,
+                .map_err(|_| format!("NAIVE_ZGX_ENGINE_PORT `{raw}` isn't a port"))?,
             None => STAGING_PORT,
         };
-        let data_dir = var("ZERON_ZGX_ENGINE_DATA")
+        let data_dir = var("NAIVE_ZGX_ENGINE_DATA")
             .map(|dir| expand(&dir, home))
             .unwrap_or_else(|| home.join(STAGING_DATA));
-        if var("ZERON_ZGX_ENGINE_PRODUCTION").as_deref() != Some("1") {
+        if var("NAIVE_ZGX_ENGINE_PRODUCTION").as_deref() != Some("1") {
             if PRODUCTION_PORTS.contains(&port) {
-                return Err(format!("port {port} is the production engine's (ZERON_ZGX_ENGINE_PRODUCTION=1 to use it anyway)"));
+                return Err(format!("port {port} is the production engine's (NAIVE_ZGX_ENGINE_PRODUCTION=1 to use it anyway)"));
             }
             if let Some(dir) = production_dirs(&var, home).into_iter().find(|dir| same_dir(&data_dir, dir)) {
-                return Err(format!("{} is the production engine's (ZERON_ZGX_ENGINE_PRODUCTION=1 to use it anyway)", dir.display()));
+                return Err(format!("{} is the production engine's (NAIVE_ZGX_ENGINE_PRODUCTION=1 to use it anyway)", dir.display()));
             }
         }
-        let bin = var("ZERON_ZGX_ENGINE_BIN").map(|p| expand(&p, home)).or_else(|| {
+        let bin = var("NAIVE_ZGX_ENGINE_BIN").map(|p| expand(&p, home)).or_else(|| {
             // This checkout's: apps/zgx is two below the repository's root.
-            let built = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/zeron-engine");
+            let built = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/debug/naive-engine");
             built.exists().then_some(built)
         });
         Ok(Self {
             port,
             data_dir,
             bin,
-            home: var("ZERON_ZGX_ENGINE_HOME").map(|dir| expand(&dir, home)),
-            spawn: var("ZERON_ZGX_ENGINE_SPAWN").as_deref() != Some("0"),
+            home: var("NAIVE_ZGX_ENGINE_HOME").map(|dir| expand(&dir, home)),
+            spawn: var("NAIVE_ZGX_ENGINE_SPAWN").as_deref() != Some("0"),
             edge: edge.into(),
             client: client.into(),
             callback_port,
@@ -298,22 +298,22 @@ impl Spawner {
             if !self.said_missing {
                 self.said_missing = true;
                 eprintln!(
-                    "zeron-zgx: engine: nothing answers on {} and there's no engine to start: {}",
+                    "naive-zgx: engine: nothing answers on {} and there's no engine to start: {}",
                     config.describe(),
                     if config.managed {
-                        "this app has no Zeron Engine beside it"
+                        "this app has no Naive Engine beside it"
                     } else {
-                        "build one (`cargo build -p zeron --bin zeron-engine` at the repository's root) \
-                         or set ZERON_ZGX_ENGINE_BIN"
+                        "build one (`cargo build -p naive --bin naive-engine` at the repository's root) \
+                         or set NAIVE_ZGX_ENGINE_BIN"
                     }
                 );
             }
             return false;
         };
-        if zeron_launch::data_dir_held(&config.data_dir) {
+        if naive_launch::data_dir_held(&config.data_dir) {
             if !self.said_held {
                 self.said_held = true;
-                eprintln!("zeron-zgx: engine: another holds {} and isn't serving; waiting for it", config.data_dir.display());
+                eprintln!("naive-zgx: engine: another holds {} and isn't serving; waiting for it", config.data_dir.display());
             }
             return false;
         }
@@ -327,12 +327,12 @@ impl Spawner {
         let started = std::thread::Builder::new().name("engine-start".into()).spawn(move || {
             let started = if config.managed { launch(&config) } else { spawn(&config, &bin) };
             match started {
-                Ok(()) => eprintln!("zeron-zgx: engine: started {} ({})", bin.display(), config.describe()),
-                Err(error) => eprintln!("zeron-zgx: engine: {} didn't start: {error}", bin.display()),
+                Ok(()) => eprintln!("naive-zgx: engine: started {} ({})", bin.display(), config.describe()),
+                Err(error) => eprintln!("naive-zgx: engine: {} didn't start: {error}", bin.display()),
             }
         });
         if let Err(error) = started {
-            eprintln!("zeron-zgx: engine: couldn't start a thread to start it: {error}");
+            eprintln!("naive-zgx: engine: couldn't start a thread to start it: {error}");
             self.last = None;
             return false;
         }
@@ -340,11 +340,11 @@ impl Spawner {
     }
 }
 
-/// Zeron.app's engine, started as Zeron.app starts it (crates/launch).
+/// Naive.app's engine, started as Naive.app starts it (crates/launch).
 fn launch(config: &Config) -> std::io::Result<()> {
     let exe = std::env::current_exe()?;
-    let child = zeron_launch::launch(
-        &zeron_launch::LaunchConfig {
+    let child = naive_launch::launch(
+        &naive_launch::LaunchConfig {
             data_dir: config.data_dir.clone(),
             ipc_port: config.port,
             edge_url: config.edge.clone(),
@@ -354,7 +354,7 @@ fn launch(config: &Config) -> std::io::Result<()> {
         },
         &exe,
     )?;
-    zeron_launch::reap(child);
+    naive_launch::reap(child);
     Ok(())
 }
 
@@ -369,22 +369,22 @@ fn spawn(config: &Config, bin: &Path) -> std::io::Result<()> {
     let _ = std::fs::remove_file(&started);
     let mut command = std::process::Command::new(bin);
     command
-        .env("ZERON_DATA_DIR", &config.data_dir)
-        .env("ZERON_IPC_PORT", config.port.to_string())
-        .env("ZERON_EDGE_URL", &config.edge)
-        .env("ZERON_WORKOS_CLIENT_ID", &config.client)
-        .env("ZERON_CALLBACK_PORT", config.callback_port.to_string())
+        .env("NAIVE_DATA_DIR", &config.data_dir)
+        .env("NAIVE_IPC_PORT", config.port.to_string())
+        .env("NAIVE_EDGE_URL", &config.edge)
+        .env("NAIVE_WORKOS_CLIENT_ID", &config.client)
+        .env("NAIVE_CALLBACK_PORT", config.callback_port.to_string())
         // Not the shipping app's: no app to open from a banner.
-        .env_remove("ZERON_APP")
-        // Nor a chat's (this app run from a Zeron terminal): an engine that
+        .env_remove("NAIVE_APP")
+        // Nor a chat's (this app run from a Naive terminal): an engine that
         // carries a chat's origin marker lends it to everything it runs, so
         // the shipping engine's preview scan would probe its agents'
         // sign-in callbacks (Gemini CLI's OAuth ends on the first stray
         // request).
-        .env_remove("ZERON_ORIGIN")
-        .env_remove("ZERON_EDGE_TOKEN")
-        .env_remove("ZERON_IPC_TOKEN")
-        .env_remove("ZERON_IPC_TOKEN_FILE")
+        .env_remove("NAIVE_ORIGIN")
+        .env_remove("NAIVE_EDGE_TOKEN")
+        .env_remove("NAIVE_IPC_TOKEN")
+        .env_remove("NAIVE_IPC_TOKEN_FILE")
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null());
@@ -472,19 +472,19 @@ mod tests {
     #[test]
     fn a_development_build_refuses_the_production_engine() {
         let home = Path::new("/Users/someone");
-        let edge = "https://staging.zeron.sh";
-        assert!(config_of(&[("ZERON_ZGX_ENGINE_PORT", "27654")], home, None, edge).is_err());
-        assert!(config_of(&[("ZERON_ZGX_ENGINE_DATA", "~/.zeron")], home, None, edge).is_err());
-        assert!(config_of(&[("ZERON_ZGX_ENGINE_DATA", "~/.comet-native")], home, None, edge).is_err());
-        assert!(config_of(&[("ZERON_ZGX_ENGINE_PORT", "27655")], home, None, edge).is_err());
+        let edge = "https://staging.naive.sh";
+        assert!(config_of(&[("NAIVE_ZGX_ENGINE_PORT", "27654")], home, None, edge).is_err());
+        assert!(config_of(&[("NAIVE_ZGX_ENGINE_DATA", "~/.naive")], home, None, edge).is_err());
+        assert!(config_of(&[("NAIVE_ZGX_ENGINE_DATA", "~/.comet-native")], home, None, edge).is_err());
+        assert!(config_of(&[("NAIVE_ZGX_ENGINE_PORT", "27655")], home, None, edge).is_err());
         // Asked for by name, it's allowed.
-        let production = config_of(&[("ZERON_ZGX_ENGINE_PORT", "27655"), ("ZERON_ZGX_ENGINE_DATA", "~/.zeron"), ("ZERON_ZGX_ENGINE_PRODUCTION", "1")], home, None, edge).unwrap();
-        assert_eq!((production.port, production.data_dir.clone()), (27655, home.join(".zeron")));
+        let production = config_of(&[("NAIVE_ZGX_ENGINE_PORT", "27655"), ("NAIVE_ZGX_ENGINE_DATA", "~/.naive"), ("NAIVE_ZGX_ENGINE_PRODUCTION", "1")], home, None, edge).unwrap();
+        assert_eq!((production.port, production.data_dir.clone()), (27655, home.join(".naive")));
         // Windows' own place for it, which no HOME moves.
         if cfg!(windows) {
-            let local = [("LOCALAPPDATA", r"C:\Users\someone\AppData\Local"), ("ZERON_ZGX_ENGINE_DATA", r"C:\Users\someone\AppData\Local\Zeron")];
+            let local = [("LOCALAPPDATA", r"C:\Users\someone\AppData\Local"), ("NAIVE_ZGX_ENGINE_DATA", r"C:\Users\someone\AppData\Local\Naive")];
             assert!(config_of(&local, home, None, edge).is_err());
-            let profile = [("USERPROFILE", r"C:\Users\someone"), ("ZERON_ZGX_ENGINE_DATA", r"C:\Users\someone\AppData\Local\Zeron")];
+            let profile = [("USERPROFILE", r"C:\Users\someone"), ("NAIVE_ZGX_ENGINE_DATA", r"C:\Users\someone\AppData\Local\Naive")];
             assert!(config_of(&profile, home, None, edge).is_err());
         }
         let staging = config_of(&[], home, None, edge).unwrap();
@@ -492,32 +492,32 @@ mod tests {
         assert!(!staging.follows_bundle());
     }
 
-    /// The beta manages Zeron.app's own engine: its port and data, the
+    /// The beta manages Naive.app's own engine: its port and data, the
     /// bundle's engine, production's edge and sign-in; never staging's.
     #[cfg(feature = "beta")]
     #[test]
-    fn a_beta_build_manages_zeron_app_s_engine() {
+    fn a_beta_build_manages_naive_app_s_engine() {
         let dir = std::env::temp_dir().join(format!("zgx-beta-engine-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        let macos = dir.join("Zeron.app/Contents/MacOS");
+        let macos = dir.join("Naive.app/Contents/MacOS");
         std::fs::create_dir_all(&macos).unwrap();
-        let exe = macos.join("zeron");
-        std::fs::write(macos.join("Zeron Engine"), "").unwrap();
+        let exe = macos.join("naive");
+        std::fs::write(macos.join("Naive Engine"), "").unwrap();
         let home = Path::new("/Users/someone");
         let prod = crate::auth::production();
         let beta = config_of(&[], home, Some(&exe), &prod.edge).unwrap();
-        assert_eq!((beta.port, beta.data_dir.clone()), (27654, home.join(".zeron")));
-        assert_eq!(beta.startable(), Some(macos.join("Zeron Engine").as_path()));
+        assert_eq!((beta.port, beta.data_dir.clone()), (27654, home.join(".naive")));
+        assert_eq!(beta.startable(), Some(macos.join("Naive Engine").as_path()));
         assert_eq!((beta.edge.as_str(), beta.client.as_str(), beta.callback_port), (prod.edge.as_str(), prod.client.as_str(), 27641));
         assert!(beta.follows_bundle());
-        // As Zeron.app: ZERON_DATA_DIR and ZERON_IPC_PORT move it; the
+        // As Naive.app: NAIVE_DATA_DIR and NAIVE_IPC_PORT move it; the
         // development variables don't.
-        let moved = config_of(&[("ZERON_DATA_DIR", "/tmp/z"), ("ZERON_IPC_PORT", "27700"), ("ZERON_ZGX_ENGINE_PORT", "1")], home, Some(&exe), &prod.edge).unwrap();
+        let moved = config_of(&[("NAIVE_DATA_DIR", "/tmp/z"), ("NAIVE_IPC_PORT", "27700"), ("NAIVE_ZGX_ENGINE_PORT", "1")], home, Some(&exe), &prod.edge).unwrap();
         assert_eq!((moved.port, moved.data_dir), (27700, PathBuf::from("/tmp/z")));
         // Never staging's engine, nor another edge.
-        assert!(config_of(&[("ZERON_IPC_PORT", "27871")], home, Some(&exe), &prod.edge).is_err());
-        assert!(config_of(&[("ZERON_DATA_DIR", "/Users/someone/.zeron-staging")], home, Some(&exe), &prod.edge).is_err());
-        assert!(config_of(&[], home, Some(&exe), "https://staging.zeron.sh").is_err());
+        assert!(config_of(&[("NAIVE_IPC_PORT", "27871")], home, Some(&exe), &prod.edge).is_err());
+        assert!(config_of(&[("NAIVE_DATA_DIR", "/Users/someone/.naive-staging")], home, Some(&exe), &prod.edge).is_err());
+        assert!(config_of(&[], home, Some(&exe), "https://staging.naive.sh").is_err());
         let _ = std::fs::remove_dir_all(&dir);
     }
 
@@ -583,7 +583,7 @@ mod tests {
     #[test]
     fn home_relative_paths_expand() {
         let home = Path::new("/Users/someone");
-        assert_eq!(expand("~/.zeron-staging", home), home.join(".zeron-staging"));
+        assert_eq!(expand("~/.naive-staging", home), home.join(".naive-staging"));
         assert_eq!(expand("/tmp/x", home), PathBuf::from("/tmp/x"));
     }
 }

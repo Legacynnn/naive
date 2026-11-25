@@ -81,7 +81,7 @@ class PlanTests(unittest.TestCase):
         self.assertTrue(plan.plan(files("crates/sync/src/lib.rs", patch="+x"), "full")["android"])
 
     def test_renamed_from_counts(self):
-        f = [{"filename": "docs/x.md", "previous_filename": "apps/ios/Zeron/X.swift", "patch": ""}]
+        f = [{"filename": "docs/x.md", "previous_filename": "apps/ios/Naive/X.swift", "patch": ""}]
         self.assertTrue(plan.plan(f, "fast")["ios"])
 
     def test_ci_changes_run_everything(self):
@@ -99,7 +99,7 @@ class PlanTests(unittest.TestCase):
     def test_zgx_runs_for_its_app_and_the_crates_it_builds(self):
         zgx = ["crates/engine/**", "crates/proto/**"]
         self.assertEqual(selected(plan.plan(files("apps/zgx/ui/app.luau"), "fast", zgx=zgx)), {"zgx"})
-        self.assertEqual(selected(plan.plan(files("apps/zgx/plugins-sdk/zeron.luau"), "fast", zgx=zgx)), {"zgx"})
+        self.assertEqual(selected(plan.plan(files("apps/zgx/plugins-sdk/naive.luau"), "fast", zgx=zgx)), {"zgx"})
         self.assertIn("zgx", selected(plan.plan(files("crates/engine/src/plugins/mod.rs"), "fast", zgx=zgx)))
         self.assertNotIn("zgx", selected(plan.plan(files("crates/mobile/src/lib.rs"), "fast", zgx=zgx)))
         # Without the workspace's closure: the static list.
@@ -113,7 +113,7 @@ class PlanTests(unittest.TestCase):
 
     def test_version_bumps_select_nothing(self):
         bump = [{"filename": "Cargo.toml", "patch": '@@ -37 +37 @@\n-version = "0.2.126"\n+version = "0.2.127"'},
-                {"filename": "Cargo.lock", "patch": ' name = "zeron-engine"\n-version = "0.2.126"\n+version = "0.2.127"'}]
+                {"filename": "Cargo.lock", "patch": ' name = "naive-engine"\n-version = "0.2.126"\n+version = "0.2.127"'}]
         self.assertEqual(selected(plan.plan(bump, "full")), set())
         dep = [{"filename": "Cargo.lock",
                 "patch": '-version = "1.0.1"\n+version = "1.0.2"\n-checksum = "aa"\n+checksum = "bb"'}]
@@ -125,7 +125,7 @@ class PlanTests(unittest.TestCase):
         off, flags = plan.gated(change, "fast", suites)
         self.assertEqual(off, {"windows": ["app"]})
         self.assertEqual(flags, {})
-        app = files("crates/mobile/src/lib.rs", "apps/zeron/src/main.rs", patch="+x")
+        app = files("crates/mobile/src/lib.rs", "apps/naive/src/main.rs", patch="+x")
         off, flags = plan.gated(app, "fast", plan.plan(app, "fast"))
         self.assertNotIn("windows", off)
         self.assertNotIn("ios", off)

@@ -20,7 +20,7 @@
 -- submenu and ← back out, Enter or Space to choose, Escape to close one
 -- level, Tab to close them all. The pointer: a submenu opens as its row is
 -- reached and stays open while the pointer heads for it, across the rows
--- in its way (Zeron's hover intent: crates/ui/src/popover/hover_intent.rs).
+-- in its way (Naive's hover intent: crates/ui/src/popover/hover_intent.rs).
 
 local Icon = require("@self/icon")
 local FadeText = require("@self/fade_text")
@@ -75,11 +75,11 @@ export type Props = {
 	[any]: any,
 }
 
--- The panel's width: the menus' (`zeron.menu.width`, 232). A row's look
+-- The panel's width: the menus' (`naive.menu.width`, 232). A row's look
 -- (its height, padding and corner) is the menus' (`Menu.look`).
-local WIDTH = "$zeron.menu.width"
+local WIDTH = "$naive.menu.width"
 -- How long the pointer may take crossing other rows to an open submenu
--- before the row it rests on takes over (Zeron's grace, renewed while it
+-- before the row it rests on takes over (Naive's grace, renewed while it
 -- keeps moving toward it), and how far the pointer must move to count as
 -- heading somewhere.
 local GRACE, NUDGE = 300, 2
@@ -476,7 +476,7 @@ local function build_panel(props: PanelProps): Node
 			table.insert(groups, ui.column {
 				w_full = true,
 				p = "$space.1",
-				gap = "$zeron.list.gap",
+				gap = "$naive.list.gap",
 				role = if title then "group" else nil,
 				label = title,
 				table.unpack(rows),
@@ -514,8 +514,8 @@ local function build_panel(props: PanelProps): Node
 			return if armed:get() == i then e.confirm or "" else e.label or ""
 		end
 		local glyph = if e.mark then ui.div {
-			w = "$zeron.menu.glyph.box",
-			h = "$zeron.menu.glyph.box",
+			w = "$naive.menu.glyph.box",
+			h = "$naive.menu.glyph.box",
 			shrink = 0,
 			items = "center",
 			justify = "center",
@@ -532,7 +532,7 @@ local function build_panel(props: PanelProps): Node
 			name = ui.column {
 				grow = 1,
 				min_w = 0,
-				gap = "$zeron.space.hair",
+				gap = "$naive.space.hair",
 				ui.text { e.label or "", text_size = "$font.size.md", line_height = "$font.line.md", color = ink },
 				ui.text { reason, text_size = "$font.size.sm", line_height = "$font.line.sm", color = "$text.tertiary", wrap = true },
 			}
@@ -567,10 +567,10 @@ local function build_panel(props: PanelProps): Node
 			description = reason,
 			bg = function()
 				if armed:get() == i then
-					return "$zeron.menu.danger"
+					return "$naive.menu.danger"
 				end
 				if lit() then
-					return if e.danger then "$zeron.menu.danger" else "$hover"
+					return if e.danger then "$naive.menu.danger" else "$hover"
 				end
 				-- Its submenu open: lit while the pointer is over it.
 				return "#00000000"

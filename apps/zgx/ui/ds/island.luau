@@ -1,4 +1,4 @@
--- An island's look and measure (the theme's `zeron.island`), for every
+-- An island's look and measure (the theme's `naive.island`), for every
 -- island: the title bar's controls over the page, the sidebar's rail. One
 -- definition, so the two are the same thing turned: the rail as wide as the
 -- title bar's island is tall, its controls the same size, as far apart, as
@@ -17,13 +17,13 @@ end
 
 function M.metrics(): Metrics
 	return {
-		radius = n("zeron.island.radius", 12),
-		inset = n("zeron.island.inset", 6),
-		pad = n("zeron.island.pad", 4),
-		control = n("zeron.island.control", 24),
-		gap = n("zeron.island.gap", 2),
-		group = n("zeron.island.group", 8),
-		blur = n("zeron.island.blur", 20),
+		radius = n("naive.island.radius", 12),
+		inset = n("naive.island.inset", 6),
+		pad = n("naive.island.pad", 4),
+		control = n("naive.island.control", 24),
+		gap = n("naive.island.gap", 2),
+		group = n("naive.island.group", 8),
+		blur = n("naive.island.blur", 20),
 	}
 end
 
@@ -40,10 +40,10 @@ end
 -- Plain tokens, never functions: an animated node runs its style's
 -- functions again each frame (the title bar's island slides).
 function M.glass(props: { [any]: any }): { [any]: any }
-	props.rounded = "$zeron.island.radius"
-	props.bg = "$zeron.island.tint"
-	props.backdrop_blur = "$zeron.island.blur"
-	props.shadow = "$zeron.island.shadow"
+	props.rounded = "$naive.island.radius"
+	props.bg = "$naive.island.tint"
+	props.backdrop_blur = "$naive.island.blur"
+	props.shadow = "$naive.island.shadow"
 	return props
 end
 

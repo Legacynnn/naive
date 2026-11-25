@@ -21,7 +21,7 @@ const band = pw / 6, group = band * 0.68, per = group / 3, gap = Math.min(2, per
 const ticks = [0, 10, 20, 30, 40, 50, 60];
 const bars = MONTHS.flatMap((_, i) => SERIES.map((series, si) => ({ x: left + i * band + (band - group) / 2 + si * per + gap / 2, y: vy(series.values[i]!), h: vy(0) - vy(series.values[i]!), colour: series.colour })));
 const px = (n: number) => `${Math.round(n * 100) / 100}px`;
-const label = "A reply in Zeron: a sentence about build times, then a grouped bar chart titled Where the build's time goes, with compile, link and test time for June to November.";
+const label = "A reply in Naive: a sentence about build times, then a grouped bar chart titled Where the build's time goes, with compile, link and test time for June to November.";
 ---
 
 <Stage width={512} height={346} label={label} class={Astro.props.class}>

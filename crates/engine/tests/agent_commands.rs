@@ -1,4 +1,4 @@
-//! Zeron MCP's command tools against a real engine: what an agent runs,
+//! Naive MCP's command tools against a real engine: what an agent runs,
 //! leaves in the background, reads and stops, with real processes.
 #![cfg(unix)]
 
@@ -6,9 +6,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
-use zeron_engine::{EngineCore, HarnessId, default_registry};
-use zeron_mcp::{Origin, Tools, Zeron};
-use zeron_rpc::memory_client;
+use naive_engine::{EngineCore, HarnessId, default_registry};
+use naive_mcp::{Origin, Tools, Naive};
+use naive_rpc::memory_client;
 
 #[tokio::test]
 async fn an_agent_runs_commands_as_its_own_shell_tool_would() {
@@ -20,7 +20,7 @@ async fn an_agent_runs_commands_as_its_own_shell_tool_would() {
         None,
     )
     .unwrap();
-    let tools = Tools::new(Arc::new(Zeron::with_client(
+    let tools = Tools::new(Arc::new(Naive::with_client(
         memory_client(core.rpc_service()),
         Origin::default(),
     )));

@@ -7,7 +7,7 @@ import { SITE } from "../../data/site.ts";
 <span class="stars" data-stars data-api={SITE.githubApi} hidden></span>
 
 <script>
-  const KEY = "zeron-gh-stars";
+  const KEY = "naive-gh-stars";
   const targets = [...document.querySelectorAll<HTMLElement>("[data-stars]")];
   const show = (count: number) => {
     const text = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(count).toLowerCase();

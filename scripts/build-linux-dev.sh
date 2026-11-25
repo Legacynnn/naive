@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Build this checkout's `zeron` for Linux x86_64 (what Boat sandboxes run) in
+# Build this checkout's `naive` for Linux x86_64 (what Boat sandboxes run) in
 # a Docker container, and package it as the tarball the Cloud install script
-# downloads: target/package-dev/zeron-<version>-linux-x86_64.tar.gz, plus
+# downloads: target/package-dev/naive-<version>-linux-x86_64.tar.gz, plus
 # target/package-dev/latest.txt naming that version.
 #
 # For trying unreleased engine changes on real Cloud machines
@@ -13,7 +13,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-IMAGE="zeron-linux-dev-build:1"
+IMAGE="naive-linux-dev-build:1"
 OUT="$ROOT/target/package-dev"
 BASE="$(grep -m1 '^version' "$ROOT/Cargo.toml" | sed 's/.*"\(.*\)".*/\1/')"
 VERSION="$BASE-dev.$(date +%Y%m%d%H%M%S)"
@@ -37,26 +37,26 @@ RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal --default-to
 DOCKERFILE
 fi
 
-echo "building zeron $VERSION for linux-x86_64"
+echo "building naive $VERSION for linux-x86_64"
 # RUSTUP_TOOLCHAIN: the image's own stable, not rust-toolchain.toml — its
 # rustfmt/clippy components (unneeded for a build) make rustup update the
 # toolchain in place, which fails on the image's overlay filesystem.
 docker run --rm --platform linux/amd64 \
   -v "$ROOT:/src" \
-  -v zeron-linux-dev-target:/target \
-  -v zeron-linux-dev-registry:/opt/cargo/registry \
-  -v zeron-linux-dev-git:/opt/cargo/git \
+  -v naive-linux-dev-target:/target \
+  -v naive-linux-dev-registry:/opt/cargo/registry \
+  -v naive-linux-dev-git:/opt/cargo/git \
   -e CARGO_TARGET_DIR=/target \
   -e CARGO_PROFILE_RELEASE_LTO=off \
   -e RUSTUP_TOOLCHAIN=stable \
   -w /src "$IMAGE" \
-  sh -c "cargo build --release -p zeron && cp /target/release/zeron /src/target/package-dev/zeron.linux-x86_64 && cp /target/release/zeron-engine /src/target/package-dev/zeron-engine.linux-x86_64"
+  sh -c "cargo build --release -p naive && cp /target/release/naive /src/target/package-dev/naive.linux-x86_64 && cp /target/release/naive-engine /src/target/package-dev/naive-engine.linux-x86_64"
 
-STAGE="$OUT/zeron-$VERSION-linux-x86_64"
+STAGE="$OUT/naive-$VERSION-linux-x86_64"
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
-mv "$OUT/zeron.linux-x86_64" "$STAGE/zeron"
-mv "$OUT/zeron-engine.linux-x86_64" "$STAGE/zeron-engine"
+mv "$OUT/naive.linux-x86_64" "$STAGE/naive"
+mv "$OUT/naive-engine.linux-x86_64" "$STAGE/naive-engine"
 tar -czf "$STAGE.tar.gz" -C "$OUT" "$(basename "$STAGE")"
 rm -rf "$STAGE"
 echo "$VERSION" > "$OUT/latest.txt"

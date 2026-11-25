@@ -1,4 +1,4 @@
-// What people have posted about Zeron, in their own words and spelling.
+// What people have posted about Naive, in their own words and spelling.
 import type { ImageMetadata } from "astro";
 import afortunado from "../assets/voices/afortunado124.jpg";
 import dev from "../assets/voices/dev_shekhawat.jpg";

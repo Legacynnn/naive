@@ -2,7 +2,7 @@
 # its CI job (zgx-tests.yml) gates everything else. Every other failure fails the
 # job. A known one that passes again is reported: then delete its line.
 #
-#   rust: <test path>     `cargo test --bin zeron-zgx` (skipped, exact name)
+#   rust: <test path>     `cargo test --bin naive-zgx` (skipped, exact name)
 #   tests: <test name>    `cargo test --test '*'`, apps/zgx/tests/*.rs (skipped,
 #                         exact name)
 #   luau: <test name>     `zgx test ui` (run; its FAIL line accepted)

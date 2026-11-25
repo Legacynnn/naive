@@ -13,17 +13,17 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use futures::stream::BoxStream;
 
-use zeron_doc::{
+use naive_doc::{
     MessagePart, MessageRole, MessageStatus, SessionCommandEntry, SessionCommandPayload,
     SessionCommandStatus, SessionDoc, SessionMessageEntry,
 };
-use zeron_engine::{EngineCore, HarnessRegistry, RunJournal};
-use zeron_harness::{Harness, HarnessError, RunControls};
-use zeron_proto::{
+use naive_engine::{EngineCore, HarnessRegistry, RunJournal};
+use naive_harness::{Harness, HarnessError, RunControls};
+use naive_proto::{
     AgentEvent, DoneStatus, HarnessId, Model, ReasoningLevel, RunRequest, SandboxLevel,
     SteeringMode,
 };
-use zeron_sync::DocsStore;
+use naive_sync::DocsStore;
 
 const CHAT: &str = "chat-killed";
 const DEVICE: &str = "dev-cloud";
@@ -333,7 +333,7 @@ async fn settle() {
 }
 
 fn on_a_cloud_machine() {
-    zeron_engine::runner::set_session(Some(zeron_engine::runner::CloudSession {
+    naive_engine::runner::set_session(Some(naive_engine::runner::CloudSession {
         account: "cloud-acct".into(),
         chat_id: CHAT.into(),
         repo: None,
@@ -348,7 +348,7 @@ fn on_a_cloud_machine() {
 struct Logins;
 
 #[async_trait]
-impl zeron_engine::registry::RunEnvironment for Logins {
+impl naive_engine::registry::RunEnvironment for Logins {
     async fn prepare(
         &self,
         _harness: HarnessId,

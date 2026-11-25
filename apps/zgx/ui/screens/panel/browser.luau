@@ -1,4 +1,4 @@
--- A browser tab: a web page beside the chat, as Zeron's right panel has it
+-- A browser tab: a web page beside the chat, as Naive's right panel has it
 -- (crates/ui/src/browser: the address bar, back and forward, reload, open
 -- in the default browser), and the way a page's parts become attachments:
 -- annotation mode (the bar's cursor, ⌘⇧I) runs a picker in the page
@@ -573,7 +573,7 @@ Page = ui.component(function(props: Props): Node
 
 	-- Annotation mode: the picker into the page, and out again.
 	local function stop_annotating()
-		web:run("window.__zeronAnnotator && window.__zeronAnnotator.stop();")
+		web:run("window.__naiveAnnotator && window.__naiveAnnotator.stop();")
 		if annotating:peek()[id] then
 			annotating:set_key(id, nil)
 		end
@@ -591,7 +591,7 @@ Page = ui.component(function(props: Props): Node
 		local nonce = math.random(1, 2147483647)
 		nonces:set_key(id, nonce)
 		session_picks:set_key(id, nil)
-		web:run(`{SCRIPT}\n;window.__zeronAnnotator.start({nonce}, {js(annotate_theme())});`)
+		web:run(`{SCRIPT}\n;window.__naiveAnnotator.start({nonce}, {js(annotate_theme())});`)
 		annotating:set_key(id, true)
 		if not mode:peek() then
 			mode:set(true)
@@ -666,7 +666,7 @@ Page = ui.component(function(props: Props): Node
 		-- (Numbered on the page before the chip is there: the marks follow
 		-- the chips, and an unnumbered one would be let go.)
 		if marker then
-			web:run(`window.__zeronAnnotator && window.__zeronAnnotator.label({marker}, {shared.next_annotation()});`)
+			web:run(`window.__naiveAnnotator && window.__naiveAnnotator.label({marker}, {shared.next_annotation()});`)
 			marked:set_key(id, true)
 		end
 		local chip_id = shared.attach_annotation(pick, { tab = id, marker = marker })
@@ -674,7 +674,7 @@ Page = ui.component(function(props: Props): Node
 		-- The most one session takes: it ends there, as the shipping app's
 		-- (the page's picker stops; its "cancelled" finds the mode ended).
 		if made >= MOST_PICKS then
-			web:run("window.__zeronAnnotator && window.__zeronAnnotator.stop();")
+			web:run("window.__naiveAnnotator && window.__naiveAnnotator.stop();")
 			on_state("done")
 		end
 	end
@@ -722,7 +722,7 @@ Page = ui.component(function(props: Props): Node
 		-- while the tab wasn't showing take their marks with them as it
 		-- shows.)
 		if now ~= synced and (synced ~= nil or marked:peek()[id]) then
-			web:run(`window.__zeronAnnotator && window.__zeronAnnotator.sync([{now}]);`)
+			web:run(`window.__naiveAnnotator && window.__naiveAnnotator.sync([{now}]);`)
 			if now == "" and marked:peek()[id] then
 				marked:set_key(id, nil)
 			end
@@ -753,7 +753,7 @@ Page = ui.component(function(props: Props): Node
 		end
 		if n ~= lit then
 			lit = n
-			web:run(`window.__zeronAnnotator && window.__zeronAnnotator.focus({n or 0});`)
+			web:run(`window.__naiveAnnotator && window.__naiveAnnotator.focus({n or 0});`)
 		end
 	end)
 
@@ -806,7 +806,7 @@ Page = ui.component(function(props: Props): Node
 		if #items == 0 then
 			return
 		end
-		web:run(`{SCRIPT}\n;window.__zeronAnnotator.restore([{table.concat(items, ",")}]);`)
+		web:run(`{SCRIPT}\n;window.__naiveAnnotator.restore([{table.concat(items, ",")}]);`)
 		marked:set_key(id, true)
 	end
 
@@ -951,9 +951,9 @@ Page = ui.component(function(props: Props): Node
 					h = 20,
 					px = "$space.2",
 					rounded = "$radius.full",
-					bg = "$zeron.secondary.bg",
-					hover = { bg = "$zeron.secondary.hover" },
-					active = { bg = "$zeron.secondary.active" },
+					bg = "$naive.secondary.bg",
+					hover = { bg = "$naive.secondary.hover" },
+					active = { bg = "$naive.secondary.active" },
 					cursor = "pointer",
 					on_click = function()
 						zoom(0)
@@ -1120,7 +1120,7 @@ Page = ui.component(function(props: Props): Node
 		pb = "$space.2",
 		gap = "$space.1",
 		items = "center",
-		color = "$zeron.tone.danger.ink",
+		color = "$naive.tone.danger.ink",
 		live = "polite",
 		ui.div { y = -0.5, aria_hidden = true, Icon { name = "danger-triangle", size = 12 } },
 		ui.text {
@@ -1160,7 +1160,7 @@ Page = ui.component(function(props: Props): Node
 		if not has_page(web) then
 			return
 		end
-		web:eval(`{FIND_SCRIPT}\n;window.__zeronFind.find({js_string(text)}, {find_theme()})`, function(value: any)
+		web:eval(`{FIND_SCRIPT}\n;window.__naiveFind.find({js_string(text)}, {find_theme()})`, function(value: any)
 			took(value)
 		end)
 	end
@@ -1168,7 +1168,7 @@ Page = ui.component(function(props: Props): Node
 		if not has_page(web) or found:peek().count == 0 then
 			return
 		end
-		web:eval(`{FIND_SCRIPT}\n;window.__zeronFind.step({by})`, function(value: any)
+		web:eval(`{FIND_SCRIPT}\n;window.__naiveFind.step({by})`, function(value: any)
 			took(value)
 		end)
 	end
@@ -1177,7 +1177,7 @@ Page = ui.component(function(props: Props): Node
 			finding:set_key(id, nil)
 		end
 		if has_page(web) then
-			web:run("window.__zeronFind && window.__zeronFind.clear();")
+			web:run("window.__naiveFind && window.__naiveFind.clear();")
 			web:focus()
 		end
 		found:set({ count = 0, current = 0 })
@@ -1336,7 +1336,7 @@ Page = ui.component(function(props: Props): Node
 			h = 32,
 			gap = "$space.2",
 			items = "center",
-			ui.div { w = "$zeron.icon_button.sm", shrink = 0, items = "center", justify = "center", aria_hidden = true, FileIcon { name = one.name, size = 16 } },
+			ui.div { w = "$naive.icon_button.sm", shrink = 0, items = "center", justify = "center", aria_hidden = true, FileIcon { name = one.name, size = 16 } },
 			FadeText { function(): string
 				return it().name
 			end, literal = true, shrink = 1, text_size = "$font.size.sm", color = "$text.primary" },
@@ -1349,7 +1349,7 @@ Page = ui.component(function(props: Props): Node
 				tabular = true,
 				text_size = "$font.size.sm",
 				color = function(): string
-					return if phase() == "failed" then "$zeron.tone.danger.ink" else "$text.tertiary"
+					return if phase() == "failed" then "$naive.tone.danger.ink" else "$text.tertiary"
 				end,
 			},
 			ui.div { grow = 1 },
@@ -1425,7 +1425,7 @@ Page = ui.component(function(props: Props): Node
 		items = "center",
 		border_sides = { 0, 0, 1, 0 },
 		border_color = "$border.subtle",
-		ui.div { w = "$zeron.icon_button.sm", shrink = 0, items = "center", justify = "center", color = "$text.tertiary", Icon { name = "search", size = 14 } },
+		ui.div { w = "$naive.icon_button.sm", shrink = 0, items = "center", justify = "center", color = "$text.tertiary", Icon { name = "search", size = 14 } },
 		ds.TextField {
 			input_ref = find_input,
 			value = query,
@@ -1463,7 +1463,7 @@ Page = ui.component(function(props: Props): Node
 		ui.div { grow = 0.001 },
 		ui.row {
 			shrink = 0,
-			gap = "$zeron.space.hair",
+			gap = "$naive.space.hair",
 			items = "center",
 			IconButton {
 				icon = "arrow-up",
@@ -1552,7 +1552,7 @@ Page = ui.component(function(props: Props): Node
 			min_h = 0,
 			on_message = function(value: any, _origin: string, main_frame: boolean)
 				heard:set({ value = value, main_frame = main_frame })
-				if not main_frame or type(value) ~= "table" or value.kind ~= "zeron.annotation" then
+				if not main_frame or type(value) ~= "table" or value.kind ~= "naive.annotation" then
 					return
 				end
 				if value.nonce ~= nonces:peek()[id] then

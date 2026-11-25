@@ -26,11 +26,11 @@ Pull requests, `main` and the merge queue all go through one workflow,
 | iOS core (Linux) | app or mobile core changed | app or mobile core changed |
 | iOS simulator | the app, `crates/mobile` or `crates/client` changed | with iOS core |
 | Windows tests, macOS | only when the change looks platform specific | when their files change |
-| Windows packaging (`app`) | `apps/zeron`, `dist/windows`, packaging scripts, `crates/update` | with Windows tests |
+| Windows packaging (`app`) | `apps/naive`, `dist/windows`, packaging scripts, `crates/update` | with Windows tests |
 | Android APK | the Android app or `crates/mobile` changed | when its files change |
 | Voice (audio stack, Windows media runtime) | nightly or `ci:full` only | nightly or manual run only |
 
-The `iOS core` paths come from the Cargo graph: every crate `zeron-mobile`
+The `iOS core` paths come from the Cargo graph: every crate `naive-mobile`
 depends on. The `zgx` suite runs `scripts/ci/test-zgx.sh rust` (Rust host unit
 tests), `scripts/ci/test-zgx.sh tests` (integration tests in `apps/zgx/tests/`),
 and `scripts/ci/test-zgx.sh ui` (`zgx test ui` Luau UI tests) on macOS and
@@ -40,7 +40,7 @@ Linux, plus the engine's plugin tests on macOS. Release and beta packaging of
 
 On the fast tier, a change counts as platform specific when it touches:
 
-- the platform's own files: packaging, scripts, `apps/zeron`, `crates/update`,
+- the platform's own files: packaging, scripts, `apps/naive`, `crates/update`,
   and the voice crates or the mobile core for voice and Android;
 - a file under `crates/` whose name says so, such as `coretext.rs`;
 - changed code (not comments) with a platform conditional or platform API:
@@ -62,7 +62,7 @@ everything.
 - **Nightly** (`release-profile-tests.yml`): Linux core suite in the release
   profile.
 - **Weekly** (`weekly-tests.yml`): the tests no other workflow runs. That is
-  every `zeron-engine` integration binary, plus the crates whose own tests have
+  every `naive-engine` integration binary, plus the crates whose own tests have
   no other runner (term, syntax, theme, veil, visual, visual-gpu, zatex,
   notify).
 
@@ -77,7 +77,7 @@ It leaves out these slow and soak tests, which the nightly runs keep:
 - two preview discovery tests that assert nothing happens during a sleep.
 
 The Cursor shim stress test runs 14 rounds instead of 100
-(`ZERON_STRESS_ROUNDS`).
+(`NAIVE_STRESS_ROUNDS`).
 
 Test binaries that run nothing on Linux are not built there:
 
@@ -134,7 +134,7 @@ Which recorded passes count:
 
 Reuse fails closed:
 
-- If a pull request changes a Rust build file (`crates/`, `apps/zeron`,
+- If a pull request changes a Rust build file (`crates/`, `apps/naive`,
   `apps/zgx`, `Cargo.*`, `.cargo/`) that no selected suite's fingerprint covers,
   nothing is reused.
 - If a suite's sources build a path from the package directory's parent in
@@ -279,7 +279,7 @@ Admission never blocks CI. It lets the run start anyway if:
 - the API rate limit runs out for more than 10 minutes.
 
 The `GITHUB_TOKEN` gets 1000 to 5000 API requests an hour per repository,
-depending on the plan; zeron has seen 5000. To stay well under that,
+depending on the plan; naive has seen 5000. To stay well under that,
 admission:
 
 - uses conditional requests, which cost nothing when nothing changed;

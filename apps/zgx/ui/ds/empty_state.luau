@@ -40,7 +40,7 @@ return function(props: Props): Node
 			items = "center",
 			justify = "center",
 			rounded = "$radius.xl",
-			bg = "$zeron.secondary.bg",
+			bg = "$naive.secondary.bg",
 			border = 1,
 			border_color = "$border.subtle",
 			color = "$text.secondary",

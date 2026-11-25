@@ -10,13 +10,13 @@ const source = readFileSync(new URL("../public/telemetry.js", import.meta.url), 
 const html = readFileSync(new URL("../dist/index.html", import.meta.url), "utf8");
 const placements = { "nav-download": "nav", "hero-download": "hero", "closing-download": "closing" };
 
-function load({ url = "https://zeron.sh/", referrer = "", navigator = {}, transport, clock = Date } = {}) {
+function load({ url = "https://naive.sh/", referrer = "", navigator = {}, transport, clock = Date } = {}) {
   const requests = [];
   const links = Object.fromEntries(Object.keys(placements).map((id) => {
     const href = html.match(new RegExp(`id="${id}" href="([^"]+)"`))[1];
     const listeners = {};
     return [id, {
-      href: href === "#downloads" ? "https://zeron.sh/releases/zeron-0.2.10-macos-arm64.dmg" : href,
+      href: href === "#downloads" ? "https://naive.sh/releases/naive-0.2.10-macos-arm64.dmg" : href,
       addEventListener: (type, listener) => { listeners[type] = listener; },
       activate(type = "click", button = 0) {
         listeners[type]?.({ button, defaultPrevented: false });
@@ -66,7 +66,7 @@ test("captures one anonymous pageview using the US ingestion endpoint", () => {
   assert.match(request.payload.properties.distinct_id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.equal(request.payload.properties.$process_person_profile, false);
   assert.equal(request.payload.properties.$geoip_disable, true);
-  assert.equal(request.payload.properties.$current_url, "https://zeron.sh/");
+  assert.equal(request.payload.properties.$current_url, "https://naive.sh/");
   assert.equal(request.payload.properties.$referring_domain, "$direct");
 });
 
@@ -131,11 +131,11 @@ for (const [elapsed, rotates] of [[86400000 - 1, false], [86400000, true], [8640
 
 test("drops query strings, fragments, and referrer paths and credentials", () => {
   const { requests } = load({
-    url: "https://zeron.sh/?email=private%40example.invalid#secret",
+    url: "https://naive.sh/?email=private%40example.invalid#secret",
     referrer: "https://user:password@search.example.invalid/private?token=secret#fragment",
   });
   const properties = requests[0].payload.properties;
-  assert.equal(properties.$current_url, "https://zeron.sh/");
+  assert.equal(properties.$current_url, "https://naive.sh/");
   assert.equal(properties.$referrer, "https://search.example.invalid/");
   assert.equal(properties.$referring_domain, "search.example.invalid");
   assert.doesNotMatch(requests[0].body, /private|secret|password|user:|fragment/);
@@ -152,7 +152,7 @@ for (const referrer of ["not a URL", "about:blank", "file:///private/secret"]) {
 for (const [id, placement] of Object.entries(placements)) {
   test(`tracks ${placement} download clicks with the current release version`, () => {
     const { requests, links } = load();
-    links[id].href = "https://zeron.sh/releases/zeron-1.2.3-macos-arm64.dmg?private=secret#fragment";
+    links[id].href = "https://naive.sh/releases/naive-1.2.3-macos-arm64.dmg?private=secret#fragment";
     links[id].activate();
     assert.equal(requests.length, 2);
     const { payload } = requests[1];
@@ -181,7 +181,7 @@ test("counts middle clicks but ignores right clicks", () => {
   assert.equal(requests.length, 2);
 });
 
-for (const href of ["https://example.invalid/releases/zeron-1.2.3-macos-arm64.dmg", "https://zeron.sh/private", "invalid"]) {
+for (const href of ["https://example.invalid/releases/naive-1.2.3-macos-arm64.dmg", "https://naive.sh/private", "invalid"]) {
   test(`does not report unexpected download targets: ${href}`, () => {
     const { requests, links } = load();
     links["hero-download"].href = href;
@@ -190,7 +190,7 @@ for (const href of ["https://example.invalid/releases/zeron-1.2.3-macos-arm64.dm
   });
 }
 
-for (const url of ["http://localhost:8000/", "https://preview.workers.dev/", "http://zeron.sh/", "https://zeron.sh/private", "https://zeron.sh:8000/"]) {
+for (const url of ["http://localhost:8000/", "https://preview.workers.dev/", "http://naive.sh/", "https://naive.sh/private", "https://naive.sh:8000/"]) {
   test(`does not track development or unexpected URLs: ${url}`, () => {
     const { requests, links } = load({ url });
     links["hero-download"].activate();
@@ -199,7 +199,7 @@ for (const url of ["http://localhost:8000/", "https://preview.workers.dev/", "ht
 }
 
 test("tracks the legacy production hostname", () => {
-  assert.equal(load({ url: "https://comet.zeron.sh/" }).requests.length, 1);
+  assert.equal(load({ url: "https://comet.naive.sh/" }).requests.length, 1);
 });
 
 for (const navigator of [{ doNotTrack: "1" }, { doNotTrack: "yes" }, { globalPrivacyControl: true }]) {

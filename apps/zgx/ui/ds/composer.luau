@@ -1,4 +1,4 @@
--- Zeron's composer, from the design system's parts: a pill holding the
+-- Naive's composer, from the design system's parts: a pill holding the
 -- draft, + on the left to attach, the microphone and Send on the right;
 -- under it a footer of chips the same size: the access mode (with plan
 -- mode's switch in its panel) and where it works (a folder or worktree,
@@ -9,7 +9,7 @@
 -- the chips sit on the composer rather than on the art. The
 -- footer keeps to one line: short of room, it folds a step at a time:
 -- "Plan" goes, then the access mode's name (leaving its icon, in the accent
--- while plan mode is on), then the branch's, leaving its icon at the left. Its geometry is Zeron's
+-- while plan mode is on), then the branch's, leaving its icon at the left. Its geometry is Naive's
 -- (crates/ui/src/composer.rs): 26-point corners, 28-point round controls,
 -- one 49-point line while the draft fits beside the controls.
 --
@@ -174,7 +174,7 @@ export type Props = {
 	-- Or what it holds (tokens and window, as the agent reports them): the
 	-- ring shows only once a window is reported (an agent that never says
 	-- one has none), and hovering or focusing it opens a card saying the
-	-- numbers, as Zeron's does (crates/ui/src/context_usage.rs).
+	-- numbers, as Naive's does (crates/ui/src/context_usage.rs).
 	usage: (() -> Usage?)?,
 	-- The footer stands over a wallpaper (a new chat's art): the pill's glass
 	-- continues under it as a tray, the chips on it rather than on the art,
@@ -359,14 +359,14 @@ local CHIP_H, CHIP_RADIUS = 24, "$radius.lg"
 -- Its words lifted a point, as the footer's other chips' are (ds/dropdown's
 -- chip): centred by their capitals, lowercase reads low beside a glyph. (A
 -- margin under them of twice that: their box stays centred, a point up.)
-local LIFT = "$zeron.space.hair"
+local LIFT = "$naive.space.hair"
 type Folded = { level: number, access_at: { [string]: number }, where_icon: number?, model_at: { [string]: number }? }
 local FOOTER_SIDES, FOOTER_GAP = 20, 4
 -- With cargo or a question over the draft, the draft keeps the strip's
 -- `below` over it (the theme's; read as the composer is built) rather than
 -- the open text box's own top.
 local function head_gap(): number
-	local v = ui.theme.get("zeron.composer.chip.below")
+	local v = ui.theme.get("naive.composer.chip.below")
 	return if type(v) == "number" then v else 12
 end
 -- A pill narrower than this is short of room: the trays' rows fold their
@@ -390,7 +390,7 @@ local function worded(t: { [string]: any }, words: { [string]: string }): any
 	return out
 end
 
--- The access modes, as Zeron offers them; their icons (Central Icons,
+-- The access modes, as Naive offers them; their icons (Central Icons,
 -- centralicons.com, round outlined, radius 2, stroke 1.5) say what each
 -- does: it waits for you (a raised hand), edits go through (a pencil with
 -- sparkles), the agent's reviewer vets each action (a shield), nothing is
@@ -433,7 +433,7 @@ local function plan_row(plan: State<boolean>): Node
 		ui.column {
 			grow = 1,
 			min_w = 0,
-			gap = "$zeron.space.hair",
+			gap = "$naive.space.hair",
 			ui.text {
 				locale.t("ds.composer.plan.mode"),
 				text_size = "$font.size.md",
@@ -460,7 +460,7 @@ end
 -- out of reach).
 type Choice = Dropdown.Item
 
--- The checkouts, as Zeron offers them (made as they're read).
+-- The checkouts, as Naive offers them (made as they're read).
 local function CHECKOUTS(): { Choice }
 	return {
 	worded({ value = "local", icon = "folder" }, {
@@ -474,7 +474,7 @@ local function CHECKOUTS(): { Choice }
 	}
 end
 
--- What a Cloud chat's machine reaches, as Zeron offers it: the person's
+-- What a Cloud chat's machine reaches, as Naive offers it: the person's
 -- other devices, or nothing past itself and the chats it starts.
 local function REACHES(): { Choice }
 	return {
@@ -805,7 +805,7 @@ local function work_in(
 			end))
 		)
 	end
-	return ui.column { w_full = true, gap = "$zeron.list.gap", table.unpack(rows) }
+	return ui.column { w_full = true, gap = "$naive.list.gap", table.unpack(rows) }
 end
 
 -- The same head for an existing chat, which can't move: where it works,
@@ -852,7 +852,7 @@ local function fixed_work_in(corridor: Menu.Corridor, fixed: () -> Fixed?, on_re
 			end, submenu(corridor, locale.t("ds.composer.reach.label"), reach, REACHES, 1, nil, nil, nil, on_reach))
 		)
 	end
-	return ui.column { w_full = true, gap = "$zeron.list.gap", table.unpack(rows) }
+	return ui.column { w_full = true, gap = "$naive.list.gap", table.unpack(rows) }
 end
 
 -- The ring, in a chip-high box of its own, washed under the pointer as the
@@ -881,7 +881,7 @@ local function ring(used: number | () -> number, usage: (() -> Usage?)?, side: (
 		return ui.row {
 			id = "composer-context",
 			h = CHIP_H,
-			px = "$zeron.space.tight",
+			px = "$naive.space.tight",
 			items = "center",
 			rounded = CHIP_RADIUS,
 			hover = { bg = "$hover" },
@@ -1137,7 +1137,7 @@ return ui.component(function(props: Props): Node
 	-- On the tray, the step under the pill and above the tray's foot (one
 	-- token: the footer's margins and the tray's height both read it), and
 	-- how far the tray tucks up behind the pill, its top hidden there.
-	local TRAY_GAP, TRAY_TUCK = "zeron.space.tight", 40
+	local TRAY_GAP, TRAY_TUCK = "naive.space.tight", 40
 	local function tray_gap(): number
 		local _ = ui.theme.current:get()
 		return (ui.theme.get(TRAY_GAP) :: number?) or 6
@@ -1175,7 +1175,7 @@ return ui.component(function(props: Props): Node
 		-- (Layout.estimate). The type's line height changed (tracked), it is
 		-- measured again.
 		estimate = function(line_height: number): Layout.Sample?
-			local line = ui.theme.get("zeron.composer.line")
+			local line = ui.theme.get("naive.composer.line")
 			if type(line) == "number" and math.abs(line - line_height) > 0.01 then
 				return nil
 			end
@@ -1371,7 +1371,7 @@ return ui.component(function(props: Props): Node
 			-- Retain the last complete sample while a request is stale.
 			sample = metrics.sample:get(),
 			trailing_width = trailing_seen:get(),
-			control_corner = control.nest("$zeron.composer.radius", Layout.BORDER),
+			control_corner = control.nest("$naive.composer.radius", Layout.BORDER),
 			header_height = head_h_seen:get(),
 			header_gap = head_gap(),
 			expanded = read(props.expanded) == true,
@@ -1731,7 +1731,7 @@ return ui.component(function(props: Props): Node
 		icon = true,
 		label = locale.t("ds.composer.stop"),
 		on_click = props.on_stop,
-		ui.div { w = 10, h = 10, rounded = ui.raw(3, "the stop glyph's corner"), bg = "$zeron.primary.text" },
+		ui.div { w = 10, h = 10, rounded = ui.raw(3, "the stop glyph's corner"), bg = "$naive.primary.text" },
 	}
 	-- A question's way through: Back (from the second page), then Submit
 	-- (or Next, with pages to come), dimmed until something is picked or
@@ -1845,7 +1845,7 @@ return ui.component(function(props: Props): Node
 			left = presented(function(g) return g.controls.voice.left end),
 			right = presented(function(g) return g.controls.voice.right end),
 			bottom = presented(function(g) return g.controls.voice.bottom end),
-			h = "$zeron.composer.voice.h",
+			h = "$naive.composer.voice.h",
 			ref = track_w,
 			overflow = "hidden",
 			rounded = "$radius.full",
@@ -1866,13 +1866,13 @@ return ui.component(function(props: Props): Node
 					gap = "$space.2",
 					items = "center",
 					rounded = "$radius.full",
-					bg = "$zeron.composer.voice.bg",
+					bg = "$naive.composer.voice.bg",
 					ui.div {
 						w = 8,
 						h = 8,
 						shrink = 0,
 						rounded = "$radius.full",
-						bg = "$zeron.composer.voice.ink",
+						bg = "$naive.composer.voice.ink",
 						opacity = ui.loop { from = 0.35, to = 1, duration = 900, fps = 30 },
 					},
 					if spoken and spoken.levels and spoken.phase then VoiceWave { levels = spoken.levels, phase = spoken.phase } else ui.div {
@@ -1885,7 +1885,7 @@ return ui.component(function(props: Props): Node
 						-- (Its ink as a colour, not a token: a clocked shader's parameters
 						-- drop theme tokens, zgx 4809bcce. Its presence's key holds the
 						-- theme, so the bar is made again as that changes.)
-						shader_params = { ui.theme.get("zeron.composer.voice.ink"), { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } },
+						shader_params = { ui.theme.get("naive.composer.voice.ink"), { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 0, 0, 0 } },
 					},
 					ui.text {
 						clock,
@@ -1963,7 +1963,7 @@ return ui.component(function(props: Props): Node
 					else nil,
 				source = if group
 					then function(item: cargo.Item): { [string]: any }?
-						local radius = ui.theme.get("zeron.composer.chip.radius")
+						local radius = ui.theme.get("naive.composer.chip.radius")
 						return Lightbox.source(group, item.id, if type(radius) == "number" then radius else 0)
 					end
 					else nil,
@@ -2119,7 +2119,7 @@ return ui.component(function(props: Props): Node
 		-- over it: one surface. Its own corner only clips what's in it, and
 		-- its edge, clear, keeps the room the frame's takes, so everything in
 		-- it sits where it always has.)
-		rounded = "$zeron.composer.radius",
+		rounded = "$naive.composer.radius",
 		border = Layout.BORDER,
 		border_color = "#00000000",
 		-- (Neither `on_files` nor its overlay: files are what's around it to
@@ -2178,7 +2178,7 @@ return ui.component(function(props: Props): Node
 				value = value,
 				atoms = props.atoms,
 				atom_style = if props.atoms
-					then { bg = "$zeron.chip.bg", color = "$text.primary", padding = { 2, 7, 2.4 }, radius = 5 }
+					then { bg = "$naive.chip.bg", color = "$text.primary", padding = { 2, 7, 2.4 }, radius = 5 }
 					else nil,
 				on_atom_hover = if props.atoms
 					then function(atom: any)
@@ -2256,12 +2256,12 @@ return ui.component(function(props: Props): Node
 				bg = "#00000000",
 				focus = { border = 0, outline = 0 },
 				wrap = true,
-				text_size = "$zeron.composer.text",
-				line_height = "$zeron.composer.line",
+				text_size = "$naive.composer.text",
+				line_height = "$naive.composer.line",
 				color = "$text.primary",
-				-- The caret: the accent, two points wide, as Zeron's.
-				caret_color = "$zeron.composer.caret",
-				caret_width = ui.theme.get("zeron.composer.caret_width"),
+				-- The caret: the accent, two points wide, as Naive's.
+				caret_color = "$naive.composer.caret",
+				caret_width = ui.theme.get("naive.composer.caret_width"),
 				-- Markdown as it is typed: its markers greyed, bold, italic
 				-- and struck text in their faces, code washed; and a wash
 				-- behind each file, command or skill mentioned.
@@ -2418,7 +2418,7 @@ return ui.component(function(props: Props): Node
 			}),
 		},
 		-- Files over it: the pill says what a drop does, over everything, as
-		-- Zeron's drop overlay does (shell.rs `attachment_drop_overlay`): the
+		-- Naive's drop overlay does (shell.rs `attachment_drop_overlay`): the
 		-- scrim, the words in the text's ink, there while files are over it.
 		-- (Not when the caller covers more than the pill with its own.)
 		if props.drop_overlay ~= false
@@ -2534,8 +2534,8 @@ return ui.component(function(props: Props): Node
 				return ui.button {
 					label = label :: any,
 					h = CHIP_H,
-					px = "$zeron.space.tight",
-					gap = "$zeron.space.tight",
+					px = "$naive.space.tight",
+					gap = "$naive.space.tight",
 					items = "center",
 					min_w = 0,
 					rounded = CHIP_RADIUS,
@@ -2658,7 +2658,7 @@ return ui.component(function(props: Props): Node
 				return if on_tray() then `${TRAY_GAP}` else 0
 			end :: any,
 			px = function(): any
-				return if on_tray() then ui.raw(view_geometry:get().tray_inset, "the pill's controls' inset") else "$zeron.space.snug"
+				return if on_tray() then ui.raw(view_geometry:get().tray_inset, "the pill's controls' inset") else "$naive.space.snug"
 			end :: any,
 			items = "center",
 			gap = "$space.1",
@@ -2792,7 +2792,7 @@ return ui.component(function(props: Props): Node
 		w_full = true,
 		relative = true,
 		opacity = function(): number
-			return if disabled() then (ui.theme.get("zeron.disabled") :: number?) or 0.4 else 1
+			return if disabled() then (ui.theme.get("naive.disabled") :: number?) or 0.4 else 1
 		end,
 		-- The tray (over a wallpaper): the pill's glass continued under the
 		-- footer, tucked behind the pill (its top hidden under it, its sides
@@ -2816,11 +2816,11 @@ return ui.component(function(props: Props): Node
 				-- its own anywhere: it is the pill's glass continued (the pill
 				-- keeps its edge). A rounded top, or a hairline, showed a second
 				-- curve against the pill's own.
-				rounded = "$zeron.composer.tray.radius",
+				rounded = "$naive.composer.tray.radius",
 				rounded_tl = 0,
 				rounded_tr = 0,
 				bg = function(): string
-					return if material.see_through() then "$zeron.composer.tint" else "$zeron.composer.solid"
+					return if material.see_through() then "$naive.composer.tint" else "$naive.composer.solid"
 				end,
 				backdrop_blur = function(): number
 					return if material.see_through() then 16 else 0
@@ -2853,17 +2853,17 @@ return ui.component(function(props: Props): Node
 				top = 0,
 				bottom = 0,
 				pointer_events = "none",
-				rounded = "$zeron.composer.radius",
+				rounded = "$naive.composer.radius",
 				border = 1,
-				border_color = "$zeron.composer.edge",
+				border_color = "$naive.composer.edge",
 				bg = function()
-					return if material.see_through() then "$zeron.composer.tint" else "$zeron.composer.solid"
+					return if material.see_through() then "$naive.composer.tint" else "$naive.composer.solid"
 				end,
 				backdrop_blur = function()
 					return if material.see_through() then 16 else 0
 				end,
 				shadow = function()
-					return if material.see_through() then "$zeron.composer.rest" else "$zeron.composer.shadow"
+					return if material.see_through() then "$naive.composer.rest" else "$naive.composer.shadow"
 				end,
 			},
 			ui.column { ref = deck_size, w_full = true, shrink = 0, trays },
@@ -2896,7 +2896,7 @@ return ui.component(function(props: Props): Node
 			return Layout.calculate({
 				-- (Its height is the same at any width: it is never measured.)
 				width = pill_w:peek(), sample = nil, trailing_width = trailing_seen:get(),
-				control_corner = control.nest("$zeron.composer.radius", Layout.BORDER),
+				control_corner = control.nest("$naive.composer.radius", Layout.BORDER),
 				header_height = 0, header_gap = 0, expanded = read(props.expanded) == true,
 				cargo = false, asking = false, dictating = false, multiline = false,
 			}, false).height

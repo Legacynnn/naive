@@ -1,9 +1,9 @@
-// Where Zeron is downloaded from. One list feeds the downloads table, the
+// Where Naive is downloaded from. One list feeds the downloads table, the
 // download buttons and the script that points them at the latest release.
 
-export const RELEASES_URL = "https://zeron.sh/releases/";
+export const RELEASES_URL = "https://naive.sh/releases/";
 export const RELEASE_NOTES_URL = "https://github.com/zeronsh/zeron/releases/latest";
-export const INSTALL_COMMAND = "curl -fsSL https://zeron.sh/install.sh | sh";
+export const INSTALL_COMMAND = "curl -fsSL https://naive.sh/install.sh | sh";
 
 /** Links use this version until `latest.txt` answers, and when it can't.
  *  0.2.97 is the first release with the Windows installer. */
@@ -16,7 +16,7 @@ export interface DesktopBuild {
   name: string;
   /** What the downloads table says beside the name. */
   detail: string;
-  /** The file name after `zeron-<version>-`. */
+  /** The file name after `naive-<version>-`. */
   file: string;
   /** The main button's words when this build is the visitor's. */
   label: string;
@@ -35,5 +35,5 @@ export const DESKTOP_BUILDS = {
 export type BuildId = keyof typeof DESKTOP_BUILDS;
 
 /** Android builds publish on every change under one stable name. */
-export const ANDROID_APK = `${RELEASES_URL}zeron-android-arm64.apk`;
-export const APP_STORE = "https://apps.apple.com/us/app/zeron-coding-agents/id6803187897";
+export const ANDROID_APK = `${RELEASES_URL}naive-android-arm64.apk`;
+export const APP_STORE = "https://apps.apple.com/us/app/naive-coding-agents/id6803187897";

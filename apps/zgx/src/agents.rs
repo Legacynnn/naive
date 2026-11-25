@@ -18,7 +18,7 @@
 //! An agent that keeps a login per model provider (Pi, OpenCode, Hermes)
 //! also carries `groups`, its accounts by provider (`provider_groups`):
 //! `{ { id, name, accounts, login?, key?, hint?, read_only } }`, each with
-//! its own one in use and its own ways to add one (`login`, who Zeron signs
+//! its own one in use and its own ways to add one (`login`, who Naive signs
 //! you in to; `key`, who issues the API key it adds; neither: `hint` says
 //! how the agent does), and
 //! `login_for`, the provider its sign-in under way is for. `agents.logins`
@@ -453,7 +453,7 @@ pub fn install(host: &ScriptHost) {
         if let Some(page) = page.filter(|p| openable(p))
             && let Err(error) = crate::auth::open_sign_in(&page)
         {
-            eprintln!("zeron-zgx: agents: the browser didn't open: {error}");
+            eprintln!("naive-zgx: agents: the browser didn't open: {error}");
         }
     });
     let a = agents.clone();
@@ -569,7 +569,7 @@ pub(crate) fn glyph(id: &str) -> Option<String> {
 }
 
 /// `id` as the engine's harness (an agent from the ACP registry's too).
-fn harness_id(id: &str) -> Option<zeron_proto::HarnessId> {
+fn harness_id(id: &str) -> Option<naive_proto::HarnessId> {
     serde_json::from_value(json!(id)).ok()
 }
 
@@ -583,20 +583,20 @@ struct Group {
     name: String,
     /// Its accounts: indices into the agent's list, in its order.
     rows: Vec<usize>,
-    /// Who Zeron signs you in to for it ("ChatGPT", "Claude"): none where it
+    /// Who Naive signs you in to for it ("ChatGPT", "Claude"): none where it
     /// can't.
     login: Option<String>,
-    /// Who issues the API key Zeron adds for it ("OpenRouter"): none where
+    /// Who issues the API key Naive adds for it ("OpenRouter"): none where
     /// it adds none.
     key: Option<String>,
 }
 
-/// An agent's accounts by provider: first every provider Zeron signs in to,
+/// An agent's accounts by provider: first every provider Naive signs in to,
 /// in its order, then those it adds API keys for, then any other its
 /// accounts are on, in the order they come. A provider with none yet is
 /// one to add (its sign-in or key). An account naming no provider (an
 /// older engine's) is in the first group.
-fn provider_groups(harness: zeron_proto::HarnessId, accounts: &[Json]) -> Vec<Group> {
+fn provider_groups(harness: naive_proto::HarnessId, accounts: &[Json]) -> Vec<Group> {
     provider_groups_on(harness, accounts, false)
 }
 
@@ -604,8 +604,8 @@ fn provider_groups(harness: zeron_proto::HarnessId, accounts: &[Json]) -> Vec<Gr
 /// are the credentials the agent runs on there (every agent's, not only
 /// those that sign in per provider), in its order, each with the sign-in
 /// and the API key Cloud takes for it — added from the card itself.
-fn provider_groups_on(harness: zeron_proto::HarnessId, accounts: &[Json], cloud: bool) -> Vec<Group> {
-    use zeron_proto::providers::{
+fn provider_groups_on(harness: naive_proto::HarnessId, accounts: &[Json], cloud: bool) -> Vec<Group> {
+    use naive_proto::providers::{
         account_group_label, api_key_option, api_key_options, cloud_credentials, cloud_login_options, login_option,
         login_options,
     };
@@ -644,7 +644,7 @@ fn provider_groups_on(harness: zeron_proto::HarnessId, accounts: &[Json], cloud:
                 let keys: Vec<_> = held.iter().filter(|c| c.vault.is_api_key()).collect();
                 // An agent with one sign-in shows it on the group that sign-in
                 // fills (Cursor's mints a key, so look it up, don't guess).
-                let signed_into = zeron_proto::providers::cloud_login_vault(harness, None);
+                let signed_into = naive_proto::providers::cloud_login_vault(harness, None);
                 let only = cloud_login_options(harness)
                     .into_iter()
                     .find(|o| o.provider.is_none() && held.iter().any(|c| Some(c.vault) == signed_into))
@@ -662,11 +662,11 @@ fn provider_groups_on(harness: zeron_proto::HarnessId, accounts: &[Json], cloud:
         .collect()
 }
 
-/// Each per-provider agent's providers Zeron adds to, for a composer's
+/// Each per-provider agent's providers Naive adds to, for a composer's
 /// Account row to offer (`agents.logins`): `{ [harness] = { [provider] = {
 /// name, login?, key? } } }` — who it signs you in to, who issues the key.
 fn logins_value() -> Value {
-    use zeron_proto::providers::{groups_by_provider, PROVIDERS};
+    use naive_proto::providers::{groups_by_provider, PROVIDERS};
     let by = PROVIDERS.iter().filter(|(h, _, _)| groups_by_provider(*h)).filter_map(|(harness, _, _)| {
         let id = serde_json::to_value(harness).ok()?.as_str()?.to_owned();
         let groups: Vec<(String, Value)> = provider_groups(*harness, &[])
@@ -752,7 +752,7 @@ impl Agents {
         let sign_ins = self.sign_ins.borrow();
         let resets = self.resets.borrow();
         // Cloud shown: its agents sign in (and take keys) as Cloud does.
-        let cloud = self.target.borrow().as_deref() == Some(zeron_proto::CLOUD_ACCOUNTS_DEVICE);
+        let cloud = self.target.borrow().as_deref() == Some(naive_proto::CLOUD_ACCOUNTS_DEVICE);
         let account_value = |account: &Json| {
             let reset = account["id"].as_str().and_then(|id| resets.get(id));
             account_value(account, reset, cloud)
@@ -779,11 +779,11 @@ impl Agents {
                 // An agent that keeps a login per model provider: its
                 // accounts by provider, each group with its own in use and
                 // its own way to add one (nil: one group, as ever).
-                let groups = harness_id(id).filter(|h| cloud || zeron_proto::providers::groups_by_provider(*h)).map(|harness| {
+                let groups = harness_id(id).filter(|h| cloud || naive_proto::providers::groups_by_provider(*h)).map(|harness| {
                     let list = accounts.get(id).map(Vec::as_slice).unwrap_or_default();
                     // (Cloud's accounts are the vault's, every agent's switched
                     // and removed here; on a computer, Hermes' are its own.)
-                    let read_only = !cloud && !zeron_proto::providers::switches_accounts(harness);
+                    let read_only = !cloud && !naive_proto::providers::switches_accounts(harness);
                     let groups: Vec<Value> = provider_groups_on(harness, list, cloud)
                         .into_iter()
                         .map(|g| {
@@ -809,14 +809,14 @@ impl Agents {
                     // takes a sign-in or a key for it.
                     (
                         "can_add",
-                        Value::Bool(!cloud || harness.is_some_and(|h| !zeron_proto::providers::cloud_credentials(h).is_empty())),
+                        Value::Bool(!cloud || harness.is_some_and(|h| !naive_proto::providers::cloud_credentials(h).is_empty())),
                     ),
                     // How it signs in on Cloud, where that differs from its own.
                     (
                         "cloud_note",
                         harness
                             .filter(|_| cloud)
-                            .and_then(zeron_proto::providers::cloud_note)
+                            .and_then(naive_proto::providers::cloud_note)
                             .map_or(Value::Nil, Value::from),
                     ),
                     // Which provider's group the sign-in under way is for.
@@ -830,7 +830,7 @@ impl Agents {
                     ),
                     ("mark", mark(id).map_or(Value::Nil, Value::from)),
                     // An agent added from the ACP registry: its one-ink icon
-                    // (it has no mark), and no accounts of Zeron's to show.
+                    // (it has no mark), and no accounts of Naive's to show.
                     ("registry", Value::Bool(id.starts_with("acp."))),
                     ("icon", h["icon"].as_str().map_or(Value::Nil, Value::from)),
                     ("installed", Value::Bool(h["installed"].as_bool().unwrap_or(true))),
@@ -931,7 +931,7 @@ impl Agents {
         let params = addressed_to(target, params);
         engine::get().spawn(async move {
             if let Err(error) = engine::get().call(method, params).await {
-                eprintln!("zeron-zgx: agents: {method} failed: {error}");
+                eprintln!("naive-zgx: agents: {method} failed: {error}");
             }
         });
     }
@@ -991,7 +991,7 @@ impl Agents {
         let params = self.addressed(params);
         engine::get().spawn(async move {
             if let Err(error) = engine::get().call(method, params).await {
-                eprintln!("zeron-zgx: agents: {method} failed: {error}");
+                eprintln!("naive-zgx: agents: {method} failed: {error}");
             }
         });
     }
@@ -1069,7 +1069,7 @@ impl Agents {
                 self.publish();
             }
             // (Not told: the row offers the sign-in, as before.)
-            Err(error) => eprintln!("zeron-zgx: agents: {id} didn't say whether it's signed in: {error}"),
+            Err(error) => eprintln!("naive-zgx: agents: {id} didn't say whether it's signed in: {error}"),
         }
     }
 
@@ -1085,7 +1085,7 @@ impl Agents {
                 Ok(Value::Nil)
             }
             Err(error) => {
-                eprintln!("zeron-zgx: agents: {id}'s key wasn't kept: {error}");
+                eprintln!("naive-zgx: agents: {id}'s key wasn't kept: {error}");
                 Err(fail(&error))
             }
         }
@@ -1109,7 +1109,7 @@ impl Agents {
                 Ok(Value::Nil)
             }
             Err(error) => {
-                eprintln!("zeron-zgx: agents: {id} didn't sign out: {error}");
+                eprintln!("naive-zgx: agents: {id} didn't sign out: {error}");
                 Err(fail(&error))
             }
         }
@@ -1122,7 +1122,7 @@ impl Agents {
             // (Another device's, asked before the switch: not shown.)
             Ok(_) if *self.target.borrow() != asked_of => {}
             Ok(snapshot) => self.take_accounts(&snapshot),
-            Err(error) => eprintln!("zeron-zgx: agents: accounts unavailable: {error}"),
+            Err(error) => eprintln!("naive-zgx: agents: accounts unavailable: {error}"),
         }
     }
 
@@ -1145,7 +1145,7 @@ impl Agents {
     fn device_value(&self) -> Value {
         let devices = self.device_accounts.borrow();
         Value::record(devices.iter().map(|(key, device)| {
-            let cloud = key == zeron_proto::CLOUD_ACCOUNTS_DEVICE;
+            let cloud = key == naive_proto::CLOUD_ACCOUNTS_DEVICE;
             (key.as_str(), device_accounts_value(&device.accounts, cloud))
         }))
     }
@@ -1242,7 +1242,7 @@ impl Agents {
                 Ok(Value::Nil)
             }
             Err(error) => {
-                eprintln!("zeron-zgx: agents: ActivateAgentAccount failed: {error}");
+                eprintln!("naive-zgx: agents: ActivateAgentAccount failed: {error}");
                 if let (Some(before), Some(device)) = (before, self.device_accounts.borrow_mut().get_mut(&key)) {
                     device.accounts = before;
                 }
@@ -1305,7 +1305,7 @@ impl Agents {
                 Ok(Value::Nil)
             }
             Err(error) => {
-                eprintln!("zeron-zgx: agents: {id}'s code didn't finish the sign-in: {error}");
+                eprintln!("naive-zgx: agents: {id}'s code didn't finish the sign-in: {error}");
                 self.settle(&id, generation, true);
                 Err(fail(&error))
             }
@@ -1348,7 +1348,7 @@ impl Agents {
         let start = match engine::get().call("StartAgentLogin", addressed_to(device, params)).await {
             Ok(start) => start,
             Err(error) => {
-                eprintln!("zeron-zgx: agents: {id}'s sign-in didn't start: {error}");
+                eprintln!("naive-zgx: agents: {id}'s sign-in didn't start: {error}");
                 self.settle(&id, generation, true);
                 return Err(fail(&error));
             }
@@ -1368,7 +1368,7 @@ impl Agents {
             if let Some(url) = start["url"].as_str().filter(|u| !u.is_empty() && openable(u))
                 && let Err(error) = crate::auth::open_sign_in(url)
             {
-                eprintln!("zeron-zgx: agents: the browser didn't open: {error}");
+                eprintln!("naive-zgx: agents: the browser didn't open: {error}");
             }
             if let Some(login) = self.logins.borrow_mut().get_mut(&id) {
                 login.code = true;
@@ -1384,7 +1384,7 @@ impl Agents {
                 && opened.as_deref() != Some(url)
             {
                 if let Err(error) = crate::auth::open_sign_in(url) {
-                    eprintln!("zeron-zgx: agents: the browser didn't open: {error}");
+                    eprintln!("naive-zgx: agents: the browser didn't open: {error}");
                 }
                 opened = Some(url.to_string());
                 // Kept, for the card to open again.
@@ -1411,7 +1411,7 @@ impl Agents {
             let poll = match engine::get().call("PollAgentLogin", addressed_to(device, json!({ "loginId": login_id }))).await {
                 Ok(poll) => poll,
                 Err(error) => {
-                    eprintln!("zeron-zgx: agents: lost {id}'s sign-in: {error}");
+                    eprintln!("naive-zgx: agents: lost {id}'s sign-in: {error}");
                     self.settle(&id, generation, true);
                     return Err(fail(&error));
                 }
@@ -1433,7 +1433,7 @@ impl Agents {
                 }
                 Some("error") => {
                     eprintln!(
-                        "zeron-zgx: agents: {id}'s sign-in failed: {}",
+                        "naive-zgx: agents: {id}'s sign-in failed: {}",
                         poll["message"].as_str().unwrap_or("no reason given")
                     );
                     // An agent from the ACP registry says why in its own
@@ -1524,7 +1524,7 @@ impl Agents {
             }
             Ok(_) => Ok(Value::Nil),
             Err(error) => {
-                eprintln!("zeron-zgx: agents: {id} couldn't be turned {}: {error}", if enabled { "on" } else { "off" });
+                eprintln!("naive-zgx: agents: {id} couldn't be turned {}: {error}", if enabled { "on" } else { "off" });
                 // The list as the engine has it, so the switch goes back.
                 self.publish();
                 Err(fail(&error))
@@ -1535,7 +1535,7 @@ impl Agents {
     /// `AddAgentApiKey` on this Mac's engine — never addressed elsewhere:
     /// with another device shown, refused here, the key sent nowhere.
     async fn add_key(&self, id: String, provider: String, key: String, name: Option<String>) -> Result<Value, String> {
-        if self.target.borrow().as_deref() == Some(zeron_proto::CLOUD_ACCOUNTS_DEVICE) {
+        if self.target.borrow().as_deref() == Some(naive_proto::CLOUD_ACCOUNTS_DEVICE) {
             return self.add_cloud_key(&id, &provider, key.trim()).await;
         }
         if self.target.borrow().is_some() {
@@ -1593,7 +1593,7 @@ impl Agents {
                 Ok(Value::Nil)
             }
             Err(error) => {
-                eprintln!("zeron-zgx: agents: {method} failed: {error}");
+                eprintln!("naive-zgx: agents: {method} failed: {error}");
                 Err(if fail(&error) == "offline" { "offline".into() } else { error })
             }
         }
@@ -1638,7 +1638,7 @@ impl Agents {
         let (state, why) = match &reply {
             Ok(outcome) => reset_state(outcome["outcome"].as_str()),
             Err(error) => {
-                eprintln!("zeron-zgx: agents: the reset wasn't used: {error}");
+                eprintln!("naive-zgx: agents: the reset wasn't used: {error}");
                 ("failed", Some(reset_failure(error)))
             }
         };
@@ -1698,7 +1698,7 @@ impl Agents {
                 Ok(Value::Nil)
             }
             Err(error) => {
-                eprintln!("zeron-zgx: agents: {id} didn't install: {error}");
+                eprintln!("naive-zgx: agents: {id} didn't install: {error}");
                 self.publish();
                 Err(fail(&error))
             }
@@ -1938,10 +1938,10 @@ fn device_accounts_value(accounts: &[Json], cloud: bool) -> Value {
     let mut by: BTreeMap<&str, Vec<Value>> = BTreeMap::new();
     for account in accounts {
         let Some(harness) = account["harness"].as_str() else { continue };
-        let Ok(id) = serde_json::from_value::<zeron_proto::HarnessId>(account["harness"].clone()) else {
+        let Ok(id) = serde_json::from_value::<naive_proto::HarnessId>(account["harness"].clone()) else {
             continue;
         };
-        if !zeron_proto::providers::signs_in(id) {
+        if !naive_proto::providers::signs_in(id) {
             continue;
         }
         let windows: Vec<Value> = account["usageWindows"]
@@ -1966,9 +1966,9 @@ fn device_accounts_value(accounts: &[Json], cloud: bool) -> Value {
         // Its model provider, where its agent keeps a login per provider
         // (the Account row shows only the model's provider's), and what
         // that provider's group is called.
-        if let Some(provider) = account["provider"].as_str().filter(|_| zeron_proto::providers::groups_by_provider(id)) {
+        if let Some(provider) = account["provider"].as_str().filter(|_| naive_proto::providers::groups_by_provider(id)) {
             fields.push(("provider", Value::from(provider)));
-            fields.push(("group", Value::from(zeron_proto::providers::account_group_label(id, provider).as_str())));
+            fields.push(("group", Value::from(naive_proto::providers::account_group_label(id, provider).as_str())));
         }
         if let Some(error) = account["usageError"].as_str() {
             fields.push(("error", Value::from(error)));
@@ -1979,11 +1979,11 @@ fn device_accounts_value(accounts: &[Json], cloud: bool) -> Value {
 }
 
 /// Whether an account can be put in use: one the engine can swap to, of an
-/// agent whose logins Zeron switches (never Hermes' own pool on a computer;
+/// agent whose logins Naive switches (never Hermes' own pool on a computer;
 /// Cloud's (`cloud`) are all the vault's, every agent's switched here).
 fn can_switch(account: &Json, cloud: bool) -> bool {
     account["switchable"].as_bool().unwrap_or(false)
-        && (cloud || account["harness"].as_str().and_then(harness_id).is_some_and(zeron_proto::providers::switches_accounts))
+        && (cloud || account["harness"].as_str().and_then(harness_id).is_some_and(naive_proto::providers::switches_accounts))
 }
 
 /// What an account goes by.
@@ -2041,7 +2041,7 @@ mod tests {
             (group.to_string(), login.map(String::from), key.map(String::from))
         };
         let pi = provider_groups_on(
-            zeron_proto::HarnessId::Pi,
+            naive_proto::HarnessId::Pi,
             &[json!({ "id": "codex:a", "harness": "pi", "provider": "openai-codex" })],
             true,
         );
@@ -2055,22 +2055,22 @@ mod tests {
             ]
         );
         assert_eq!(pi[0].rows, [0]);
-        let hermes = provider_groups_on(zeron_proto::HarnessId::Hermes, &[], true);
+        let hermes = provider_groups_on(naive_proto::HarnessId::Hermes, &[], true);
         let logins: Vec<_> = hermes.iter().filter_map(|g| g.login.clone()).collect();
         assert_eq!(logins, ["ChatGPT", "Nous Portal", "xAI"]);
         // An agent with one sign-in: its group holds it beside its key.
-        let claude = provider_groups_on(zeron_proto::HarnessId::ClaudeCode, &[], true);
+        let claude = provider_groups_on(naive_proto::HarnessId::ClaudeCode, &[], true);
         assert_eq!(named(&claude), [row("anthropic", Some("Claude Code"), Some("Anthropic"))]);
-        let muse = provider_groups_on(zeron_proto::HarnessId::Muse, &[], true);
+        let muse = provider_groups_on(naive_proto::HarnessId::Muse, &[], true);
         assert_eq!(named(&muse), [row("meta", Some("Muse Code"), Some("Meta"))]);
-        let cursor = provider_groups_on(zeron_proto::HarnessId::Cursor, &[], true);
+        let cursor = provider_groups_on(naive_proto::HarnessId::Cursor, &[], true);
         assert_eq!(named(&cursor), [row("cursor", Some("Cursor"), Some("Cursor"))]);
     }
 
     /// A key added on a Cloud card is the vault key its group takes.
     #[test]
     fn a_cloud_cards_key_is_the_vendor_key_its_group_takes() {
-        use zeron_proto::VaultProvider as V;
+        use naive_proto::VaultProvider as V;
         assert_eq!(cloud_key_provider("claude-code", "anthropic"), Some(V::AnthropicKey));
         assert_eq!(cloud_key_provider("pi", "openrouter"), Some(V::OpenrouterKey));
         assert_eq!(cloud_key_provider("hermes", "gemini"), Some(V::GeminiKey));
@@ -2185,7 +2185,7 @@ mod tests {
             .map(|g| (g.provider.as_str(), g.name.as_str(), g.rows.clone(), g.login.as_deref(), g.key.as_deref()))
             .collect();
         assert_eq!(&shape[..3], &[
-            // Zeron's own sign-ins first, in their order (Anthropic takes
+            // Naive's own sign-ins first, in their order (Anthropic takes
             // a Claude sign-in and an API key alike)…
             ("openai-codex", "ChatGPT", vec![1, 2], Some("ChatGPT"), None),
             ("anthropic", "Anthropic", vec![0], Some("Claude"), Some("Anthropic")),
@@ -2370,9 +2370,9 @@ pub(crate) fn shown_target() -> Option<String> {
 /// The vault key a Cloud card's group of agent `id` takes: the API-key
 /// credential in that group (`group`, as the card names it), or `group`
 /// itself where it names a vault key the agent runs on.
-fn cloud_key_provider(id: &str, group: &str) -> Option<zeron_proto::VaultProvider> {
+fn cloud_key_provider(id: &str, group: &str) -> Option<naive_proto::VaultProvider> {
     let harness = harness_id(id)?;
-    let credentials = zeron_proto::providers::cloud_credentials(harness);
+    let credentials = naive_proto::providers::cloud_credentials(harness);
     credentials
         .iter()
         .find(|c| c.vault.is_api_key() && (c.group == group || c.vault.as_str() == group))

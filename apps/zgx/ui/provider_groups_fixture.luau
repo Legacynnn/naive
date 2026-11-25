@@ -1,7 +1,7 @@
 -- Settings → Providers with agents that keep a login per model provider,
 -- mounted on its own with agents made up here (no engine in a test host):
 -- what tests/provider_groups.test.luau drives. Pi has two ChatGPT accounts
--- and a Claude one (signed in by Pi's own /login: Zeron can't add those)
+-- and a Claude one (signed in by Pi's own /login: Naive can't add those)
 -- and no Copilot yet; Hermes lists its own pool, read-only; Claude Code
 -- keeps one login, as ever. The groups are published as the host words
 -- them (src/agents.rs `provider_groups`), and account/agents' calls are
@@ -63,8 +63,8 @@ local function agent(id: string, name: string, mark: string, accounts: { any }):
 end
 
 -- Each per-provider agent's providers, in the host's order (src/agents.rs
--- `provider_groups`): who Zeron signs you in to for each (`login`), who
--- issues the key it adds (`key`), and how the agent adds one where Zeron
+-- `provider_groups`): who Naive signs you in to for each (`login`), who
+-- issues the key it adds (`key`), and how the agent adds one where Naive
 -- can do neither (`hint`).
 type Provider = { id: string, name: string, login: string?, key: string?, hint: string? }
 local PROVIDERS: { [string]: { Provider } } = {
@@ -361,7 +361,7 @@ return ui.column {
 		id = "page",
 		w_full = true,
 		h_full = true,
-		bg = "$zeron.window",
+		bg = "$naive.window",
 		ui.column { w_full = true, px = "$space.6", py = "$space.6", providers.view() },
 	},
 }

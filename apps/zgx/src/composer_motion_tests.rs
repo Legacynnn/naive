@@ -361,7 +361,7 @@ fn removing_last_attachment_to_skinny_avoids_transcript_repaint_storm() {
         app
     };
 
-    let _file_app = verify_shrink("file", PathBuf::from("/tmp/zeron-drop/notes.md"));
+    let _file_app = verify_shrink("file", PathBuf::from("/tmp/naive-drop/notes.md"));
 
     let img = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ui/assets/favicons/zgx.png");
     let mut img_app = verify_shrink("image", img.clone());

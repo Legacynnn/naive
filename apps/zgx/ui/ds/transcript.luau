@@ -1,5 +1,5 @@
 -- A conversation: what a person sent and what the agent did and said, as
--- Zeron's transcript shows it (crates/ui/src/transcript.rs), virtualized so
+-- Naive's transcript shows it (crates/ui/src/transcript.rs), virtualized so
 -- a chat of thousands of turns costs what the few in view cost.
 --
 -- Each message is a row of a `ui.list`, measured as it mounts and keyed by
@@ -9,7 +9,7 @@
 -- and no other row runs.
 --
 -- Reading:
--- - Both sides keep to one measure (`$zeron.prose.measure`), centred, so a
+-- - Both sides keep to one measure (`$naive.prose.measure`), centred, so a
 --   wide window doesn't stretch a reply's lines past easy reading; the
 --   person's bubbles hold its right edge.
 -- - A turn opens with more room above it than lies between a reply's parts,
@@ -77,7 +77,7 @@ export type Message = {
 	-- A reply's model, for naming who said a selection.
 	model: string?,
 	tools: { Tool }?,
-	-- Its parts in order, as Zeron lays a reply out: its text, and between
+	-- Its parts in order, as Naive lays a reply out: its text, and between
 	-- the text each run of tools as a group of its own (keyed by its first
 	-- part), open while it is the tail of a reply being written. Given,
 	-- they are what shows (`text` and `tools` then only say what it holds).
@@ -163,7 +163,7 @@ export type Props = {
 	fade_lead: number?,
 	-- What floats over its foot (a composer, docked), in points: the
 	-- conversation runs under it, its end held clear of it, fading out as
-	-- it passes behind (Zeron's band, from the composer's top to the
+	-- it passes behind (Naive's band, from the composer's top to the
 	-- window's foot), and the way back to the latest stands over it.
 	foot: (() -> number)?,
 	-- Settled/destination foot height when the docked composer animates: list-
@@ -296,23 +296,23 @@ local WORD, ACTION, CLEAR, MARGIN, FOOT = 26, 32, 6, 8, 46
 local WATCH = 200
 
 -- The room left under the conversation's last row, over what floats at its
--- foot: Zeron's (transcript.rs, the fade band and 8).
+-- foot: Naive's (transcript.rs, the fade band and 8).
 local TAIL = 32
--- Zeron's gaps over a message (transcript.rs `top_gap_for`): a turn's, and
+-- Naive's gaps over a message (transcript.rs `top_gap_for`): a turn's, and
 -- a prompt's under the switch seam over it.
 local TURN_GAP = 16
 local SEAM_GAP = 6
 
--- `ZERON_ZGX_TRACE_TRANSCRIPT=1`: the transcript's hover and layout, a line
+-- `NAIVE_ZGX_TRACE_TRANSCRIPT=1`: the transcript's hover and layout, a line
 -- each to the app's output (off, nothing is made or printed).
 local TRACING = ui.shared("trace.transcript", false):peek() == true
 local function trace(what: string, ...: any)
 	if TRACING then
-		print(`zeron-zgx: transcript {math.floor(ui.now())} {what}`, ...)
+		print(`naive-zgx: transcript {math.floor(ui.now())} {what}`, ...)
 	end
 end
 
--- The lane under a message, as Zeron's (transcript.rs, the hover strip):
+-- The lane under a message, as Naive's (transcript.rs, the hover strip):
 -- always there, so nothing moves as it shows; under the pointer, the
 -- message's time and Copy, then what plugins add (`chat.message.actions`).
 -- A person's sits under their bubble's right edge, a reply's on its text's
@@ -345,7 +345,7 @@ local function strip(m: Message, row: State<Message>, hovered: () -> boolean): N
 		if stop then
 			stop()
 		end
-		-- (Zeron clears it after 1.2 s.)
+		-- (Naive clears it after 1.2 s.)
 		stop = ui.after(1200, function()
 			stop = nil
 			set_copied(false)
@@ -354,7 +354,7 @@ local function strip(m: Message, row: State<Message>, hovered: () -> boolean): N
 	return ui.row {
 		w_full = true,
 		h = LANE,
-		pt = ui.raw(LANE_TOP, "Zeron's 8 over the lane's 24-point line"),
+		pt = ui.raw(LANE_TOP, "Naive's 8 over the lane's 24-point line"),
 		items = "center",
 		justify = if mine then "end" else "start",
 		selectable = false,
@@ -375,7 +375,7 @@ local function strip(m: Message, row: State<Message>, hovered: () -> boolean): N
 					end,
 					text_size = "$font.size.sm",
 					color = "$text.secondary",
-					opacity = ui.raw(0.55, "Zeron's timestamp: the muted ink at 55%"),
+					opacity = ui.raw(0.55, "Naive's timestamp: the muted ink at 55%"),
 				},
 				ui.show(
 					function(): boolean
@@ -392,8 +392,8 @@ local function strip(m: Message, row: State<Message>, hovered: () -> boolean): N
 						rounded = "$radius.md",
 						bg = "#00000000",
 						color = "$text.secondary",
-						hover = { bg = "$zeron.secondary.bg" },
-						active = { bg = "$zeron.secondary.hover" },
+						hover = { bg = "$naive.secondary.bg" },
+						active = { bg = "$naive.secondary.hover" },
 						focus = control.ring,
 						cursor = "pointer",
 						on_click = copy,
@@ -413,10 +413,10 @@ local function strip(m: Message, row: State<Message>, hovered: () -> boolean): N
 end
 
 -- Where the chat moved to another agent: `[mark] From → [mark] To`, muted,
--- on the right over the prompt that moved it (Zeron's `switch_marker`).
+-- on the right over the prompt that moved it (Naive's `switch_marker`).
 local function switch_side(name: string?, mark: Mark.Name?): Node
 	return ui.row {
-		gap = ui.raw(5, "Zeron's caption mark-to-name gap"),
+		gap = ui.raw(5, "Naive's caption mark-to-name gap"),
 		items = "center",
 		min_w = 0,
 		if mark then ui.div { aria_hidden = true, Mark { name = mark, size = 14, bare = true } } else nil,
@@ -431,7 +431,7 @@ local function seam(m: Message): Node
 		w_full = true,
 		justify = "end",
 		ui.row {
-			gap = ui.raw(6, "Zeron's caption gap"),
+			gap = ui.raw(6, "Naive's caption gap"),
 			items = "center",
 			min_w = 0,
 			text_size = "$font.size.md",
@@ -440,7 +440,7 @@ local function seam(m: Message): Node
 			switch_side(m.from, m.from_mark),
 			ui.div {
 				aria_hidden = true,
-				opacity = ui.raw(0.7, "Zeron's caption arrow, fainter than its names"),
+				opacity = ui.raw(0.7, "Naive's caption arrow, fainter than its names"),
 				Icon { name = "arrow-right", size = 12 },
 			},
 			switch_side(m.to, m.to_mark),
@@ -449,7 +449,7 @@ local function seam(m: Message): Node
 end
 
 -- A message another chat sent: `Message from [mark] Chat`, muted, on the right
--- over its bubble (Zeron's `render_agent_sender`). The chat's title as it is
+-- over its bubble (Naive's `render_agent_sender`). The chat's title as it is
 -- now, and a click opens it in the panel; one that isn't listed reads as it
 -- did when sent.
 local function sender_line(m: Message, props: Props): Node
@@ -465,7 +465,7 @@ local function sender_line(m: Message, props: Props): Node
 		local c = now()
 		local mark = if c then c.mark else nil
 		local line: { [any]: any } = {
-			gap = ui.raw(6, "Zeron's caption gap"),
+			gap = ui.raw(6, "Naive's caption gap"),
 			items = "center",
 			min_w = 0,
 			max_w = "80%",
@@ -474,7 +474,7 @@ local function sender_line(m: Message, props: Props): Node
 			selectable = false,
 			ui.text { locale.t("ds.transcript.message_from"), shrink = 0 },
 			ui.row {
-				gap = ui.raw(5, "Zeron's caption mark-to-name gap"),
+				gap = ui.raw(5, "Naive's caption mark-to-name gap"),
 				items = "center",
 				min_w = 0,
 				ui.div {
@@ -507,20 +507,20 @@ local function sender_line(m: Message, props: Props): Node
 					local live = now()
 					props.open_sender(from.chat, if live then live.title else from.title)
 				elseif props.open_link then
-					props.open_link(`zeron-chat:{from.chat}`)
+					props.open_link(`naive-chat:{from.chat}`)
 				end
 			end
 			return ui.row { w_full = true, justify = "end", ui.button(line) }
 		end
 		return ui.row { w_full = true, justify = "end", ui.row(line) }
-	end, { w_full = true, pb = ui.raw(6, "Zeron's USER_CAPTION_GAP") })
+	end, { w_full = true, pb = ui.raw(6, "Naive's USER_CAPTION_GAP") })
 end
 
 -- A reply's row: its tools, its text, and while it waits for either, that it
 -- is working.
 -- Where a turn's working words start: from its message's id, so the word
 -- shown is the same however often the line is made (a reload, a row
--- scrolled back), as Zeron seeds it per chat (transcript.rs
+-- scrolled back), as Naive seeds it per chat (transcript.rs
 -- `flavour_seed`).
 local function seed_of(id: string): number
 	local n = 0
@@ -532,7 +532,7 @@ end
 
 -- Under a person's newest prompt while its reply hasn't begun, in that
 -- reply's place: "Sending…" while it is on its way, then the turn's working
--- word and clock, as Zeron's working trailer (transcript.rs); not
+-- word and clock, as Naive's working trailer (transcript.rs); not
 -- delivered, a line to send it again. The reply's own row takes over once
 -- it comes.
 local function waiting_line(row: State<Message>, on_retry: ((id: string) -> ())?, turn_state: ((m: Message, sending: boolean) -> TurnLine?)?): Node
@@ -1331,7 +1331,7 @@ end
 -- at its end follows again.
 local PAST_END = 1e9
 -- A send's glide: how long the prompt takes from the composer to the view's
--- top (Zeron's send, about this), and how far clear of the end the list
+-- top (Naive's send, about this), and how far clear of the end the list
 -- steps first, so it doesn't follow the new rows to the end at once.
 local GLIDE_MS = 380
 local GLIDE_CLEAR = 1
@@ -1345,7 +1345,7 @@ local function to_end(list: Ref, offset: State<number>, rows: number)
 	offset:set(PAST_END)
 end
 -- The prompts sent from this window (kept across a reload): only a turn
--- sent here holds the runway under its prompt, as Zeron reserves the view
+-- sent here holds the runway under its prompt, as Naive reserves the view
 -- for a turn sent locally (transcript.rs `OwnTurnAnchor`); a conversation
 -- opened as it stands shows its end.
 local SENT = ui.state("transcript_sent_here", {} :: { [string]: boolean })
@@ -2067,7 +2067,7 @@ local function Transcript(props: Props): Node
 		elseif type(given) == "number" then
 			return given
 		end
-		return ui.theme.get("zeron.prose.measure") :: number
+		return ui.theme.get("naive.prose.measure") :: number
 	end
 	local function remember()
 		-- (Not yet back where it was: nothing new to say.)
@@ -2098,7 +2098,7 @@ local function Transcript(props: Props): Node
 	-- the width changes the list holds that message's top still (its rows
 	-- above the view measured again without moving it), but a tall reply's
 	-- lines above the block rewrap inside it: the view moves by however far
-	-- the block moved in its message, so the block stays put, as Zeron's
+	-- the block moved in its message, so the block stays put, as Naive's
 	-- rows (each a block) do.
 	local reading: { row: string, block: Ref, within: number, view: number? }? = nil
 	local last_w: number? = nil
@@ -2400,7 +2400,7 @@ local function Transcript(props: Props): Node
 			return ui.button {
 				label = label,
 				h = WORD,
-				px = "$zeron.space.snug",
+				px = "$naive.space.snug",
 				-- A pill in a pill, its curve parallel to the bar's.
 				rounded = "$radius.full",
 				bg = "#00000000",
@@ -2440,14 +2440,14 @@ local function Transcript(props: Props): Node
 				local x = if at.left then at.left else at.right - w
 				return math.clamp(x, MARGIN, math.max(MARGIN, (list.width or 0) - w - MARGIN))
 			end,
-			gap = "$zeron.space.hair",
+			gap = "$naive.space.hair",
 			items = "center",
 			shadow = "$shadow.md",
 			selectable = false,
 			word(locale.t("ds.transcript.mention"), locale.t("ds.transcript.mention_hint"), props.on_mention),
 			word(locale.t("ds.transcript.attach"), locale.t("ds.transcript.attach_hint"), props.on_attach),
 		}
-		control.contain(glass.style(bar, "menu"), { radius = "$radius.full", inset = "$zeron.space.hair", border = 1 })
+		control.contain(glass.style(bar, "menu"), { radius = "$radius.full", inset = "$naive.space.hair", border = 1 })
 		return ui.row(bar)
 	end)
 	-- Away from the end long enough to mean it: a moment's leaving isn't,
@@ -2515,7 +2515,7 @@ local function Transcript(props: Props): Node
 		ui.on_cleanup(function()
 			rows[m.id] = nil
 		end)
-		-- Zeron's gaps: a message opens 16 under the lane of the one before;
+		-- Naive's gaps: a message opens 16 under the lane of the one before;
 		-- a prompt sits 6 under the switch seam over it.
 		local function pt(): number
 			if mine and index:get() > 1 then
@@ -2569,7 +2569,7 @@ local function Transcript(props: Props): Node
 			items = "start",
 			px = if props.side then ui.raw(props.side, "a little wider than the composer") else "$space.5",
 			pt = function(): number
-				return ui.raw(pt(), "Zeron's gaps over a message (transcript.rs top_gap_for)")
+				return ui.raw(pt(), "Naive's gaps over a message (transcript.rs top_gap_for)")
 			end,
 			-- The air at the conversation's end, on its last row: on the list
 			-- itself it would clip every row short of the list's foot.
@@ -2594,7 +2594,7 @@ local function Transcript(props: Props): Node
 				w_full = true,
 				max_w = measure,
 				min_w = 0,
-				-- Anywhere on a message shows its lane (Zeron's entry hover).
+				-- Anywhere on a message shows its lane (Naive's entry hover).
 				on_hover = if m.role == "switch"
 					then nil
 					else function(inside: boolean)
@@ -2765,7 +2765,7 @@ local function Transcript(props: Props): Node
 			-- would fade at its edges with the rows.)
 			w_full = true,
 			h_full = true,
-			-- (Zeron's 24 under the title bar; at the foot, the band the
+			-- (Naive's 24 under the title bar; at the foot, the band the
 			-- composer covers, or 24.)
 			fade = function(): { number }
 				return { 24, math.max(24, foot_target()) + (props.fade_lead or 0) }
@@ -2907,7 +2907,7 @@ local function Transcript(props: Props): Node
 			left = 0,
 			right = 0,
 			bottom = foot,
-			pb = ui.raw(6, "Zeron's: the pill floats six above the composer"),
+			pb = ui.raw(6, "Naive's: the pill floats six above the composer"),
 			justify = "center",
 			pointer_events = "none",
 			-- (The composer's pill beside it: half its width and the gap between
@@ -2927,13 +2927,13 @@ local function Transcript(props: Props): Node
 					px = "$space.3",
 					gap = "$space.2",
 					items = "center",
-					rounded = "$zeron.prose.bubble.radius",
+					rounded = "$naive.prose.bubble.radius",
 					cursor = "pointer",
 					color = "$text.primary",
 					text_size = "$font.size.sm",
 					weight = "$font.weight.medium",
-					hover = { bg = "$zeron.menu.solid" },
-					active = { bg = "$zeron.menu.solid" },
+					hover = { bg = "$naive.menu.solid" },
+					active = { bg = "$naive.menu.solid" },
 				}, "menu")
 				pill.shadow = "$shadow.md"
 				local pill_ref = ui.ref()

@@ -32,7 +32,7 @@ export function detectTarget(client: Client): Target {
 }
 
 export function buildUrl(version: string, build: BuildId): string {
-  return `${RELEASES_URL}zeron-${version}-${DESKTOP_BUILDS[build].file}`;
+  return `${RELEASES_URL}naive-${version}-${DESKTOP_BUILDS[build].file}`;
 }
 
 export function targetUrl(target: Target, version: string): string | null {

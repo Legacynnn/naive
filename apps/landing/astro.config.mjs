@@ -1,12 +1,12 @@
 // @ts-check
 import { defineConfig, fontProviders } from "astro/config";
 
-// zeron.sh is prerendered and deployed as static assets (wrangler.jsonc).
+// naive.sh is prerendered and deployed as static assets (wrangler.jsonc).
 // When a route needs a server — sign-in, the plugin store — add
 // @astrojs/cloudflare as the adapter and mark that route `prerender = false`;
 // the rest of the site stays static.
 export default defineConfig({
-  site: "https://zeron.sh",
+  site: "https://naive.sh",
   trailingSlash: "never",
   // /privacy is served from privacy.html, the URL the app and stores link to.
   build: { format: "file" },

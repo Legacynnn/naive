@@ -56,10 +56,10 @@ function M.profile(): string?
 		end
 		local user = account.user
 		if type(user) == "table" and type(user.id) == "string" and user.id ~= "" then
-			return `zeron-{user.id}`
+			return `naive-{user.id}`
 		end
 	end
-	return "zeron-local"
+	return "naive-local"
 end
 
 -- `icon`: the page's icon, a file the host fetched (src/favicons.rs), once

@@ -175,7 +175,7 @@ class FingerprintTests(unittest.TestCase):
 
 
 class RealWorkspaceTests(unittest.TestCase):
-    """The zeron workspace itself (skipped where the sources are not checked out)."""
+    """The naive workspace itself (skipped where the sources are not checked out)."""
 
     def setUp(self):
         if not (ROOT / "crates" / "engine" / "src").is_dir():
@@ -184,8 +184,8 @@ class RealWorkspaceTests(unittest.TestCase):
     def test_core_does_not_read_the_app(self):
         ws = reuse.Workspace(str(ROOT))
         core = ws.closure(reuse.SUITE_PACKAGES["core"])
-        self.assertNotIn("apps/zeron", core)
-        self.assertIn("apps/zeron", ws.closure(reuse.SUITE_PACKAGES["windows"]))
+        self.assertNotIn("apps/naive", core)
+        self.assertIn("apps/naive", ws.closure(reuse.SUITE_PACKAGES["windows"]))
 
     def test_mobile_reads_the_shared_fonts(self):
         # The fingerprints follow HEAD's tree: only once the fonts are committed at the root.

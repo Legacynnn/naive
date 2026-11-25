@@ -36,11 +36,11 @@ return function(props: Props): Node
 	end
 	return ui.column {
 		class = "stat",
-		gap = "$zeron.space.hair",
+		gap = "$naive.space.hair",
 		min_w = 0,
 		ui.row {
 			items = "baseline",
-			gap = "$zeron.space.tight",
+			gap = "$naive.space.tight",
 			min_w = 0,
 			ui.text {
 				function(): string
@@ -49,8 +49,8 @@ return function(props: Props): Node
 				literal = true,
 				tabular = true,
 				truncate = true,
-				text_size = props.size or "$zeron.visual.text.xxl.size",
-				line_height = props.line or "$zeron.visual.text.xxl.line",
+				text_size = props.size or "$naive.visual.text.xxl.size",
+				line_height = props.line or "$naive.visual.text.xxl.line",
 				weight = "$font.weight.semibold",
 				letter_spacing = -0.3,
 				color = function(): any
@@ -66,8 +66,8 @@ return function(props: Props): Node
 					delta,
 					literal = true,
 					tabular = true,
-					text_size = "$zeron.visual.text.sm.size",
-					line_height = "$zeron.visual.text.sm.line",
+					text_size = "$naive.visual.text.sm.size",
+					line_height = "$naive.visual.text.sm.line",
 					weight = "$font.weight.medium",
 					color = function(): any
 						return read(props.tone) or "$text.secondary"
@@ -83,8 +83,8 @@ return function(props: Props): Node
 				label,
 				literal = true,
 				truncate = true,
-				text_size = "$zeron.visual.text.sm.size",
-				line_height = "$zeron.visual.text.sm.line",
+				text_size = "$naive.visual.text.sm.size",
+				line_height = "$naive.visual.text.sm.line",
 				color = "$text.secondary",
 			}
 		),

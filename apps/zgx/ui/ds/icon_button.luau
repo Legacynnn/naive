@@ -11,7 +11,7 @@
 -- `danger` (quiet, turning to the danger's wash and ink under the pointer:
 -- a delete among other actions) or `bar` (the secondary ink, held under the
 -- pointer and pressed, the wash alone coming: a title bar's controls, as
--- Zeron's, whose glyphs never brighten).
+-- Naive's, whose glyphs never brighten).
 -- `lit` (a boolean, state or function) holds it lit while what it opens
 -- is open. `tooltip_side` moves the tooltip off whatever it would cover
 -- (`"bottom"` in a bar at the top of something). Children, if given, take
@@ -28,7 +28,7 @@ local recipe = ui.variants {
 		items = "center",
 		justify = "center",
 		p = 0,
-		rounded = "$zeron.icon_button.radius",
+		rounded = "$naive.icon_button.radius",
 		bg = "#00000000",
 		cursor = "pointer",
 		hover = { bg = "$hover", color = "$text.primary" },
@@ -37,9 +37,9 @@ local recipe = ui.variants {
 	},
 	variants = {
 		size = {
-			sm = { w = "$zeron.icon_button.sm", h = "$zeron.icon_button.sm" },
-			md = { w = "$zeron.icon_button.md", h = "$zeron.icon_button.md" },
-			lg = { w = "$zeron.icon_button.lg", h = "$zeron.icon_button.lg" },
+			sm = { w = "$naive.icon_button.sm", h = "$naive.icon_button.sm" },
+			md = { w = "$naive.icon_button.md", h = "$naive.icon_button.md" },
+			lg = { w = "$naive.icon_button.lg", h = "$naive.icon_button.lg" },
 		},
 		tone = {
 			normal = { color = "$text.secondary" },
@@ -48,13 +48,13 @@ local recipe = ui.variants {
 			-- the danger's wash and ink (a menu's destructive row's).
 			danger = {
 				color = "$text.tertiary",
-				hover = { bg = "$zeron.menu.danger", color = "$danger" },
-				active = { bg = "$zeron.menu.danger", color = "$danger" },
+				hover = { bg = "$naive.menu.danger", color = "$danger" },
+				active = { bg = "$naive.menu.danger", color = "$danger" },
 			},
 			bar = {
-				color = "$zeron.bar.ink",
-				hover = { bg = "$zeron.bar.hover", color = "$zeron.bar.ink" },
-				active = { bg = "$zeron.bar.pressed", color = "$zeron.bar.ink" },
+				color = "$naive.bar.ink",
+				hover = { bg = "$naive.bar.hover", color = "$naive.bar.ink" },
+				active = { bg = "$naive.bar.pressed", color = "$naive.bar.ink" },
 			},
 		},
 		-- Lit: what it opens is open (the hover wash, held, the ink full;
@@ -63,12 +63,12 @@ local recipe = ui.variants {
 	},
 	compound = {
 		{ lit = true, bg = "$hover", color = "$text.primary" },
-		{ lit = true, tone = "bar", bg = "$zeron.bar.hover", color = "$zeron.bar.ink" },
+		{ lit = true, tone = "bar", bg = "$naive.bar.hover", color = "$naive.bar.ink" },
 	},
 	defaults = { size = "md", tone = "normal", lit = false },
 }
 
-local GLYPH = { sm = "$zeron.icon_button.glyph.sm", md = "$zeron.icon_button.glyph.md", lg = "$zeron.icon_button.glyph.lg" }
+local GLYPH = { sm = "$naive.icon_button.glyph.sm", md = "$naive.icon_button.glyph.md", lg = "$naive.icon_button.glyph.lg" }
 
 export type Size = "sm" | "md" | "lg"
 export type Tone = "normal" | "quiet" | "danger" | "bar"

@@ -195,7 +195,7 @@ return ui.component(function(props: Props): Node
 						return control.text(ph) or ""
 					end,
 					text_size = control.TEXT[size],
-					color = "$zeron.field.placeholder",
+					color = "$naive.field.placeholder",
 				},
 			}),
 		}

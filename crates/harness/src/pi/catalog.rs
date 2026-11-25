@@ -1,7 +1,7 @@
 use super::{Process, normalize::string};
 use crate::HarnessError;
 use serde_json::{Value, json};
-use zeron_proto::{
+use naive_proto::{
     Model, ModelOption, ModelOptionChoice, ModelProvider, ReasoningLevel, SlashCommand,
 };
 

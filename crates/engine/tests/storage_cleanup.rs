@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use zeron_engine::{EngineCore, HarnessRegistry};
-use zeron_rpc::methods;
+use naive_engine::{EngineCore, HarnessRegistry};
+use naive_rpc::methods;
 
 async fn git(cwd: &Path, args: &[&str]) -> String {
     let output = tokio::process::Command::new("git")
@@ -40,17 +40,17 @@ fn row<'a>(rows: &'a serde_json::Value, path: &str) -> &'a serde_json::Value {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn storage_rpcs_list_remove_and_clean_worktrees() {
     let tmp = tempfile::tempdir().expect("tempdir");
-    unsafe { std::env::set_var("ZERON_WORKTREES_DIR", tmp.path().join("worktrees")) };
+    unsafe { std::env::set_var("NAIVE_WORKTREES_DIR", tmp.path().join("worktrees")) };
     let data_dir = tmp.path().join("data");
     std::fs::create_dir_all(&data_dir).expect("data dir");
     let core = EngineCore::assemble(
         &data_dir,
         Arc::new(HarnessRegistry::new()),
-        zeron_proto::HarnessId::Mock,
+        naive_proto::HarnessId::Mock,
         None,
     )
     .expect("engine assembles");
-    let client = zeron_rpc::memory_client(core.rpc_service());
+    let client = naive_rpc::memory_client(core.rpc_service());
 
     let created = client
         .call(methods::CREATE_REPO, serde_json::json!({ "name": "demo" }))
@@ -136,7 +136,7 @@ async fn storage_rpcs_list_remove_and_clean_worktrees() {
         row(&rows, &active)["branch"]
             .as_str()
             .unwrap()
-            .starts_with("zeron/")
+            .starts_with("naive/")
     );
     assert_eq!(row(&rows, &archived)["chatState"], "archived");
     assert_eq!(row(&rows, &archived)["dirty"], true);
@@ -279,7 +279,7 @@ async fn storage_rpcs_list_remove_and_clean_worktrees() {
         "recent archived chats stay"
     );
 
-    std::fs::create_dir_all(data_dir.join("updates/0.0.1/Zeron.app")).expect("old stage");
+    std::fs::create_dir_all(data_dir.join("updates/0.0.1/Naive.app")).expect("old stage");
     std::fs::create_dir_all(data_dir.join("updates/999.0.0")).expect("pending stage");
     let cleaned = client
         .call(
