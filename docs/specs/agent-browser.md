@@ -59,3 +59,29 @@ WKWebView and WebKitGTK have no CDP. JS-dispatched events are untrusted (`isTrus
 - Visible "agent is driving" state in the panel, with a stop button.
 - Per-site permission like the extension's, on top of the existing `api.allowed(url)` rules.
 - No credentials or payment entry without confirmation from the user.
+
+## Sessions and sign-in
+
+- Each Naive account gets its own persistent WebKit data store (`browser_data.profile()` → `naive-<user>` or `naive-local`, via `dataStoreForIdentifier`, macOS 14+). Cookies and storage survive restarts. On macOS 13 the store is in memory only.
+- Signing into another Naive account switches stores, so sign-ins don't carry over between accounts (by design).
+- Pages use Safari's user agent (built from the installed Safari's version) because Google refuses sign-in from a WKWebView whose agent lacks `Version/… Safari/…`.
+- Known gap: "Sign in with Google" popups on third-party sites use `window.open` with an opener. New windows open as separate tabs without the opener, so those flows break. Fixing it needs zgx to hand back a child web view from WebKit's `createWebViewWithConfiguration`.
+
+## Importing sign-ins from other browsers
+
+The person imports cookies from a browser installed on this Mac into Naive's store, so sites are already signed in.
+
+| Browser | Where | How |
+|---|---|---|
+| Chromium family (Chrome, Arc, Brave, Edge, Dia, Comet, Vivaldi, Opera, Chromium) | `~/Library/Application Support/<browser>/<profile>/Cookies` (SQLite) | Values are `v10`-encrypted: AES-128-CBC, key = PBKDF2-SHA1(Keychain password "<Browser> Safe Storage", "saltysalt", 1003 rounds, 16 bytes), IV of 16 spaces. Databases with `meta.version` ≥ 24 prefix the plaintext with a 32-byte SHA-256 of the host, which is dropped. macOS asks the person to allow Keychain access once per browser. |
+| Firefox | `~/Library/Application Support/Firefox/Profiles/<p>/cookies.sqlite` | Plain values. Copy the database first (Firefox locks it). |
+| Safari | `~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies` | Binary format. Needs Full Disk Access; without it, explain how to grant it. |
+
+- **Where it runs:** in the app (`apps/zgx/src/browser_import.rs`). It reads the files, decrypts, and writes the cookies into the account's store through a zgx addition in the fork: `WKHTTPCookieStore.setCookie` behind a Luau `ui.web_cookies(profile)` API.
+- **Flow:** Settings → Browser → Import from… lists the detected browsers and profiles. The person picks a source, and optionally sites, then sees a summary (sites, cookie count, failures).
+- **Rules:**
+  - Only the person starts an import. It's never an agent tool and never automatic.
+  - Decrypted values stay in memory and go straight into WebKit. They're never logged, stored by Naive, or sent off the device.
+  - Expired cookies are skipped; `HttpOnly`, `Secure`, `SameSite`, and expiry are kept.
+- **Agents and imported sessions:** imported sessions give agents signed-in access to those sites. The per-site permission in Safety should land with or before import, so the person decides which signed-in sites agents may drive.
+- **Passwords:** out of scope. WKWebView has no autofill, so imported passwords would need Naive's own password manager. Cookies cover "stay signed in".
