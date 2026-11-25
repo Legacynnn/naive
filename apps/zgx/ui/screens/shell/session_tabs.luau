@@ -183,15 +183,19 @@ local function close(key: string)
 	local at = table.find(before, key)
 	local alone = #splits.panes(key) == 1
 	local was_showing = splits.current_key() == key
+	local home = if worktree.on:peek() then worktree.of(face(key), true) else nil
 	local ended = end_agents({ key })
 	splits.close_tabs({ key })
 	ended()
 	if was_showing then
-		-- The one beside it, else a new chat. (A chat alone: always a new chat.)
+		-- The one beside it, else a new chat in the same workspace, else a new chat.
 		local after = shown:peek()
 		local next_key = if at and (not alone or worktree.on:peek()) then after[math.min(at, #after)] else nil
+		local w = if home then worktree.all:peek()[home] else nil
 		if next_key then
 			route.open_session(face(next_key))
+		elseif w and w.project then
+			route.new_chat_at({ project = w.project, device = w.device, branch = w.branch, worktree = false, main = w.main, cwd = w.cwd, key = w.key })
 		else
 			route.new_chat()
 		end
