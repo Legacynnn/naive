@@ -272,6 +272,7 @@ end
 function M.close(tab: Tab)
 	local web = webs[tab.id] or api.web(`panel-browser-{tab.id}`)
 	webs[tab.id] = nil
+	adopted[tab.id] = nil
 	pcall(function()
 		web:close()
 	end)
@@ -366,6 +367,47 @@ local made_for = ui.state("panel_browser_profile", {} :: { [string]: string })
 
 -- The page for a tab, made with the profile it's for (and the browser's
 -- settings: whether it may be inspected).
+local adopted: { [string]: any } = {}
+
+local function key_of(id: string): string?
+	for key, session in state.sessions:peek() do
+		for _, t in session.tabs do
+			if t.id == id then
+				return key
+			end
+		end
+	end
+	return nil
+end
+
+-- A popup keeps its opener only if its own page is the one WebKit made, so it becomes a tab as it is.
+local function adopt(id: string, web: any, profile: string)
+	if adopted[id] == web then
+		return
+	end
+	adopted[id] = web
+	pcall(function()
+		web:on_popup(function(popup: any, url: string)
+			local key = key_of(id)
+			if not key then
+				popup:close()
+				return
+			end
+			local new_id = state.open(key, "browser", if url ~= "" then { url = url } else nil)
+			webs[new_id] = popup
+			made_for:set_key(new_id, profile)
+			adopt(new_id, popup, profile)
+			popup:on_close(function()
+				local tab = state.find(key, new_id)
+				if tab then
+					M.close(tab)
+					state.close(key, new_id)
+				end
+			end)
+		end)
+	end)
+end
+
 local function page_for(id: string, profile: string): any
 	local was = made_for:peek()[id]
 	local web = webs[id]
@@ -390,6 +432,7 @@ local function page_for(id: string, profile: string): any
 	if was ~= profile then
 		made_for:set_key(id, profile)
 	end
+	adopt(id, web, profile)
 	return web
 end
 
