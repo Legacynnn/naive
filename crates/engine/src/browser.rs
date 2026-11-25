@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 use crate::plugins::broker::{CallError, ToolAnswer, ToolBroker};
 
-const TIMEOUT: Duration = Duration::from_secs(60);
+const TIMEOUT: Duration = Duration::from_secs(150);
 
 pub trait Backend: Send + Sync {
     fn name(&self) -> &'static str;

@@ -24,9 +24,9 @@ local LOAD_MS = 30000
 local START_MS = 5000
 local SETTLE_MS = 400
 local EVAL_MS = 15000
-local CALL_MS = 55000
+local CALL_MS = 145000
 local ASK_MS = 120000
-local ANSWER_MS = 40000
+local ANSWER_MS = 115000
 
 -- A name a page can't guess, so it can't stand in for the agent's script.
 local AGENT = string.format("__naiveAgent_%x%x", math.random(0, 0x7fffffff), math.floor(ui.now()) % 0x7fffffff)
