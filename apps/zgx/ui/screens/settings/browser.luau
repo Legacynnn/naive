@@ -32,6 +32,7 @@ search.index(M.ID, ui.t("settings.browser.page_title"), ui.t("settings.browser.t
 	{ key = "search_engine", title = ui.t("settings.browser.search_engine.label"), terms = ui.t("settings.browser.search_engine.terms") },
 	{ key = "default_zoom", title = ui.t("settings.browser.default_zoom.label"), section = ui.t("settings.browser.zoom"), terms = ui.t("settings.browser.default_zoom.terms") },
 	{ key = "inspectable", title = ui.t("settings.browser.inspectable.label"), section = ui.t("settings.browser.developer"), terms = ui.t("settings.browser.inspectable.terms") },
+	{ key = "agents_default", title = ui.t("settings.browser.agents.default_label"), section = ui.t("settings.browser.agents.title"), terms = ui.t("settings.browser.agents.terms") },
 })
 
 local function row(key: string, props: any): Node
@@ -86,6 +87,135 @@ local function site_row(item: { host: string, zoom: number }, _i: number, now: S
 				end,
 			},
 		},
+	}
+end
+
+local agent_default = ui.state("settings_browser_agent_default", "ask")
+
+local function agent_options(): { { value: string, label: string } }
+	return {
+		{ value = "ask", label = ui.t("settings.browser.agents.default_ask"):get() },
+		{ value = "allow", label = ui.t("settings.browser.agents.default_allow"):get() },
+	}
+end
+
+local agent_sites = ui.computed(function(): { { host: string, decision: string } }
+	local profile = data.profile()
+	return if profile then data.agents.list(profile) else {}
+end)
+
+local function agent_site_row(item: { host: string, decision: string }, _i: number, now: State<any>): Node
+	local function decision(): string
+		return (now:get() :: any).decision
+	end
+	return ds.Settings.Row {
+		truncate = true,
+		lead = ds.Tile {
+			size = 20,
+			label = data.site_name(item.host),
+			src = function(): string?
+				local profile = data.profile()
+				return if profile then data.icon_of(profile, (now:get() :: any).host) else nil
+			end,
+		},
+		label = function(): string
+			return (now:get() :: any).host
+		end,
+		description = function(): string
+			return if decision() == "block"
+				then ui.t("settings.browser.agents.blocked"):get()
+				else ui.t("settings.browser.agents.allowed"):get()
+		end,
+		control = ui.row {
+			items = "center",
+			gap = "$space.2",
+			ds.Button {
+				tone = "ghost",
+				size = "sm",
+				label = function(): string
+					local key = if decision() == "block" then "settings.browser.agents.allow_one" else "settings.browser.agents.block_one"
+					return ui.t(key, { site = item.host }):get()
+				end,
+				on_click = function()
+					local profile = data.profile()
+					if profile then
+						data.agents.set(profile, item.host, if decision() == "block" then "allow" else "block")
+					end
+				end,
+				ui.text { function(): string
+					return if decision() == "block"
+						then ui.t("settings.browser.agents.allow"):get()
+						else ui.t("settings.browser.agents.block"):get()
+				end },
+			},
+			IconButton {
+				icon = "close",
+				size = "sm",
+				tone = "quiet",
+				label = ui.t("settings.browser.agents.forget_one", { site = item.host }),
+				on_click = function()
+					local profile = data.profile()
+					if profile then
+						data.agents.forget(profile, item.host)
+					end
+				end,
+			},
+		},
+	}
+end
+
+local function agents_section(): Node
+	ui.effect(function()
+		local profile = data.profile()
+		local held = if profile then data.agents.default(profile) else "ask"
+		if agent_default:peek() ~= held then
+			agent_default:set(held)
+		end
+	end)
+	return ds.Settings.Section {
+		title = ui.t("settings.browser.agents.title"),
+		ds.Settings.Group {
+			row("agents_default", {
+				label = ui.t("settings.browser.agents.default_label"),
+				description = ui.t("settings.browser.agents.default_description"),
+				control = ds.Select {
+					value = agent_default,
+					name = ui.t("settings.browser.agents.default_label"),
+					w = SELECT_W,
+					options = agent_options,
+					on_change = function(v: any)
+						local profile = data.profile()
+						if profile then
+							data.agents.set_default(profile, v)
+						end
+					end,
+				},
+			}),
+		},
+		ui.show(function(): boolean
+			return #agent_sites:get() > 0
+		end, ui.column {
+			id = "settings-browser-agent-sites",
+			w_full = true,
+			gap = "$space.2",
+			pt = "$space.2",
+			ui.row {
+				w_full = true,
+				pl = ds.Settings.inset(),
+				pr = ds.Settings.inset(SNUG),
+				items = "center",
+				ds.SectionTitle {
+					function(): string
+						return ui.t("settings.browser.agents.sites", { n = #agent_sites:get() }):get()
+					end,
+				},
+			},
+			ds.Settings.Each(agent_sites, agent_site_row, {
+				key = function(item: any): string
+					return item.host
+				end,
+			}),
+		}),
 	}
 end
 
@@ -194,6 +324,7 @@ function M.view(): Node
 				}),
 			}),
 		},
+		agents_section(),
 		ds.Settings.Section {
 			title = ui.t("settings.browser.developer"),
 			ds.Settings.Group {

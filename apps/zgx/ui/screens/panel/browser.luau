@@ -33,6 +33,7 @@ local state = require("@app/screens/panel/state")
 local api = require("@app/screens/panel/browser_api")
 local Previews = require("@app/screens/panel/previews")
 local data = require("@app/screens/panel/browser_data")
+local asks = require("@app/screens/panel/browser_asks")
 local Suggest = require("@app/screens/panel/browser_suggest")
 local ContextMenu = require("@ds/context_menu")
 local SCRIPT = require("@app/screens/panel/annotate_script")
@@ -1530,6 +1531,46 @@ Page = ui.component(function(props: Props): Node
 	-- The address of the load that failed last (a file's, for its page).
 	local failed_url: string? = nil
 
+	local agent_ask = ui.presence(function(): string
+		local a = asks.first(key)
+		return if a then a.id else ""
+	end, function(ask_id: string): Node
+		local a = asks.find(ask_id)
+		if not a then
+			return ui.div { w_full = true }
+		end
+		local function reply(choice: string)
+			return function()
+				asks.answer(ask_id, choice)
+			end
+		end
+		return ui.div {
+			id = `panel-browser-agent-ask-{id}`,
+			w_full = true,
+			ds.Callout {
+				tone = "warning",
+				icon = "global",
+				edge = true,
+				title = if a.title
+					then ui.t("panel.browser.agent_ask.title", { chat = a.title, site = a.host })
+					else ui.t("panel.browser.agent_ask.title_this_chat", { site = a.host }),
+				body = function(): string
+					local said = ui.t("panel.browser.agent_ask.body"):get()
+					local more = asks.waiting(key) - 1
+					if more > 0 then
+						return `{said} {ui.t("panel.browser.agent_ask.more", { n = more }):get()}`
+					end
+					return said
+				end,
+				actions = {
+					{ label = ui.t("panel.browser.agent_ask.once"), on_click = reply("once"), primary = true },
+					{ label = ui.t("panel.browser.agent_ask.always"), on_click = reply("always") },
+					{ label = ui.t("panel.browser.agent_ask.block"), on_click = reply("block") },
+				},
+			},
+		}
+	end, { w_full = true, shrink = 0 })
+
 	-- The page, or the start page before there is one.
 	local content = ui.presence(function(): string
 		return if has_page(web) then "page" else "start"
@@ -1704,6 +1745,7 @@ Page = ui.component(function(props: Props): Node
 			return nil
 		end,
 		bar,
+		agent_ask,
 		problem_line,
 		find_bar,
 		downloads_bar,
