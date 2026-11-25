@@ -39,7 +39,7 @@ snapshot() {
 if ! git rev-parse -q --verify "refs/heads/$VENDOR" >/dev/null; then
   BASE="$(git merge-base HEAD "$TARGET")"
   echo "naive-sync: seeding $VENDOR from upstream ${BASE:0:10}" >&2
-  SEED="$(git commit-tree "$(snapshot "$BASE")" -m "upstream: zeronsh/zeron@${BASE:0:10}, renamed to naive")"
+  SEED="$(git commit-tree "$(snapshot "$BASE")" -p "$BASE" -m "upstream: zeronsh/zeron@${BASE:0:10}, renamed to naive")"
   git branch "$VENDOR" "$SEED"
   git merge -s ours --no-edit -m "naive-sync: $VENDOR seeded at upstream ${BASE:0:10}" "$SEED"
 fi
