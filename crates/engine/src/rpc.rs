@@ -60,6 +60,7 @@
 //! whose checkout always lives on the routed target device.
 
 mod agent_gate;
+mod agent_terminals;
 mod device_stats;
 mod remote_plugins;
 mod voice_chat;
@@ -3630,6 +3631,13 @@ impl RpcService for EngineRpc {
         // Cloud device + credential vault: IPC-only (never in `forwardable`),
         // acting for this runtime's signed-in user against the edge. Boxed so
         // its state stays out of this dispatcher's already-large frame.
+        if agent_terminals::handles(method) {
+            return Box::pin(self.agent_terminal(method, params)).await;
+        }
+        if crate::browser::handles(method) {
+            let runner = self.auth().is_ok_and(|auth| auth.is_runner());
+            return Box::pin(crate::browser::dispatch(method, params, runner)).await;
+        }
         if crate::plugins::handles(method) {
             let Some(plugins) = self.plugins.clone() else {
                 return Err(RpcError::Failed("Plugins aren't available here".into()));

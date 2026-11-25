@@ -89,6 +89,27 @@ impl EngineRpc {
             params["chatId"] = json!(chat);
             return Ok(params);
         }
+        if super::agent_terminals::handles(method) {
+            let Some(chat) = chat else {
+                return Err(refused("Naive terminals work from a Naive chat"));
+            };
+            let chats = self.workspace.read_chats().unwrap_or_default();
+            let calling = self.calling(&chat, &chats);
+            if !calling.ceiling.is_none_or(|(_, access)| access == AccessMode::FullAccess) {
+                return Err(refused(
+                    "A terminal runs as the person: only a chat with full access opens or types in one. Ask the person to give this chat full access, or to run it themselves",
+                ));
+            }
+            params["chatId"] = json!(chat);
+            return Ok(params);
+        }
+        if method == methods::CALL_BROWSER_TOOL {
+            let Some(chat) = chat else {
+                return Err(refused("Browser tools work from a Naive chat"));
+            };
+            params["chatId"] = json!(chat);
+            return Ok(params);
+        }
         let command = matches!(
             method,
             methods::RUN_COMMAND | methods::READ_COMMAND_OUTPUT | methods::STOP_COMMAND | methods::LIST_BACKGROUND_COMMANDS

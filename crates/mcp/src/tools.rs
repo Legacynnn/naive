@@ -22,6 +22,8 @@ use naive_proto::{
 use crate::transcript::{RenderOptions, RenderedMessage, render_entries};
 use crate::naive::{HarnessInfo, TranscriptFollow, TurnOutcome, Naive, session_for, short};
 
+mod browser;
+mod terminals;
 mod commands;
 mod plugins;
 mod themes;
@@ -318,6 +320,8 @@ fn catalog() -> Vec<ToolDef> {
     tools.extend(plugins::catalog());
     tools.extend(themes::catalog());
     tools.extend(commands::catalog());
+    tools.extend(browser::catalog());
+    tools.extend(terminals::catalog());
     tools
 }
 
@@ -914,6 +918,12 @@ impl Tools {
             }
             command if commands::NAMES.contains(&command) => {
                 return self.commands(command, args).await;
+            }
+            tool if terminals::NAMES.contains(&tool) => {
+                return self.terminals(tool, args).await;
+            }
+            tool if browser::NAMES.contains(&tool) => {
+                return self.browser(tool, args).await;
             }
             theme if themes::NAMES.contains(&theme) => {
                 return self.themes(theme, args).await;

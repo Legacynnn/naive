@@ -48,6 +48,7 @@ do
 		shared = found
 	end
 end
+local user_agent = ui.shared("browser.user_agent", nil :: string?)
 -- The pages' cookie profile, one per account (browser_data.profile; nil
 -- while the launch reads the Keychain), followed: the tab is made again
 -- for another account.
@@ -381,6 +382,7 @@ local function page_for(id: string, profile: string): any
 			messages = true,
 			new_windows = true,
 			inspectable = data.inspectable:peek(),
+			user_agent = user_agent:peek(),
 		})
 		webs[id] = web
 	end
@@ -388,6 +390,14 @@ local function page_for(id: string, profile: string): any
 		made_for:set_key(id, profile)
 	end
 	return web
+end
+
+function M.page(id: string): any?
+	local profile = profile_name()
+	if not profile then
+		return nil
+	end
+	return page_for(id, profile)
 end
 
 -- What a page that turned out to be a file says (WebKit stops a load it

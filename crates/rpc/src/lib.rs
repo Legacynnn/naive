@@ -575,6 +575,14 @@ pub mod methods {
     pub const SERVE_PLUGIN_TOOLS: &str = "ServePluginTools";
     /// `{callId, ok, value?, error?}` → `{}`.
     pub const PLUGIN_TOOL_RESULT: &str = "PluginToolResult";
+    pub const CALL_BROWSER_TOOL: &str = "CallBrowserTool";
+    pub const SERVE_BROWSER_TOOLS: &str = "ServeBrowserTools";
+    pub const BROWSER_TOOL_RESULT: &str = "BrowserToolResult";
+    pub const AGENT_OPEN_TERMINAL: &str = "AgentOpenTerminal";
+    pub const AGENT_READ_TERMINAL: &str = "AgentReadTerminal";
+    pub const AGENT_WRITE_TERMINAL: &str = "AgentWriteTerminal";
+    pub const AGENT_LIST_TERMINALS: &str = "AgentListTerminals";
+    pub const AGENT_CLOSE_TERMINAL: &str = "AgentCloseTerminal";
     /// `{plugin, to: deviceId | "*", data}` → `{results: {deviceId: outcome}}`.
     pub const PLUGIN_SEND: &str = "PluginSend";
     /// Peer to peer over the device link: `{plugin, from, author_key?, data}`
@@ -762,6 +770,14 @@ pub fn local_only(method: &str) -> bool {
             | methods::CALL_PLUGIN_TOOL
             | methods::SERVE_PLUGIN_TOOLS
             | methods::PLUGIN_TOOL_RESULT
+            | methods::CALL_BROWSER_TOOL
+            | methods::SERVE_BROWSER_TOOLS
+            | methods::BROWSER_TOOL_RESULT
+            | methods::AGENT_OPEN_TERMINAL
+            | methods::AGENT_READ_TERMINAL
+            | methods::AGENT_WRITE_TERMINAL
+            | methods::AGENT_LIST_TERMINALS
+            | methods::AGENT_CLOSE_TERMINAL
             | methods::PLUGIN_SEND
             | methods::CALL_PLUGIN_SERVICE
             | methods::PLUGIN_AGENTS
@@ -885,6 +901,12 @@ pub fn agent_allowed(method: &str) -> bool {
             | methods::LIST_PLUGIN_TOOLS
             | methods::WATCH_PLUGIN_TOOLS
             | methods::CALL_PLUGIN_TOOL
+            | methods::CALL_BROWSER_TOOL
+            | methods::AGENT_OPEN_TERMINAL
+            | methods::AGENT_READ_TERMINAL
+            | methods::AGENT_WRITE_TERMINAL
+            | methods::AGENT_LIST_TERMINALS
+            | methods::AGENT_CLOSE_TERMINAL
             | methods::DESCRIBE_ELEMENTS
             // Templates: authoring and switching (the app shows an
             // unapproved one as a preview until the person keeps it), and

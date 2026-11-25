@@ -249,6 +249,10 @@ impl Naive {
     pub async fn call_rpc(&self, method: &str, params: Value) -> Result<Value, RpcError> {
         let client = self.client().await.map_err(transport)?;
         match client.call(method, params.clone()).await {
+            Err(RpcError::Closed) if method == methods::CALL_BROWSER_TOOL => {
+                self.forget_client().await;
+                Err(RpcError::Closed)
+            }
             Err(RpcError::Closed) => {
                 self.forget_client().await;
                 let client = self.client().await.map_err(transport)?;

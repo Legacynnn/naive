@@ -32,6 +32,7 @@ mod about;
 mod windows_install;
 mod acp_registry;
 mod agents;
+mod browser_agent;
 mod appshots;
 mod auth;
 mod carried_settings;
@@ -1040,6 +1041,7 @@ fn serve_with(
     favicons::install(&host);
     // The project's dev servers, for the browser tab's start page.
     previews::install(&host);
+    browser_agent::install(&host);
     let looks_up = host.shared("looks_up", false);
     let view = host.view();
     let handle = cx.render(component(move |cx| {

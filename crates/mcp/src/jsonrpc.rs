@@ -46,7 +46,14 @@ For parallel work, start every chat before waiting on any: `create_chats` or `se
 \n\
 Where `show_visual` is offered and a chart, table, diagram, dashboard, or 3D view would say \
 more than prose, show one with it before your final reply, and don't restate it there. Show \
-an image file with `show_image`.";
+an image file with `show_image`.\n\
+\n\
+The person watches your chat in Naive's window, beside a panel of tabs. When they ask you to \
+run something they'll want to see or keep running (a dev server, a watcher, a build, tests, \
+a script, anything interactive), run it in a Naive terminal with `terminal_open` instead of \
+your own shell, then follow it with `terminal_read` and `terminal_write`. Keep your own shell \
+for quick checks only you read. To use a web page, drive the panel's browser with the \
+`browser_*` tools. To hand work to a fresh agent, brief it through `create_chat`'s `prompt`.";
 
 /// Appended to [`INSTRUCTIONS`] where the agent is offered
 /// `wait_on_background` ([`naive_proto::McpServer::WAITS_ON_BACKGROUND_ENV`]).
@@ -292,6 +299,19 @@ pub async fn handle_request(tools: &Tools, id: Value, method: &str, params: Valu
                 .cloned()
                 .unwrap_or_else(|| json!({}));
             match tools.call(name, arguments).await {
+                Ok(mut value) if value.get("mcpImage").is_some() => {
+                    let image = value.as_object_mut().and_then(|o| o.remove("mcpImage")).unwrap_or_default();
+                    ok_response(
+                        id,
+                        json!({
+                            "content": [
+                                { "type": "image", "data": image["data"], "mimeType": image["mimeType"] },
+                                { "type": "text", "text": pretty(&value) },
+                            ],
+                            "isError": false,
+                        }),
+                    )
+                }
                 Ok(value) => ok_response(
                     id,
                     json!({

@@ -13,6 +13,7 @@ require("@app/screens/language")
 if ui.shared("window", "onboarding"):peek() == "main" then
 	-- Plugins: their page in Settings, and what they're shown of Naive.
 	require("@app/screens/plugins")
+	require("@app/screens/panel/browser_agent")
 	local shell = require("@app/screens/shell")
 	return shell()
 end

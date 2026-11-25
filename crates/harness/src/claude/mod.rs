@@ -99,6 +99,27 @@ with its task id first, so the person sees this chat waiting rather than finishe
 you leave running on purpose (a dev server, a watcher). Naive tools may be deferred: load it \
 with tool search first.";
 
+const NAIVE_TERMINAL_NOTE: &str = "\
+The person works with you in Naive's window, which shows this chat beside a panel of tabs. When \
+they ask you to run something they will want to watch or keep running (a dev server, a watcher, \
+a build, tests, a script, anything interactive), run it in a Naive terminal with the Naive tool \
+terminal_open rather than your own shell, and follow it with terminal_read and terminal_write. \
+Keep your own shell for quick checks only you read. Naive tools may be deferred: load them with \
+tool search first.";
+
+fn system_note(server: &McpServer) -> Option<String> {
+    let in_chat = server.env.get(McpServer::CHAT_ID_ENV).is_some_and(|id| !id.is_empty());
+    if !in_chat {
+        return None;
+    }
+    let mut note = NAIVE_TERMINAL_NOTE.to_owned();
+    if server.waits_on_background() {
+        note.push_str("\n\n");
+        note.push_str(WAIT_ON_BACKGROUND_NOTE);
+    }
+    Some(note)
+}
+
 /// Locate the device's installed Claude Code CLI: our own PATH, then the
 /// login-shell PATH snapshot (the user's shell init shapes PATH in ways a
 /// GUI/service launch never sees — see [`crate::shell_env`]), then known
@@ -709,13 +730,8 @@ impl ClaudeHarness {
             // neither reaches the model before it decides to end a turn:
             // live-probed on 2.1.319, Sonnet never called it with those
             // alone, and Sonnet and Opus both did with this note.
-            if !config.naive_left_out
-                && request
-                    .mcp
-                    .as_ref()
-                    .is_some_and(McpServer::waits_on_background)
-            {
-                cmd.args(["--append-system-prompt", WAIT_ON_BACKGROUND_NOTE]);
+            if let Some(note) = request.mcp.as_ref().filter(|_| !config.naive_left_out).and_then(system_note) {
+                cmd.args(["--append-system-prompt", &note]);
             }
             // Delegation goes through that server's side chats only. A bare
             // tool name "removes the matching tools from Claude's context"
@@ -2776,12 +2792,13 @@ mod tests {
         };
         let waits = (McpServer::WAITS_ON_BACKGROUND_ENV, "1");
         assert_eq!(
-            appended(Some(server(&[(McpServer::CHAT_ID_ENV, "c1"), waits]))).as_deref(),
-            Some(WAIT_ON_BACKGROUND_NOTE)
+            appended(Some(server(&[(McpServer::CHAT_ID_ENV, "c1"), waits]))),
+            Some(format!("{NAIVE_TERMINAL_NOTE}\n\n{WAIT_ON_BACKGROUND_NOTE}"))
         );
-        // The tool not offered (no chat's server, or not one that waits):
-        // nothing is said of it.
-        assert_eq!(appended(Some(server(&[(McpServer::CHAT_ID_ENV, "c1")]))), None);
+        assert_eq!(
+            appended(Some(server(&[(McpServer::CHAT_ID_ENV, "c1")]))).as_deref(),
+            Some(NAIVE_TERMINAL_NOTE)
+        );
         assert_eq!(appended(Some(server(&[waits]))), None);
         assert_eq!(appended(Some(server(&[]))), None);
         assert_eq!(appended(None), None);
